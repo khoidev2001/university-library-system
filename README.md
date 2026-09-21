@@ -35,9 +35,9 @@ Browser → Frontend (Next.js 15) → Backend API (NestJS + Prisma + PostgreSQL)
 ```bash
 cp .env.example .env
 docker compose up --build
-# http://localhost        → frontend
-# http://localhost/api    → backend (Swagger: /api/docs)
-# http://localhost/ai     → AI service
+# http://localhost:8080          → frontend
+# http://localhost:8080/api/docs → Swagger backend
+# http://localhost:8080/api/health, /ai/health, /health
 ```
 
 ## Công cụ tài liệu
