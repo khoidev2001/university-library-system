@@ -87,7 +87,7 @@ Ba thẻ ngang:
 
 **Librarian — Thủ thư** (quyền Reader + nghiệp vụ quầy): CRUD sách, bản sao, danh mục · Cho mượn, nhận trả, báo mất · Ghi nhận thu phạt · Quản lý bạn đọc, khoá thẻ · Xem báo cáo, thấy dự báo AI.
 
-**Admin — Quản trị** (quyền Librarian + cấu hình): Tạo tài khoản thủ thư · Sửa chính sách mượn · Huấn luyện lại mô hình AI.
+**Admin — Quản trị** (quyền Librarian + cấu hình): Tạo tài khoản thủ thư · Sửa chính sách mượn · Nhập sách hàng loạt theo ISBN · Huấn luyện lại mô hình AI.
 
 Dòng dưới: **Actor phụ (hệ thống ngoài):** AI Service (gợi ý, dự báo) · Google Books API (mô tả sách theo ISBN khi nạp dữ liệu).
 
@@ -107,7 +107,7 @@ Tiêu đề: **Ai làm được gì**
 | Quản lý bạn đọc, khoá/mở thẻ | – | ✓ | ✓ |
 | Xem báo cáo thống kê | – | ✓ | ✓ |
 | Tạo tài khoản thủ thư | – | – | ✓ |
-| Sửa chính sách mượn, train lại AI | – | – | ✓ |
+| Sửa chính sách mượn, nhập sách theo ISBN, train lại AI | – | – | ✓ |
 
 - Hình: `docs/uml/use-case-overview.png` — nếu ảnh quá cao thì tách thành slide 5b "Use Case tổng quan" chỉ chứa ảnh.
 - *Ghi chú nói:* Bảng này là nguồn để vẽ Use Case Diagram ở LAB 2 và để viết RBAC guard ở LAB 3.
@@ -236,9 +236,9 @@ Ba cột:
 
 **2. Mô tả tổng quan** — 2.1 Bối cảnh (sơ đồ 3 dịch vụ) · 2.2 Chức năng F1–F10 · 2.3 Actor · 2.4 Ràng buộc · 2.5 Giả định · 2.6 Ngoài phạm vi
 
-**3. Yêu cầu cụ thể** — 3.1 Giao diện ngoài (UI, HW, SW, truyền thông) · 3.2 System Features: 48 FR có mã và ưu tiên · 3.3 NFR: 6 nhóm, 25 yêu cầu · 3.4 Business Rules: 12 BR
+**3. Yêu cầu cụ thể** — 3.1 Giao diện ngoài (UI, HW, SW, truyền thông) · 3.2 System Features: 48 FR có mã và ưu tiên · 3.3 NFR: 6 nhóm, 28 yêu cầu · 3.4 Business Rules: 12 BR
 
-Dòng dưới: **Phụ lục A** Product Backlog 20 US · **Phụ lục B** Ma trận truy vết US ↔ FR ↔ BR. File: `docs/srs/SRS.docx` (≈25 trang).
+Dòng dưới: **Phụ lục A** Product Backlog 20 US · **Phụ lục B** Ma trận truy vết US ↔ FR ↔ BR. File: `docs/srs/SRS.docx` (≈18 trang kèm hình).
 
 - *Ghi chú nói:* Điểm nhóm muốn nhấn: ma trận truy vết — mỗi US chỉ ra FR và BR nào, để LAB 2–4 kiểm tra được không sót yêu cầu.
 
@@ -246,7 +246,7 @@ Dòng dưới: **Phụ lục A** Product Backlog 20 US · **Phụ lục B** Ma t
 
 Tiêu đề: **Ba dịch vụ, một cơ sở dữ liệu**
 
-Hình: chèn `docs/uml/system-context.png` (đã vẽ sẵn: Trình duyệt → Frontend → Backend → PostgreSQL; Backend ↔ AI Service; Google Books API nối Backend "chỉ khi nạp dữ liệu").
+Hình: chèn `docs/uml/system-context.png` (đã vẽ sẵn: Trình duyệt → Frontend → Backend → PostgreSQL; Backend ↔ AI Service; Google Books API nối Backend khi nạp dữ liệu / nhập sách theo ISBN).
 
 Bảng công nghệ:
 

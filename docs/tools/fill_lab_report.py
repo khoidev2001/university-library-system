@@ -40,7 +40,7 @@ ACTORS = [
     "cho mượn tại quầy bằng mã vạch + mã bạn đọc, nhận trả, báo mất, ghi nhận thu phạt; quản lý "
     "bạn đọc (hồ sơ, khoá/mở thẻ); xem báo cáo thống kê; thấy dự báo nguy cơ trả trễ khi cho mượn.",
     "Admin (Quản trị): toàn bộ quyền Librarian; tạo tài khoản Librarian/Admin; cấu hình chính sách "
-    "mượn (số cuốn, hạn, gia hạn, mức phạt) theo loại bạn đọc; kích hoạt huấn luyện lại mô hình AI. "
+    "mượn (số cuốn, hạn, gia hạn, mức phạt) theo loại bạn đọc; nhập sách hàng loạt theo ISBN (Google Books); kích hoạt huấn luyện lại mô hình AI. "
     "Actor phụ (hệ thống ngoài): AI Service, Google Books API.",
 ]
 

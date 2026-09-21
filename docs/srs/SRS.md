@@ -105,7 +105,7 @@ ULS là hệ thống độc lập, xây dựng mới, không kế thừa hệ th
 - **Frontend** chạy trên trình duyệt, gọi Backend qua REST.
 - **Backend** là nguồn sự thật duy nhất về dữ liệu, thực thi toàn bộ quy tắc nghiệp vụ, cung cấp dữ liệu huấn luyện cho AI Service.
 - **AI Service** tách riêng, không kết nối trực tiếp cơ sở dữ liệu; cung cấp hai năng lực: gợi ý sách và dự báo trả trễ.
-- **Google Books API** là tích hợp bên ngoài, chỉ dùng ở bước nạp dữ liệu để lấy mô tả, nhà xuất bản, thể loại theo ISBN.
+- **Google Books API** là tích hợp bên ngoài, dùng khi nạp dữ liệu ban đầu và khi Admin nhập sách hàng loạt theo ISBN (FR-BOOK-05).
 
 ![Hình 2.1 — Sơ đồ bối cảnh hệ thống](../uml/system-context.png)
 
@@ -114,7 +114,7 @@ ULS là hệ thống độc lập, xây dựng mới, không kế thừa hệ th
 | # | Nhóm chức năng | Mô tả ngắn |
 |---|---|---|
 | F1 | Xác thực & phân quyền | Đăng ký, đăng nhập, ba vai trò Reader / Librarian / Admin |
-| F2 | Quản lý sách | CRUD đầu sách, tác giả, thể loại, bản sao vật lý (mã vạch, trạng thái, vị trí kệ) |
+| F2 | Quản lý sách | CRUD đầu sách, tác giả, thể loại, bản sao vật lý (mã vạch, trạng thái, vị trí kệ); nhập hàng loạt theo ISBN |
 | F3 | Quản lý bạn đọc | Xem hồ sơ, lịch sử mượn, khoá/mở thẻ, tạo tài khoản thủ thư |
 | F4 | Mượn – trả | Cho mượn tại quầy, trả, gia hạn, báo mất, tính phạt, ghi nhận thanh toán |
 | F5 | Tìm kiếm | Tìm theo tiêu đề / tác giả / thể loại / ISBN, lọc còn sách, phân trang |
@@ -132,14 +132,14 @@ ULS là hệ thống độc lập, xây dựng mới, không kế thừa hệ th
 |---|---|---|---|
 | **Reader (Bạn đọc)** | Sinh viên (STUDENT) hoặc giảng viên (LECTURER) của trường | Đăng ký, đăng nhập; tìm kiếm, xem sách; xem sách đang mượn, lịch sử, tiền phạt; tự gia hạn; đánh giá sách; nhận gợi ý | Số lượng lớn (hàng nghìn); dùng trên điện thoại và máy tính; kỹ năng tin học cơ bản |
 | **Librarian (Thủ thư)** | Nhân viên thư viện làm việc tại quầy | Toàn bộ quyền Reader (xem) + CRUD sách/bản sao/tác giả/thể loại; cho mượn, nhận trả, báo mất, ghi nhận thanh toán phạt; quản lý bạn đọc; xem báo cáo | 2–5 người; dùng máy tính tại quầy; cần thao tác nhanh, ít bước |
-| **Admin (Quản trị)** | Trưởng thư viện / phòng CNTT | Toàn bộ quyền Librarian + tạo tài khoản Librarian/Admin; cấu hình chính sách mượn | 1–2 người; ít thao tác nhưng có quyền cao |
+| **Admin (Quản trị)** | Trưởng thư viện / phòng CNTT | Toàn bộ quyền Librarian + tạo tài khoản Librarian/Admin; cấu hình chính sách mượn; nhập sách hàng loạt theo ISBN; huấn luyện lại AI | 1–2 người; ít thao tác nhưng có quyền cao |
 
 ### Actor phụ (hệ thống ngoài)
 
 | Actor | Vai trò |
 |---|---|
 | **AI Service** | Nhận yêu cầu từ Backend, trả về danh sách gợi ý / xác suất trả trễ; lấy dữ liệu huấn luyện từ Backend |
-| **Google Books API** | Cung cấp mô tả, nhà xuất bản, thể loại theo ISBN khi nạp dữ liệu ban đầu |
+| **Google Books API** | Cung cấp thông tin sách theo ISBN khi nạp dữ liệu ban đầu và khi nhập hàng loạt |
 
 ![Hình 2.2 — Phân cấp actor và quyền](../uml/actor-hierarchy.png)
 
@@ -199,7 +199,7 @@ ULS là hệ thống độc lập, xây dựng mới, không kế thừa hệ th
 | Backend ↔ AI Service | REST/JSON nội bộ | `GET /recommend`, `POST /predict-overdue`, `POST /train`, `GET /health` |
 | AI Service ↔ Backend | REST/JSON, header `X-Internal-Key` | `GET /internal/training-data` — dữ liệu huấn luyện |
 | Backend ↔ PostgreSQL | TCP, Prisma ORM | Lưu trữ |
-| Backend (seed) ↔ Google Books API | HTTPS | Lấy mô tả sách theo ISBN, tối đa 1.000 yêu cầu/ngày |
+| Backend ↔ Google Books API | HTTPS | Lấy thông tin sách theo ISBN (seed và FR-BOOK-05), tối đa 1.000 yêu cầu/ngày |
 
 ### 3.1.4. Giao diện truyền thông
 
@@ -230,6 +230,7 @@ Quy ước: mỗi FR có mã `FR-<nhóm>-<số>`, mức ưu tiên **Cao / Trung 
 | FR-BOOK-02 | Thủ thư sửa thông tin đầu sách. | Cao |
 | FR-BOOK-03 | Thủ thư xoá đầu sách chỉ khi không còn bản sao nào đang được mượn; nếu vi phạm trả lỗi `BOOK_HAS_ACTIVE_LOANS`. | Trung bình |
 | FR-BOOK-04 | Thủ thư quản lý danh mục tác giả và thể loại (thêm/sửa/xoá); không xoá thể loại đang có sách. | Trung bình |
+| FR-BOOK-05 | Admin nhập sách hàng loạt bằng danh sách ISBN: hệ thống gọi Google Books API lấy tiêu đề, tác giả, mô tả, nhà xuất bản, năm, thể loại, ảnh bìa rồi tạo đầu sách; ISBN không tìm thấy hoặc đã tồn tại được báo cáo lại, không làm dừng cả lô. | Thấp |
 | FR-COPY-01 | Thủ thư thêm bản sao cho một đầu sách với mã vạch duy nhất và vị trí kệ; bản sao mới có trạng thái AVAILABLE. | Cao |
 | FR-COPY-02 | Thủ thư cập nhật trạng thái bản sao trong tập {AVAILABLE, BORROWED, LOST, MAINTENANCE}; không thể đặt AVAILABLE cho bản sao đang có phiếu mượn ACTIVE. | Cao |
 | FR-COPY-03 | Hệ thống hiển thị số bản sao còn mượn được (AVAILABLE) của mỗi đầu sách. | Cao |
@@ -430,7 +431,7 @@ Quy ước Story Point theo Fibonacci (1, 2, 3, 5, 8). Ưu tiên: **Must** (bắ
 |---|---|---|
 | US01 | FR-AUTH-01 | — |
 | US02 | FR-AUTH-02, FR-AUTH-03, FR-AUTH-04, FR-AUTH-05 | — |
-| US03 | FR-BOOK-01, FR-BOOK-02, FR-BOOK-03 | BR-12 |
+| US03 | FR-BOOK-01, FR-BOOK-02, FR-BOOK-03, FR-BOOK-05 | BR-12 |
 | US04 | FR-COPY-01, FR-COPY-02, FR-COPY-03 | — |
 | US05 | FR-SEARCH-01, FR-SEARCH-02, FR-SEARCH-03 | — |
 | US06 | FR-SEARCH-04, FR-COPY-03 | — |
