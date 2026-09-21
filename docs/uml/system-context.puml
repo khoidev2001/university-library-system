@@ -1,0 +1,45 @@
+@startuml system-context
+' Sơ đồ bối cảnh hệ thống — SRS mục 2.1
+skinparam componentStyle rectangle
+skinparam defaultTextAlignment center
+skinparam rectangle {
+  BackgroundColor #F7F5F0
+  BorderColor #1B2A41
+}
+skinparam database {
+  BackgroundColor #ECE8DF
+  BorderColor #1B2A41
+}
+skinparam cloud {
+  BackgroundColor #FFFFFF
+  BorderColor #C8553D
+}
+
+actor "Reader / Librarian / Admin" as User
+
+rectangle "Trình duyệt" as Browser
+rectangle "Frontend\nNext.js 15 · TailwindCSS\n(Vercel)" as FE
+rectangle "Backend API\nNestJS · Prisma · JWT · Swagger\n(Render)" as BE
+rectangle "AI Service\nFastAPI · scikit-learn\n(Render)" as AI
+database "PostgreSQL 16\n(Neon)" as DB
+cloud "Google Books API" as GB
+
+User --> Browser
+Browser --> FE : HTTPS
+FE --> BE : REST/JSON\nBearer JWT
+BE --> DB : Prisma
+BE --> AI : GET /recommend\nPOST /predict-overdue\nPOST /train
+AI --> BE : GET /internal/training-data\n(X-Internal-Key)
+BE ..> GB : HTTPS\nchỉ khi nạp dữ liệu sách (ISBN)
+
+note right of AI
+  Không kết nối trực tiếp DB.
+  Gợi ý: TF-IDF + item-based CF.
+  Dự báo trả trễ: LogReg / RandomForest.
+end note
+note bottom of BE
+  Nguồn sự thật duy nhất.
+  Toàn bộ quy tắc nghiệp vụ BR-01…BR-12
+  nằm trong tầng Service.
+end note
+@enduml

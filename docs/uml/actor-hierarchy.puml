@@ -1,0 +1,44 @@
+@startuml actor-hierarchy
+' Phân cấp actor và quyền — SRS mục 2.3
+skinparam actorStyle awesome
+skinparam defaultTextAlignment center
+skinparam note {
+  BackgroundColor #F7F5F0
+  BorderColor #1B2A41
+}
+
+actor "Reader\n(Bạn đọc)" as Reader
+actor "Librarian\n(Thủ thư)" as Librarian
+actor "Admin\n(Quản trị)" as Admin
+actor "Student\n(Sinh viên)" as Student
+actor "Lecturer\n(Giảng viên)" as Lecturer
+
+Student -up-|> Reader
+Lecturer -up-|> Reader
+Librarian -up-|> Reader
+Admin -up-|> Librarian
+
+note right of Reader
+  Tìm kiếm, xem sách; xem sách đang mượn,
+  lịch sử, phạt; tự gia hạn; đánh giá; nhận gợi ý.
+  Chỉ truy cập dữ liệu của mình.
+end note
+note right of Librarian
+  + CRUD sách, bản sao, danh mục
+  + Cho mượn / trả / báo mất / thu phạt
+  + Quản lý bạn đọc, khoá thẻ; báo cáo
+end note
+note right of Admin
+  + Tạo tài khoản thủ thư
+  + Cấu hình chính sách mượn
+  + Huấn luyện lại AI
+end note
+note left of Student
+  3 cuốn · 14 ngày
+  gia hạn +7 ngày
+end note
+note left of Lecturer
+  5 cuốn · 30 ngày
+  gia hạn +14 ngày
+end note
+@enduml

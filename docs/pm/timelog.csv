@@ -1,0 +1,5 @@
+date,person,wbs_id,hours,note
+2026-09-21,SV1,1.1,3,Đọc đề bài 3 file; lập PLAN.md; review đối chiếu checklist
+2026-09-21,SV1,2.1,4,Viết SRS IEEE 830 (3 phần + 20 US + truy vết); xuất docx
+2026-09-21,SV1,2.2,1,Vẽ use-case tổng quan; actor hierarchy; system context (PlantUML)
+2026-09-21,SV1,1.2,1,Điền báo cáo mẫu LAB 1; brief slide

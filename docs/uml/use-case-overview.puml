@@ -1,0 +1,100 @@
+@startuml use-case-overview
+' Use Case tổng quan — Hệ thống Quản lý Thư viện Trường Đại học (ULS)
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #F7F5F0
+  BorderColor #1B2A41
+  ArrowColor #1B2A41
+}
+skinparam rectangle {
+  BackgroundColor #FFFFFF
+  BorderColor #1B2A41
+}
+
+actor "Reader\n(Bạn đọc: SV / GV)" as Reader
+actor "Librarian\n(Thủ thư)" as Librarian
+actor "Admin\n(Quản trị)" as Admin
+actor "AI Service" as AI <<hệ thống>>
+actor "Google Books API" as GB <<hệ thống>>
+
+Librarian -up-|> Reader
+Admin -up-|> Librarian
+
+rectangle "Hệ thống Quản lý Thư viện (ULS)" {
+  package "F1 Xác thực" {
+    usecase "Đăng ký tài khoản" as UC01
+    usecase "Đăng nhập" as UC02
+  }
+  package "F5 Tìm kiếm" {
+    usecase "Tìm kiếm sách" as UC05
+    usecase "Xem chi tiết sách" as UC06
+  }
+  package "F4 Mượn – trả (Reader)" {
+    usecase "Xem sách đang mượn\n& lịch sử" as UC10
+    usecase "Gia hạn sách" as UC09
+    usecase "Xem tiền phạt" as UC12a
+  }
+  package "F7 / F9 Đánh giá & AI" {
+    usecase "Đánh giá sách" as UC17
+    usecase "Nhận gợi ý sách" as UC18
+  }
+  package "F2 Quản lý sách" {
+    usecase "Quản lý đầu sách" as UC03
+    usecase "Quản lý bản sao" as UC04
+    usecase "Quản lý tác giả,\nthể loại" as UC20
+  }
+  package "F4 Mượn – trả (Quầy)" {
+    usecase "Cho mượn sách" as UC07
+    usecase "Nhận trả sách" as UC08
+    usecase "Ghi nhận sách mất" as UC11
+    usecase "Ghi nhận thu phạt" as UC12b
+    usecase "Dự báo nguy cơ\ntrả trễ" as UC19
+  }
+  package "F3 Quản lý bạn đọc" {
+    usecase "Tra cứu & khoá/mở\nthẻ bạn đọc" as UC13
+  }
+  package "F6 Thống kê" {
+    usecase "Xem báo cáo\nthống kê" as UC16
+  }
+  package "F3 / F8 Quản trị" {
+    usecase "Tạo tài khoản\nthủ thư" as UC14
+    usecase "Cấu hình chính\nsách mượn" as UC15
+    usecase "Huấn luyện lại\nmô hình AI" as UC21
+    usecase "Nạp dữ liệu sách" as UC22
+  }
+}
+
+Reader --> UC01
+Reader --> UC02
+Reader --> UC05
+Reader --> UC06
+Reader --> UC10
+Reader --> UC09
+Reader --> UC12a
+Reader --> UC17
+Reader --> UC18
+
+Librarian --> UC03
+Librarian --> UC04
+Librarian --> UC20
+Librarian --> UC07
+Librarian --> UC08
+Librarian --> UC11
+Librarian --> UC12b
+Librarian --> UC13
+Librarian --> UC16
+
+Admin --> UC14
+Admin --> UC15
+Admin --> UC21
+Admin --> UC22
+
+UC07 ..> UC19 : <<include>>
+UC08 ..> UC12b : <<extend>>\n(khi trả trễ)
+UC19 --> AI
+UC18 --> AI
+UC21 --> AI
+UC22 --> GB
+@enduml
