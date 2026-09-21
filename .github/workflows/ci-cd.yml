@@ -1,0 +1,87 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: uls
+          POSTGRES_PASSWORD: uls
+          POSTGRES_DB: uls_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U uls" --health-interval 5s --health-timeout 3s --health-retries 10
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: postgresql://uls:uls@localhost:5432/uls_test?schema=public
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: backend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm prisma generate
+      - run: pnpm lint
+      - run: pnpm build
+      - run: pnpm prisma db push --skip-generate
+      - run: pnpm test:cov
+      - run: pnpm test:e2e
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage
+
+  ai-service:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - run: pytest
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm build
+
+  deploy:
+    # Sprint 4: gọi Render Deploy Hook cho backend + ai-service; Vercel tự deploy qua GitHub integration
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [backend, ai-service, frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Deploy hooks sẽ được cấu hình ở Sprint 4 (RENDER_DEPLOY_HOOK_BACKEND, RENDER_DEPLOY_HOOK_AI)"

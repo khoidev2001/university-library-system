@@ -13,7 +13,7 @@ Hệ thống Quản lý Thư viện Trường Đại học — Đề tài 8, mô
 | Biểu đồ UML (PlantUML) | [docs/uml/](docs/uml/) |
 | Báo cáo 4 LAB (mẫu của GV) | [docs/report/LAB_Report.docx](docs/report/LAB_Report.docx) |
 | Kế hoạch quản lý dự án, EVA | [docs/pm/](docs/pm/) |
-| Product Backlog | GitHub Issues (label `user-story`) + Milestones theo sprint |
+| Product Backlog | [Issues](https://github.com/khoidev2001/university-library-system/issues?q=label%3Auser-story) (label `user-story`, milestone theo sprint) · [Projects](https://github.com/khoidev2001/university-library-system/projects) |
 
 ## Kiến trúc
 
@@ -35,9 +35,9 @@ Browser → Frontend (Next.js 15) → Backend API (NestJS + Prisma + PostgreSQL)
 ```bash
 cp .env.example .env
 docker compose up --build
-# http://localhost        → frontend
-# http://localhost/api    → backend (Swagger: /api/docs)
-# http://localhost/ai     → AI service
+# http://localhost:8080          → frontend
+# http://localhost:8080/api/docs → Swagger backend
+# http://localhost:8080/api/health, /ai/health, /health
 ```
 
 ## Công cụ tài liệu
@@ -52,6 +52,13 @@ python docs/tools/fill_lab_report.py docs/report/LAB_report_template.docx docs/r
 # Tạo backlog trên GitHub từ SRS
 python docs/tools/create_backlog.py --repo <owner>/<repo>
 ```
+
+## Tạo bảng Kanban (GitHub Projects) — làm một lần trên web
+
+1. Repo → tab **Projects** → **New project** → chọn **Board** → đặt tên `ULS Product Backlog`.
+2. Trong board: **+ Add item** → **Add from repository** → chọn tất cả issue có label `user-story`.
+3. **⋯ → Workflows** → bật *Auto-add to project* (lọc `label:user-story`) và *Item closed → Done*.
+4. Thêm field **Sprint** (single select: Sprint 1/2/3) hoặc dùng **Group by: Milestone** để xem theo sprint.
 
 ## Quy ước
 

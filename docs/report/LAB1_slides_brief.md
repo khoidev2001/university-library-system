@@ -12,7 +12,7 @@
 | Số slide | 15 slide (≈1 phút/slide) |
 | Ngôn ngữ | Tiếng Việt; thuật ngữ kỹ thuật giữ tiếng Anh (User Story, Acceptance Criteria, JWT…) |
 | Tỉ lệ | 16:9 |
-| Người trình bày | Nhóm [Số nhóm]: [Họ tên SV 1], [Họ tên SV 2], [Họ tên SV 3], [Họ tên SV 4] |
+| Người trình bày | Nhóm [Số nhóm]: Trần Đình Khôi (23Q74802012006), [Họ tên SV 2] |
 
 **Giảng viên chấm LAB 1 theo 4 tiêu chí** — slide phải cho thấy rõ từng tiêu chí đã đạt:
 
@@ -38,7 +38,7 @@
 - Eyebrow: `LAB 01 · Phân tích yêu cầu & Đặc tả phần mềm (SRS)`
 - Tiêu đề: **Hệ thống Quản lý Thư viện Trường Đại học**
 - Phụ đề: `Đề tài 8 — Actor · Product Backlog · SRS chuẩn IEEE 830`
-- Dòng dưới: Nhóm [Số nhóm] — 4 họ tên · Môn Công nghệ Phần mềm · GVHD: TS. Lê Tỷ Khánh · Khoa CNTT, ĐH Xây dựng Miền Trung · 22/09/2026
+- Dòng dưới: Nhóm [Số nhóm] — Trần Đình Khôi · [Họ tên SV 2] · Môn Công nghệ Phần mềm · GVHD: TS. Lê Tỷ Khánh · Khoa CNTT, ĐH Xây dựng Miền Trung · 22/09/2026
 - *Ghi chú nói:* Chào thầy và các bạn. Nhóm trình bày kết quả LAB 1: xác định actor, lập product backlog và viết SRS cho đề tài 8. Khoảng 15 phút, sau đó nhận câu hỏi.
 
 ### Slide 2 — Bài toán & mục tiêu

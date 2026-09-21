@@ -1,0 +1,187 @@
+// ERD — docs/PLAN.md mục 4. Chuẩn 3NF.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  READER
+  LIBRARIAN
+  ADMIN
+}
+
+enum MemberType {
+  STUDENT
+  LECTURER
+}
+
+enum CopyStatus {
+  AVAILABLE
+  BORROWED
+  LOST
+  MAINTENANCE
+}
+
+enum LoanStatus {
+  ACTIVE
+  RETURNED
+  LOST
+}
+
+enum FineType {
+  OVERDUE
+  LOST
+}
+
+model User {
+  id           Int         @id @default(autoincrement())
+  email        String      @unique
+  passwordHash String      @map("password_hash")
+  fullName     String      @map("full_name")
+  role         Role        @default(READER)
+  memberType   MemberType? @map("member_type")
+  memberCode   String?     @unique @map("member_code")
+  isActive     Boolean     @default(true) @map("is_active")
+  createdAt    DateTime    @default(now()) @map("created_at")
+
+  loans        Loan[]   @relation("LoanReader")
+  createdLoans Loan[]   @relation("LoanCreator")
+  ratings      Rating[]
+  finesPaid    Fine[]   @relation("FinePaidTo")
+
+  @@map("users")
+}
+
+// Chính sách mượn theo loại bạn đọc — Admin sửa qua UI (BR-10: chụp vào phiếu lúc tạo)
+model LoanPolicy {
+  id             Int        @id @default(autoincrement())
+  memberType     MemberType @unique @map("member_type")
+  maxBooks       Int        @map("max_books")
+  loanDays       Int        @map("loan_days")
+  renewLimit     Int        @map("renew_limit")
+  renewExtraDays Int        @map("renew_extra_days")
+  finePerDay     Int        @map("fine_per_day") // VND
+
+  @@map("loan_policies")
+}
+
+model Author {
+  id    Int          @id @default(autoincrement())
+  name  String
+  books BookAuthor[]
+
+  @@map("authors")
+}
+
+model Category {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  slug  String @unique
+  books Book[]
+
+  @@map("categories")
+}
+
+model Book {
+  id            Int      @id @default(autoincrement())
+  isbn          String?  @unique
+  title         String
+  description   String?
+  publisher     String?
+  publishedYear Int?     @map("published_year")
+  price         Int      @default(0) // VND, dùng cho phạt mất sách (BR-08)
+  coverUrl      String?  @map("cover_url")
+  goodbooksId   Int?     @unique @map("goodbooks_id")
+  categoryId    Int      @map("category_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  category Category     @relation(fields: [categoryId], references: [id])
+  authors  BookAuthor[]
+  copies   BookCopy[]
+  ratings  Rating[]
+
+  @@index([title])
+  @@map("books")
+}
+
+// n-n sách ↔ tác giả
+model BookAuthor {
+  bookId   Int @map("book_id")
+  authorId Int @map("author_id")
+
+  book   Book   @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  author Author @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@id([bookId, authorId])
+  @@map("book_authors")
+}
+
+model BookCopy {
+  id            Int        @id @default(autoincrement())
+  bookId        Int        @map("book_id")
+  barcode       String     @unique
+  status        CopyStatus @default(AVAILABLE)
+  shelfLocation String?    @map("shelf_location")
+
+  book  Book   @relation(fields: [bookId], references: [id])
+  loans Loan[]
+
+  @@map("book_copies")
+}
+
+model Loan {
+  id                   Int        @id @default(autoincrement())
+  copyId               Int        @map("copy_id")
+  userId               Int        @map("user_id")
+  createdById          Int        @map("created_by")
+  borrowedAt           DateTime   @default(now()) @map("borrowed_at")
+  dueAt                DateTime   @map("due_at")
+  returnedAt           DateTime?  @map("returned_at")
+  renewedCount         Int        @default(0) @map("renewed_count")
+  status               LoanStatus @default(ACTIVE)
+  predictedOverdueRisk Float?     @map("predicted_overdue_risk")
+
+  copy      BookCopy @relation(fields: [copyId], references: [id])
+  user      User     @relation("LoanReader", fields: [userId], references: [id])
+  createdBy User     @relation("LoanCreator", fields: [createdById], references: [id])
+  fines     Fine[]
+
+  // "Quá hạn" suy ra: returnedAt IS NULL AND dueAt < now() (BR-09)
+  @@index([userId, status])
+  @@index([dueAt])
+  @@map("loans")
+}
+
+model Fine {
+  id        Int       @id @default(autoincrement())
+  loanId    Int       @map("loan_id")
+  type      FineType
+  amount    Int // VND
+  paidAt    DateTime? @map("paid_at")
+  paidToId  Int?      @map("paid_to")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  loan   Loan  @relation(fields: [loanId], references: [id])
+  paidTo User? @relation("FinePaidTo", fields: [paidToId], references: [id])
+
+  @@index([paidAt])
+  @@map("fines")
+}
+
+model Rating {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  bookId    Int      @map("book_id")
+  score     Int // 1-5
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+  book Book @relation(fields: [bookId], references: [id])
+
+  @@unique([userId, bookId])
+  @@map("ratings")
+}
