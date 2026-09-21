@@ -45,10 +45,8 @@ ACTORS = [
 ]
 
 TEAM = [
-    ("[Họ tên SV 1]", "Scrum Master / Fullstack", "SRS & Backlog (LAB1), Docker & CI/CD (LAB4)", "100%"),
-    ("[Họ tên SV 2]", "Backend Developer", "ERD & API (LAB2), NestJS + Prisma (LAB3)", "100%"),
-    ("[Họ tên SV 3]", "Frontend Developer", "UML (LAB2), Next.js UI (LAB3)", "100%"),
-    ("[Họ tên SV 4]", "AI/ML Specialist", "Actor & NFR (LAB1), AI Service gợi ý + dự báo (LAB3)", "100%"),
+    ("Trần Đình Khôi", "Scrum Master / Backend & DevOps", "SRS & Backlog (LAB1), ERD & API (LAB2), NestJS + Prisma (LAB3), Docker & CI/CD (LAB4)", "100%"),
+    ("[Họ tên SV 2]", "Frontend & AI/ML", "Actor & NFR (LAB1), UML (LAB2), Next.js UI + AI Service (LAB3), Kiểm thử (LAB4)", "100%"),
 ]
 
 BACKLOG = [
@@ -115,8 +113,7 @@ def fill(template: Path, output: Path) -> None:
     set_cell(cover.cell(0, 1), "Nhóm [Số nhóm] - Lớp [Tên Lớp/Khóa]")
     set_cell(
         cover.cell(2, 1),
-        "1. [Họ và tên SV 1] - MSSV: [MSSV 1] (Nhóm trưởng)\n2. [Họ và tên SV 2] - MSSV: [MSSV 2]\n"
-        "3. [Họ và tên SV 3] - MSSV: [MSSV 3]\n4. [Họ và tên SV 4] - MSSV: [MSSV 4]",
+        "1. Trần Đình Khôi - MSSV: 23Q74802012006 (Nhóm trưởng)\n2. [Họ và tên SV 2] - MSSV: [MSSV 2]",
     )
     set_cell(cover.cell(3, 1), f"GitHub: {REPO_URL}")
     set_cell(cover.cell(4, 1), "Demo Web: (cập nhật ở LAB 4)")
@@ -124,6 +121,8 @@ def fill(template: Path, output: Path) -> None:
     # Part I
     set_text(paragraphs[7], PROJECT_SUMMARY)
     team = doc.tables[1]
+    while len(team.rows) > len(TEAM) + 1:
+        team._tbl.remove(team.rows[-1]._tr)
     for row, values in zip(team.rows[1:], TEAM):
         for cell, value in zip(row.cells, values):
             set_cell(cell, value)
