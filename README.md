@@ -10,7 +10,9 @@ Hệ thống Quản lý Thư viện Trường Đại học — Đề tài 8, mô
 |---|---|
 | Kế hoạch tổng thể | [docs/PLAN.md](docs/PLAN.md) |
 | SRS (IEEE 830) — LAB 1 | [docs/srs/SRS.md](docs/srs/SRS.md) · [SRS.docx](docs/srs/SRS.docx) |
-| Biểu đồ UML (PlantUML) | [docs/uml/](docs/uml/) |
+| Tài liệu thiết kế (SDD) — LAB 2 | [docs/design/SDD.md](docs/design/SDD.md) · [SDD.docx](docs/design/SDD.docx) — kiến trúc, UML, ERD, đặc tả API |
+| Biểu đồ UML (PlantUML + PNG) | [docs/uml/](docs/uml/) — use case, class, 3 sequence, activity, architecture |
+| ERD + DDL (sinh từ Prisma) | [docs/erd/](docs/erd/) |
 | Báo cáo 4 LAB (mẫu của GV) | [docs/report/LAB_Report.docx](docs/report/LAB_Report.docx) |
 | Kế hoạch quản lý dự án, EVA | [docs/pm/](docs/pm/) |
 | Product Backlog | [Issues](https://github.com/khoidev2001/university-library-system/issues?q=label%3Auser-story) (label `user-story`, milestone theo sprint) · [Projects](https://github.com/khoidev2001/university-library-system/projects) |
@@ -45,7 +47,10 @@ docker compose up --build
 ```bash
 # Render UML
 docker run --rm -v "$PWD/docs/uml:/data" plantuml/plantuml -tpng -charset UTF-8 "/data/*.puml"
-# SRS.md → SRS.docx
+# ERD từ Prisma schema (chạy lại sau mỗi lần đổi schema)
+python docs/tools/prisma_to_erd.py && cp backend/prisma/migrations/*/migration.sql docs/erd/ddl.sql
+# SRS.md / SDD.md → .docx
+python docs/tools/md_to_docx.py docs/design/SDD.md docs/design/SDD.docx
 python docs/tools/md_to_docx.py docs/srs/SRS.md docs/srs/SRS.docx
 # Điền báo cáo mẫu
 python docs/tools/fill_lab_report.py docs/report/LAB_report_template.docx docs/report/LAB_Report.docx

@@ -1,0 +1,56 @@
+@startuml sequence-return-fine
+' Sequence 2 — Nhận trả sách, tự tính phạt quá hạn, thu tiền (US08, US12)
+skinparam sequenceMessageAlign center
+skinparam participant {
+  BackgroundColor #F7F5F0
+  BorderColor #1B2A41
+}
+actor "Thủ thư" as L
+participant "Frontend" as FE
+participant "LoansController" as LC
+participant "LoansService" as S
+participant "FinesService" as F
+participant "FinesController" as FC
+database "PostgreSQL" as DB
+
+== Nhận trả ==
+L -> FE : Quét barcode sách trả
+FE -> LC : POST /api/loans/{id}/return
+LC -> S : returnCopy(loanId, librarianId)
+activate S
+S -> DB : SELECT loan JOIN copy JOIN user
+alt loan.status != ACTIVE
+  S --> LC : 409 LOAN_NOT_ACTIVE
+end
+S -> F : calculateOverdue(loan, policy, now)
+note right of F
+  days = ceil((now - due_at) / 1 ngày)
+  amount = max(0, days) x fine_per_day   (BR-07)
+end note
+F --> S : amount
+S -> DB : BEGIN
+S -> DB : UPDATE loan SET status=RETURNED, returned_at=now
+S -> DB : UPDATE copy SET status=AVAILABLE
+alt amount > 0
+  S -> F : createFine(loan, OVERDUE, amount)
+  F -> DB : INSERT fine
+end
+S -> DB : COMMIT
+S --> LC : {loan, fine?}
+deactivate S
+LC --> FE : 200 {loan, fine: {amount: 15000}}
+FE --> L : "Trả trễ 3 ngày — phạt 15.000đ"
+
+== Thu tiền phạt ==
+L -> FE : Bấm "Đã thu"
+FE -> FC : POST /api/fines/{id}/pay
+FC -> F : pay(fineId, librarianId)
+F -> DB : SELECT fine
+alt fine.paid_at != null
+  F --> FC : 409 FINE_ALREADY_PAID
+end
+F -> DB : UPDATE fine SET paid_at=now, paid_to=librarianId
+F --> FC : fine
+FC --> FE : 200 {fine}
+FE --> L : Công nợ bạn đọc = 0, được mượn lại
+@enduml

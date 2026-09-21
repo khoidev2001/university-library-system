@@ -1,0 +1,48 @@
+@startuml sequence-recommend
+' Sequence 3 — Gợi ý sách cá nhân hoá (US18) và huấn luyện mô hình
+skinparam sequenceMessageAlign center
+skinparam participant {
+  BackgroundColor #F7F5F0
+  BorderColor #1B2A41
+}
+actor "Bạn đọc" as R
+participant "Frontend" as FE
+participant "RecommendationsController" as C
+participant "RecommendationsService" as S
+participant "AiClient" as AI
+participant "AI Service\n(FastAPI)" as AIS
+participant "InternalController\n(Backend)" as INT
+database "PostgreSQL" as DB
+
+== Huấn luyện (khi AI Service khởi động hoặc POST /train) ==
+AIS -> INT : GET /api/internal/training-data\nX-Internal-Key
+INT -> DB : SELECT books, loans, ratings, users.member_type
+INT --> AIS : {books[], interactions[]}
+AIS -> AIS : TF-IDF(title+authors+category+description)\nItem-based CF trên ma trận user x book\nGiữ model trong bộ nhớ + /tmp/*.joblib
+
+== Gợi ý ==
+R -> FE : Mở trang "Gợi ý cho bạn"
+FE -> C : GET /api/recommendations/me\nAuthorization: Bearer JWT
+C -> S : forUser(userId, k=10)
+activate S
+S -> AI : recommend(userId, 10)
+AI -> AIS : GET /recommend?user_id=&k=10 (timeout 3s)
+alt user có lịch sử
+  AIS -> AIS : score = 0.5 content + 0.5 CF\nloại sách đã mượn
+  AIS --> AI : {book_ids: [...]}
+else cold-start
+  AIS --> AI : {book_ids: top mượn nhiều}
+end
+AI --> S : bookIds
+S -> DB : SELECT books WHERE id IN (...)\nkèm số bản AVAILABLE
+S --> C : books[]
+deactivate S
+C --> FE : 200 {items: [...]}
+FE --> R : Lưới 10 sách gợi ý
+alt AI Service lỗi / timeout
+  AI --> S : AiUnavailable
+  S --> C : []
+  C --> FE : 200 {items: [], reason: "AI_UNAVAILABLE"}
+  FE --> R : "Chưa có gợi ý"
+end
+@enduml

@@ -49,7 +49,10 @@ def shade_cell(cell, hex_fill: str) -> None:
 
 
 def split_row(line: str) -> list[str]:
-    return [c.strip() for c in line.strip().strip("|").split("|")]
+    # an escaped pipe inside a cell is a literal pipe, not a column separator
+    placeholder = chr(1)
+    cells = line.strip().strip("|").replace(chr(92) + "|", placeholder).split("|")
+    return [c.strip().replace(placeholder, "|") for c in cells]
 
 
 def is_separator(line: str) -> bool:

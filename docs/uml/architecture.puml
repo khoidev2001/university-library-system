@@ -1,0 +1,86 @@
+@startuml architecture
+' Sơ đồ kiến trúc hệ thống — API Gateway, Services, Database, tích hợp ngoài (checklist LAB 2)
+skinparam componentStyle rectangle
+skinparam defaultTextAlignment center
+skinparam component {
+  BackgroundColor #F7F5F0
+  BorderColor #1B2A41
+}
+skinparam database {
+  BackgroundColor #ECE8DF
+  BorderColor #1B2A41
+}
+skinparam cloud {
+  BackgroundColor #FFFFFF
+  BorderColor #C8553D
+}
+skinparam node {
+  BackgroundColor #FFFFFF
+  BorderColor #6A7179
+}
+
+actor "Reader / Librarian / Admin" as User
+
+node "Trình duyệt" {
+  [Next.js App Router\nTailwind - TanStack Query] as FE
+}
+
+node "API Gateway\nNginx (local :8080) / Vercel + Render (cloud)" as GW {
+  [/ → frontend] as R1
+  [/api/* → backend] as R2
+  [/ai/* → ai-service] as R3
+}
+
+node "Backend — NestJS (Modular Monolith)" as BE {
+  [Auth\nJWT - RBAC] as Auth
+  [Books - Authors\nCategories - Copies] as Books
+  [Users\n(Bạn đọc)] as Users
+  [Loans - Fines\nPolicies] as Loans
+  [Ratings] as Ratings
+  [Reports] as Reports
+  [Recommendations] as Rec
+  [Internal\n(training-data)] as Internal
+  [Prisma ORM] as Prisma
+  [Exception Filter\nValidationPipe - Swagger] as Cross
+}
+
+node "AI Service — FastAPI" as AI {
+  [Recommender\nTF-IDF + item-CF] as Recm
+  [Overdue Model\nLogReg / RandomForest] as Ovd
+  [Data Client] as DC
+}
+
+database "PostgreSQL 16\n(Neon)" as DB
+cloud "Google Books API" as GB
+
+User --> FE
+FE --> GW : HTTPS / REST-JSON
+R2 --> Auth
+R3 --> AI : /health, /metrics
+Auth --> Books
+Auth --> Users
+Auth --> Loans
+Auth --> Ratings
+Auth --> Reports
+Auth --> Rec
+Rec --> Recm : GET /recommend
+Loans --> Ovd : POST /predict-overdue\n(timeout 2s, fallback)
+DC --> Internal : GET /internal/training-data\nX-Internal-Key
+Books --> Prisma
+Users --> Prisma
+Loans --> Prisma
+Ratings --> Prisma
+Reports --> Prisma
+Internal --> Prisma
+Prisma --> DB
+Books ..> GB : lookup ISBN\n(seed - nhập hàng loạt)
+
+note bottom of AI
+  Không kết nối DB.
+  Train lại khi khởi động / POST /train.
+end note
+note right of Cross
+  Áp dụng cho mọi module:
+  lỗi { statusCode, error, message, path, timestamp }
+end note
+@enduml
