@@ -14,6 +14,7 @@ from docx import Document
 from docx.shared import Cm
 
 UML_DIR = Path(__file__).resolve().parents[1] / "uml"
+ERD_DIR = Path(__file__).resolve().parents[1] / "erd"
 
 REPO_URL = "https://github.com/khoidev2001/university-library-system"
 SRS_URL = f"{REPO_URL}/blob/main/docs/srs/SRS.docx"
@@ -97,6 +98,21 @@ def set_picture(paragraph, image: Path, width_cm: float = 16) -> None:
     paragraph.runs[0].add_picture(str(image), width=Cm(width_cm))
 
 
+def insert_after(paragraph, text: str = "", image: Path | None = None, width_cm: float = 16):
+    """Insert a new paragraph right after `paragraph`, cloning its style; returns it."""
+    new_p = copy.deepcopy(paragraph._p)
+    for child in list(new_p):
+        if child.tag.endswith("}r") or child.tag.endswith("}hyperlink"):
+            new_p.remove(child)
+    paragraph._p.addnext(new_p)
+    from docx.text.paragraph import Paragraph
+    new_para = Paragraph(new_p, paragraph._parent)
+    run = new_para.add_run(text)
+    if image is not None:
+        run.add_picture(str(image), width=Cm(width_cm))
+    return new_para
+
+
 def clone_row(table, template_row):
     new_tr = copy.deepcopy(template_row._tr)
     table._tbl.append(new_tr)
@@ -155,6 +171,42 @@ def fill(template: Path, output: Path) -> None:
         "dự báo trả trễ (include) → tạo phiếu; khi nhận trả trễ, hệ thống tự tạo khoản phạt (extend).",
     )
     set_picture(paragraphs[22], UML_DIR / "use-case-overview.png", width_cm=15)
+
+    # LAB 2 b) Class, c) Sequence, d) ERD — tài liệu đầy đủ: docs/design/SDD.docx
+    set_text(
+        paragraphs[23],
+        "b) Biểu đồ Lớp (Class Diagram): gói Domain gồm 10 entity ánh xạ 1-1 với Prisma schema "
+        "(User, LoanPolicy, Book, Author, Category, BookCopy, Loan, Fine, Rating + 5 enum); gói Application "
+        "gồm 10 service NestJS và 2 client (AiClient, GoogleBooksClient). LoansService là trung tâm nghiệp vụ, "
+        "phụ thuộc PoliciesService, FinesService, CopiesService và AiClient.",
+    )
+    set_picture(paragraphs[24], UML_DIR / "class-diagram.png", width_cm=16)
+    set_text(
+        paragraphs[25],
+        "c) Biểu đồ Tuần tự (Sequence Diagram): luồng quan trọng nhất là Cho mượn sách tại quầy kèm dự báo AI "
+        "(US07, US19): 5 điều kiện chặn BR-01…BR-05, gọi AI Service với timeout 2 giây (fallback risk = null), "
+        "transaction tạo phiếu + đổi trạng thái bản sao. Hai luồng còn lại: Nhận trả + tính phạt + thu tiền, "
+        "và Gợi ý sách (huấn luyện + phục vụ).",
+    )
+    set_picture(paragraphs[26], UML_DIR / "sequence-borrow.png", width_cm=16)
+    p_seq2 = insert_after(paragraphs[26], "Sequence 2 — Nhận trả sách, tính phạt, thu tiền (US08, US12):")
+    p_seq2_img = insert_after(p_seq2, "", UML_DIR / "sequence-return-fine.png", 15)
+    p_seq3 = insert_after(p_seq2_img, "Sequence 3 — Gợi ý sách cá nhân hoá (US18):")
+    p_seq3_img = insert_after(p_seq3, "", UML_DIR / "sequence-recommend.png", 15)
+    p_act = insert_after(p_seq3_img, "Activity Diagram — quy trình cho mượn sách tại quầy:")
+    insert_after(p_act, "", UML_DIR / "activity-borrow.png", 12)
+    set_text(
+        paragraphs[27],
+        "d) Thiết kế Cơ sở dữ liệu (Database ERD): ERD sinh tự động từ Prisma schema, 10 bảng chuẩn 3NF. "
+        "Bảng chính: users (tài khoản 3 vai trò, member_type cho bạn đọc), loan_policies (chính sách mượn theo "
+        "loại bạn đọc), books/authors/categories (n-n qua book_authors), book_copies (bản sao có barcode, trạng thái), "
+        "loans (phiếu mượn, due_at, renewed_count, predicted_overdue_risk), fines (phạt OVERDUE/LOST, paid_at), "
+        "ratings (UNIQUE user-book). DDL đầy đủ: docs/erd/ddl.sql (migration Prisma). Sơ đồ kiến trúc và đặc tả "
+        "API đầy đủ (Method, URL, Request Body, Response Code, mã lỗi) trong docs/design/SDD.docx.",
+    )
+    set_picture(paragraphs[28], ERD_DIR / "erd.png", width_cm=16)
+    p_arch = insert_after(paragraphs[28], "Sơ đồ kiến trúc — API Gateway, Services, Database, tích hợp ngoài:")
+    insert_after(p_arch, "", UML_DIR / "architecture.png", 16)
 
     doc.save(output)
 

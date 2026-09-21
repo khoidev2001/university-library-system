@@ -1,0 +1,197 @@
+@startuml class-diagram
+' Class Diagram — tầng domain (entity theo Prisma) + tầng service của Backend NestJS
+skinparam classAttributeIconSize 0
+skinparam class {
+  BackgroundColor #F7F5F0
+  BorderColor #1B2A41
+}
+skinparam package {
+  BackgroundColor #FFFFFF
+  BorderColor #6A7179
+}
+
+package "Domain (Prisma entities)" {
+  enum Role {
+    READER
+    LIBRARIAN
+    ADMIN
+  }
+  enum MemberType {
+    STUDENT
+    LECTURER
+  }
+  enum CopyStatus {
+    AVAILABLE
+    BORROWED
+    LOST
+    MAINTENANCE
+  }
+  enum LoanStatus {
+    ACTIVE
+    RETURNED
+    LOST
+  }
+  enum FineType {
+    OVERDUE
+    LOST
+  }
+
+  class User {
+    +id: int
+    +email: string
+    +passwordHash: string
+    +fullName: string
+    +role: Role
+    +memberType: MemberType?
+    +memberCode: string?
+    +isActive: boolean
+    +createdAt: Date
+  }
+  class LoanPolicy {
+    +id: int
+    +memberType: MemberType
+    +maxBooks: int
+    +loanDays: int
+    +renewLimit: int
+    +renewExtraDays: int
+    +finePerDay: int
+  }
+  class Book {
+    +id: int
+    +isbn: string?
+    +title: string
+    +description: string?
+    +publisher: string?
+    +publishedYear: int?
+    +price: int
+    +coverUrl: string?
+  }
+  class Author {
+    +id: int
+    +name: string
+  }
+  class Category {
+    +id: int
+    +name: string
+    +slug: string
+  }
+  class BookCopy {
+    +id: int
+    +barcode: string
+    +status: CopyStatus
+    +shelfLocation: string?
+  }
+  class Loan {
+    +id: int
+    +borrowedAt: Date
+    +dueAt: Date
+    +returnedAt: Date?
+    +renewedCount: int
+    +status: LoanStatus
+    +predictedOverdueRisk: float?
+    +isOverdue(now): boolean
+    +overdueDays(now): int
+  }
+  class Fine {
+    +id: int
+    +type: FineType
+    +amount: int
+    +paidAt: Date?
+    +createdAt: Date
+  }
+  class Rating {
+    +id: int
+    +score: int
+    +createdAt: Date
+  }
+
+  User "1" -- "0..*" Loan : reader
+  User "1" -- "0..*" Loan : createdBy
+  User "1" -- "0..*" Rating
+  User "0..1" -- "0..*" Fine : paidTo
+  Book "1" -- "1..*" BookCopy
+  Book "*" -- "1..*" Author
+  Book "*" -- "1" Category
+  Book "1" -- "0..*" Rating
+  BookCopy "1" -- "0..*" Loan
+  Loan "1" -- "0..*" Fine
+}
+
+package "Application (NestJS services)" {
+  class AuthService {
+    +register(dto): User
+    +login(email, password): AccessToken
+    +validate(token): JwtPayload
+  }
+  class UsersService {
+    +findAll(query): Page<User>
+    +findOne(id): User
+    +setActive(id, isActive): User
+    +createStaff(dto): User
+  }
+  class BooksService {
+    +search(query): Page<Book>
+    +create(dto): Book
+    +update(id, dto): Book
+    +remove(id): void
+    +importByIsbn(isbns): ImportReport
+  }
+  class CopiesService {
+    +create(bookId, dto): BookCopy
+    +updateStatus(id, status): BookCopy
+  }
+  class PoliciesService {
+    +getFor(memberType): LoanPolicy
+    +update(memberType, dto): LoanPolicy
+  }
+  class LoansService {
+    +borrow(barcode, memberCode, librarianId): Loan
+    +returnCopy(loanId, librarianId): ReturnResult
+    +renew(loanId, userId): Loan
+    +reportLost(loanId, librarianId): LostResult
+    +findMine(userId): Loan[]
+    -assertCanBorrow(user, policy, copy): void
+  }
+  class FinesService {
+    +calculateOverdue(loan, policy, at): int
+    +createFine(loan, type, amount): Fine
+    +pay(fineId, librarianId): Fine
+    +unpaidTotal(userId): int
+  }
+  class RatingsService {
+    +rate(userId, bookId, score): Rating
+  }
+  class ReportsService {
+    +topBooks(from, to, n): TopBook[]
+    +overdueReaders(): OverdueRow[]
+    +loansByMonth(): MonthCount[]
+    +inventoryByCategory(): InventoryRow[]
+  }
+  class RecommendationsService {
+    +forUser(userId, k): Book[]
+  }
+  class AiClient {
+    -timeoutMs: int = 2000
+    +recommend(userId, k): int[]
+    +predictOverdue(features): float?
+  }
+  class GoogleBooksClient {
+    +lookup(isbn): BookInfo?
+  }
+
+  LoansService --> PoliciesService
+  LoansService --> FinesService
+  LoansService --> CopiesService
+  LoansService --> AiClient : predictOverdue
+  RecommendationsService --> AiClient : recommend
+  RecommendationsService --> BooksService
+  BooksService --> GoogleBooksClient
+  RatingsService --> LoansService : đã mượn?
+}
+
+LoansService ..> Loan
+LoansService ..> LoanPolicy
+FinesService ..> Fine
+BooksService ..> Book
+UsersService ..> User
+@enduml

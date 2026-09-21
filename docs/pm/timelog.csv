@@ -5,3 +5,5 @@ date,person,wbs_id,hours,note
 2026-09-21,SV1,1.2,1,Điền báo cáo mẫu LAB 1; brief slide
 2026-09-21,SV1,1.3,3,Scaffold backend/frontend/ai-service; docker compose; CI; kiểm chứng 3 /health
 2026-09-21,SV1,7.1,1,Tạo repo GitHub; 20 issue backlog; milestone; PR scaffold
+2026-09-22,SV1,3.1,3,Class + 3 Sequence + Activity + Architecture (PlantUML); ERD sinh từ Prisma
+2026-09-22,SV1,3.2,3,SDD: kiến trúc, mô tả bảng, 3NF, đặc tả API 45 endpoint, mã lỗi; điền báo cáo LAB 2

@@ -1,0 +1,152 @@
+@startuml erd
+' Sinh tự động từ backend/prisma/schema.prisma bằng docs/tools/prisma_to_erd.py — KHÔNG sửa tay
+hide circle
+skinparam linetype ortho
+skinparam entity {
+  BackgroundColor #F7F5F0
+  BorderColor #1B2A41
+}
+
+entity "users" as User {
+  * id : integer <<PK>>
+  --
+  * email : varchar <<UQ>>
+  * password_hash : varchar
+  * full_name : varchar
+  * role : Role <<enum>>
+    member_type : MemberType <<enum>>
+    member_code : varchar <<UQ>>
+  * is_active : boolean
+  * created_at : timestamp
+}
+
+entity "loan_policies" as LoanPolicy {
+  * id : integer <<PK>>
+  --
+  * member_type : MemberType <<UQ,enum>>
+  * max_books : integer
+  * loan_days : integer
+  * renew_limit : integer
+  * renew_extra_days : integer
+  * fine_per_day : integer
+}
+
+entity "authors" as Author {
+  * id : integer <<PK>>
+  --
+  * name : varchar
+}
+
+entity "categories" as Category {
+  * id : integer <<PK>>
+  --
+  * name : varchar <<UQ>>
+  * slug : varchar <<UQ>>
+}
+
+entity "books" as Book {
+  * id : integer <<PK>>
+  --
+    isbn : varchar <<UQ>>
+  * title : varchar
+    description : varchar
+    publisher : varchar
+    published_year : integer
+  * price : integer
+    cover_url : varchar
+    goodbooks_id : integer <<UQ>>
+  * category_id : integer <<FK>>
+  * created_at : timestamp
+}
+
+entity "book_authors" as BookAuthor {
+  * book_id : integer <<PK>>
+  * author_id : integer <<PK>>
+  --
+}
+
+entity "book_copies" as BookCopy {
+  * id : integer <<PK>>
+  --
+  * book_id : integer <<FK>>
+  * barcode : varchar <<UQ>>
+  * status : CopyStatus <<enum>>
+    shelf_location : varchar
+}
+
+entity "loans" as Loan {
+  * id : integer <<PK>>
+  --
+  * copy_id : integer <<FK>>
+  * user_id : integer <<FK>>
+  * created_by : integer <<FK>>
+  * borrowed_at : timestamp
+  * due_at : timestamp
+    returned_at : timestamp
+  * renewed_count : integer
+  * status : LoanStatus <<enum>>
+    predicted_overdue_risk : double
+}
+
+entity "fines" as Fine {
+  * id : integer <<PK>>
+  --
+  * loan_id : integer <<FK>>
+  * type : FineType <<enum>>
+  * amount : integer
+    paid_at : timestamp
+    paid_to : integer <<FK>>
+  * created_at : timestamp
+}
+
+entity "ratings" as Rating {
+  * id : integer <<PK>>
+  --
+  * user_id : integer <<FK>>
+  * book_id : integer <<FK>>
+  * score : integer
+  * created_at : timestamp
+  .. UNIQUE(userId, bookId) ..
+}
+
+enum Role {
+  READER
+  LIBRARIAN
+  ADMIN
+}
+
+enum MemberType {
+  STUDENT
+  LECTURER
+}
+
+enum CopyStatus {
+  AVAILABLE
+  BORROWED
+  LOST
+  MAINTENANCE
+}
+
+enum LoanStatus {
+  ACTIVE
+  RETURNED
+  LOST
+}
+
+enum FineType {
+  OVERDUE
+  LOST
+}
+
+Category ||--o{ Book : categoryId
+Book ||--o{ BookAuthor : bookId
+Author ||--o{ BookAuthor : authorId
+Book ||--o{ BookCopy : bookId
+BookCopy ||--o{ Loan : copyId
+User ||--o{ Loan : userId
+User ||--o{ Loan : createdById
+Loan ||--o{ Fine : loanId
+User |o--o{ Fine : paidToId
+User ||--o{ Rating : userId
+Book ||--o{ Rating : bookId
+@enduml

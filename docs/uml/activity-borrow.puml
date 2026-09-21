@@ -1,0 +1,58 @@
+@startuml activity-borrow
+' Activity Diagram — quy trình cho mượn sách tại quầy (BR-01…BR-05, FR-LOAN-01/02)
+skinparam activity {
+  BackgroundColor #F7F5F0
+  BorderColor #1B2A41
+  DiamondBackgroundColor #ECE8DF
+}
+|Thủ thư|
+start
+:Quét mã vạch bản sao;
+:Nhập mã bạn đọc;
+|Hệ thống|
+:Tra cứu bạn đọc và bản sao;
+if (Bạn đọc tồn tại,\nrole = READER, thẻ hoạt động?) then (không)
+  :Lỗi NOT_A_READER /\nACCOUNT_LOCKED;
+  stop
+else (có)
+endif
+if (Bản sao AVAILABLE?) then (không)
+  :Lỗi COPY_NOT_AVAILABLE;
+  stop
+else (có)
+endif
+:Lấy chính sách mượn\ntheo loại bạn đọc;
+if (Số phiếu ACTIVE\n< max_books?) then (không)
+  :Lỗi LOAN_LIMIT_REACHED;
+  stop
+else (có)
+endif
+if (Có phiếu quá hạn?) then (có)
+  :Lỗi HAS_OVERDUE_LOAN;
+  stop
+else (không)
+endif
+if (Còn phạt chưa trả?) then (có)
+  :Lỗi UNPAID_FINE;
+  stop
+else (không)
+endif
+fork
+  :Gọi AI dự báo trả trễ\n(timeout 2s);
+  if (Có kết quả?) then (có)
+    :risk = p;
+  else (không)
+    :risk = null;
+  endif
+fork again
+  :Tính due_at =\nhôm nay + loan_days;
+end fork
+:BEGIN transaction;
+:Tạo phiếu mượn ACTIVE;
+:Bản sao → BORROWED;
+:COMMIT;
+|Thủ thư|
+:Xem hạn trả và\nbadge nguy cơ trả trễ;
+:Giao sách cho bạn đọc;
+stop
+@enduml

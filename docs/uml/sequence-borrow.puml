@@ -1,0 +1,63 @@
+@startuml sequence-borrow
+' Sequence 1 — Cho mượn sách tại quầy, kèm dự báo nguy cơ trả trễ (US07, US19)
+skinparam sequenceMessageAlign center
+skinparam participant {
+  BackgroundColor #F7F5F0
+  BorderColor #1B2A41
+}
+actor "Thủ thư" as L
+participant "Frontend\n(Quầy mượn)" as FE
+participant "LoansController" as C
+participant "LoansService" as S
+participant "PoliciesService" as P
+participant "FinesService" as F
+participant "AiClient" as AI
+participant "AI Service\n(FastAPI)" as AIS
+database "PostgreSQL" as DB
+
+L -> FE : Quét barcode + nhập mã bạn đọc
+FE -> C : POST /api/loans {barcode, memberCode}\nAuthorization: Bearer JWT
+C -> C : RolesGuard: LIBRARIAN | ADMIN
+C -> S : borrow(barcode, memberCode, librarianId)
+activate S
+S -> DB : SELECT user WHERE member_code
+S -> DB : SELECT copy WHERE barcode
+alt user.role != READER hoặc thẻ khoá
+  S --> C : 409 NOT_A_READER / ACCOUNT_LOCKED
+end
+alt copy.status != AVAILABLE
+  S --> C : 409 COPY_NOT_AVAILABLE
+end
+S -> P : getFor(user.memberType)
+P --> S : policy {maxBooks, loanDays, ...}
+S -> DB : COUNT loans ACTIVE của user
+alt count >= policy.maxBooks
+  S --> C : 409 LOAN_LIMIT_REACHED
+end
+S -> DB : EXISTS loan ACTIVE AND due_at < now
+alt có sách quá hạn
+  S --> C : 409 HAS_OVERDUE_LOAN
+end
+S -> F : unpaidTotal(user.id)
+F -> DB : SUM fines WHERE paid_at IS NULL
+F --> S : total
+alt total > 0
+  S --> C : 409 UNPAID_FINE
+end
+S -> AI : predictOverdue(features)
+AI -> AIS : POST /predict-overdue (timeout 2s)
+alt AI trả lời kịp
+  AIS --> AI : {risk: 0.72}
+  AI --> S : 0.72
+else timeout / lỗi
+  AI --> S : null (fallback, không chặn)
+end
+S -> DB : BEGIN
+S -> DB : INSERT loan (due_at = now + loanDays,\npredicted_overdue_risk)
+S -> DB : UPDATE copy SET status = BORROWED
+S -> DB : COMMIT
+S --> C : loan
+deactivate S
+C --> FE : 201 {loan, dueAt, overdueRisk}
+FE --> L : Hiển thị hạn trả + badge "Nguy cơ trả trễ 72%"
+@enduml
