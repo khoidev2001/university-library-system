@@ -42,6 +42,35 @@ docker compose up --build
 # http://localhost:8080/api/health, /ai/health, /health
 ```
 
+## Dữ liệu mẫu & tài khoản demo
+
+```bash
+# Lần đầu (hoặc SEED_RESET=1 để làm lại): 1.000 sách, 2.000 bạn đọc, 229k rating, 2 chính sách mượn
+docker compose exec backend pnpm prisma db seed
+# hoặc chạy ngoài Docker: DATABASE_URL=postgresql://uls:uls@localhost:5434/uls pnpm --dir backend prisma db seed
+```
+
+| Tài khoản | Mật khẩu | Vai trò |
+|---|---|---|
+| `admin@uls.local` | `Admin@123` | ADMIN |
+| `librarian1@uls.local`, `librarian2@uls.local` | `Admin@123` | LIBRARIAN |
+| `reader@uls.local` (SV), `lecturer@uls.local` (GV) | `Reader@123` | READER |
+| `sv<id>@student.uls.local`, `gv<id>@uls.local` (2.000 bạn đọc goodbooks) | `Reader@123` | READER |
+
+Subset goodbooks-10k nằm sẵn trong `backend/prisma/seed/data/`. Để tạo lại hoặc bổ sung mô tả sách từ Google Books (cần `GOOGLE_BOOKS_API_KEY`, không có key sẽ bị 429):
+
+```bash
+GOOGLE_BOOKS_API_KEY=... python backend/prisma/seed/prepare_goodbooks.py --google 1000
+```
+
+## Kiểm thử
+
+```bash
+pnpm --dir backend test:cov                       # unit, mock Prisma, ngưỡng 80%
+DATABASE_URL=... pnpm --dir backend test:e2e      # supertest trên Postgres thật
+python backend/test/smoke-sprint1.py http://localhost:8080/api   # 48 lời gọi API trên hệ thống đang chạy + seed
+```
+
 ## Công cụ tài liệu
 
 ```bash
