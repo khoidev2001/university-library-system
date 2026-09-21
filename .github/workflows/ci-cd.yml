@@ -23,6 +23,7 @@ jobs:
         working-directory: backend
     env:
       DATABASE_URL: postgresql://uls:uls@localhost:5432/uls_test?schema=public
+      JWT_SECRET: ci-e2e-secret
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
