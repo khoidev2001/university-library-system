@@ -62,7 +62,7 @@ rectangle "Hệ thống Quản lý Thư viện (ULS)" {
     usecase "Tạo tài khoản\nthủ thư" as UC14
     usecase "Cấu hình chính\nsách mượn" as UC15
     usecase "Huấn luyện lại\nmô hình AI" as UC21
-    usecase "Nạp dữ liệu sách" as UC22
+    usecase "Nhập sách hàng loạt\ntheo ISBN" as UC22
   }
 }
 

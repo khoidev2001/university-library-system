@@ -30,7 +30,7 @@ FE --> BE : REST/JSON\nBearer JWT
 BE --> DB : Prisma
 BE --> AI : GET /recommend\nPOST /predict-overdue\nPOST /train
 AI --> BE : GET /internal/training-data\n(X-Internal-Key)
-BE ..> GB : HTTPS\nchỉ khi nạp dữ liệu sách (ISBN)
+BE ..> GB : HTTPS\nnạp dữ liệu / nhập sách theo ISBN
 
 note right of AI
   Không kết nối trực tiếp DB.
