@@ -7,3 +7,6 @@ date,person,wbs_id,hours,note
 2026-09-21,SV1,7.1,1,Tạo repo GitHub; 20 issue backlog; milestone; PR scaffold
 2026-09-22,SV1,3.1,3,Class + 3 Sequence + Activity + Architecture (PlantUML); ERD sinh từ Prisma
 2026-09-22,SV1,3.2,3,SDD: kiến trúc, mô tả bảng, 3NF, đặc tả API 45 endpoint, mã lỗi; điền báo cáo LAB 2
+2026-09-22,SV1,4.1,4,Auth JWT + RBAC + throttle; Users; Policies; unit test
+2026-09-22,SV1,4.1,4,Books/Authors/Categories/Copies + Google Books client; import ISBN; unit test
+2026-09-22,SV1,4.6,3,Seed goodbooks-10k subset + thể loại từ tag; e2e Postgres thật; smoke test 48 lời gọi

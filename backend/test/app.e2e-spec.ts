@@ -10,6 +10,7 @@ describeWithDb('Health (e2e)', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
+    process.env.JWT_SECRET ??= 'e2e-secret';
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
