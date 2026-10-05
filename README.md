@@ -46,11 +46,12 @@ docker compose up --build
 
 ```bash
 # Lần đầu (hoặc SEED_RESET=1 để làm lại): 1.000 sách, 2.000 bạn đọc, 229k rating, 2 chính sách mượn
-docker compose exec backend pnpm prisma db seed
+docker compose exec backend pnpm seed:prod
 # hoặc chạy ngoài Docker: DATABASE_URL=postgresql://uls:uls@localhost:5434/uls pnpm --dir backend prisma db seed
 
 # Lịch sử mượn/trả MÔ PHỎNG (cần cho báo cáo thống kê và cho AI ở Sprint 3)
-pnpm --dir backend seed:loans        # SEED_LOANS_RESET=1 để sinh lại, SEED_LOANS_MAX để đổi số lượng
+docker compose exec backend pnpm seed:loans:prod   # SEED_LOANS_RESET=1 để sinh lại
+# Ngoài Docker dùng ts-node: pnpm --dir backend prisma db seed và pnpm --dir backend seed:loans
 ```
 
 | Tài khoản | Mật khẩu | Vai trò |
@@ -78,6 +79,20 @@ pytest --rootdir ai-service ai-service                            # 23 test AI, 
 ```
 
 Hai script smoke chạy trên hệ thống **đang chạy** với dữ liệu seed — đây là bằng chứng mức "chạy thật" cho phần đụng cơ sở dữ liệu và tiền.
+
+## Giao diện
+
+| Trang | Đường dẫn | Dành cho |
+|---|---|---|
+| Trang chủ, tra cứu, chi tiết sách, quy định | `/`, `/books`, `/books/[id]`, `/quy-dinh` | Công khai, dựng phía máy chủ cho SEO |
+| Đăng nhập, đăng ký | `/login`, `/register` | Công khai |
+| Sách của tôi, tiền phạt, gợi ý | `/my/loans`, `/my/fines`, `/recommendations` | Bạn đọc |
+| Quầy mượn trả, quản lý bạn đọc, thống kê | `/librarian/desk`, `/librarian/readers`, `/reports` | Thủ thư |
+| Chính sách mượn | `/admin/policies` | Quản trị |
+
+SEO: tiêu đề và mô tả riêng từng trang, canonical, Open Graph, dữ liệu có cấu trúc schema.org (`Library` kèm `SearchAction`, `Book` kèm `aggregateRating` và tình trạng còn sách, `FAQPage` cho trang quy định), `sitemap.xml` và `robots.txt` sinh tự động, khu vực tài khoản bị chặn khỏi chỉ mục.
+
+Trình duyệt luôn gọi `/api` cùng origin qua gateway, không nhúng tên miền lúc build, nên một image chạy được ở mọi tên miền và cổng. Ảnh chụp màn hình trong `docs/report/screenshots/`.
 
 ## AI Service
 

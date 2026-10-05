@@ -10,12 +10,16 @@ RUN pnpm install --frozen-lockfile && pnpm prisma generate
 
 FROM deps AS build
 COPY . .
-RUN pnpm build
+# Biên dịch cả seed: image production không chạy được ts-node
+RUN pnpm build && pnpm build:seed
 
 FROM base AS runtime
 ENV NODE_ENV=production
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
+COPY --from=build /app/dist-seed ./dist-seed
+# Seed đã biên dịch đọc dữ liệu cạnh chính nó
+COPY prisma/seed/data ./dist-seed/data
 COPY prisma ./prisma
 COPY package.json ./
 EXPOSE 3000

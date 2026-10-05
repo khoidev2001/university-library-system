@@ -16,3 +16,6 @@ date,person,wbs_id,hours,note
 2026-10-05,SV1,4.6,4,AI Service: recommender TF-IDF + item-CF, overdue model LogReg vs RF, metrics; 23 test
 2026-10-05,SV1,4.7,3,Backend: internal/training-data, recommendations, fallback 503; sua seed cho nhat quan thoi gian
 2026-10-05,SV1,2.3,1,Cap nhat SDD, README va dien muc LAB 3 trong bao cao bang so do that
+2026-10-05,SV1,4.2,5,Frontend: 12 trang, thanh phan dung chung, SEO va schema.org, giao dien thich ung
+2026-10-05,SV1,4.2,2,Kiem thu giao dien tren trinh duyet that; chup 7 anh man hinh cho bao cao
+2026-10-05,SV1,2.3,1,Dien muc giao dien LAB 3 vao bao cao; cap nhat README
