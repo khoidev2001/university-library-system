@@ -7,6 +7,7 @@ import { RolesGuard } from './common/guards/roles.guard';
 import { AuthModule } from './modules/auth/auth.module';
 import { CatalogModule } from './modules/books/catalog.module';
 import { HealthModule } from './modules/health/health.module';
+import { CirculationModule } from './modules/loans/circulation.module';
 import { PoliciesModule } from './modules/policies/policies.module';
 import { UsersModule } from './modules/users/users.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -22,6 +23,7 @@ import { PrismaModule } from './prisma/prisma.module';
     UsersModule,
     PoliciesModule,
     CatalogModule,
+    CirculationModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

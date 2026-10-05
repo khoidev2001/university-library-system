@@ -46,7 +46,7 @@ export interface PrismaMock {
     Fn
   >;
   loan: Record<'count' | 'findUnique' | 'findMany' | 'create' | 'update', Fn>;
-  fine: Record<'aggregate' | 'create' | 'findMany' | 'update', Fn>;
+  fine: Record<'aggregate' | 'count' | 'create' | 'findUnique' | 'findMany' | 'update', Fn>;
   rating: Record<'aggregate' | 'deleteMany' | 'upsert', Fn>;
   $transaction: Fn;
   $queryRaw: Fn;
@@ -103,7 +103,7 @@ export function createPrismaMock(): PrismaMock {
       'upsert',
     ),
     loan: model('count', 'findUnique', 'findMany', 'create', 'update'),
-    fine: model('aggregate', 'create', 'findMany', 'update'),
+    fine: model('aggregate', 'count', 'create', 'findUnique', 'findMany', 'update'),
     rating: model('aggregate', 'deleteMany', 'upsert'),
     $transaction: jest.fn(),
     $queryRaw: jest.fn(),
