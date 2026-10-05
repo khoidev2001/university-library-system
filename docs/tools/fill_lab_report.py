@@ -37,7 +37,7 @@ PROJECT_SUMMARY = (
 )
 
 ACTORS = [
-    "Reader (Bạn đọc — Sinh viên/Giảng viên): đăng ký, đăng nhập; tìm kiếm và xem chi tiết sách; "
+    "Reader (Bạn đọc: Sinh viên/Giảng viên): đăng ký, đăng nhập; tìm kiếm và xem chi tiết sách; "
     "xem sách đang mượn, lịch sử, tiền phạt; tự gia hạn; đánh giá sách đã mượn; nhận gợi ý AI. "
     "Chỉ truy cập dữ liệu của chính mình.",
     "Librarian (Thủ thư): toàn bộ quyền xem của Reader; CRUD đầu sách, tác giả, thể loại, bản sao; "
@@ -127,7 +127,7 @@ def fill(template: Path, output: Path) -> None:
     paragraphs = doc.paragraphs
 
     # Cover
-    set_text(paragraphs[3], "Đề tài : Đề tài 8 — Phần mềm Quản lý Thư viện Trường Đại học")
+    set_text(paragraphs[3], "Đề tài : Đề tài 8: Phần mềm Quản lý Thư viện Trường Đại học")
     cover = doc.tables[0]
     set_cell(cover.cell(0, 1), "Nhóm [Số nhóm] - Lớp [Tên Lớp/Khóa]")
     set_cell(
@@ -165,7 +165,7 @@ def fill(template: Path, output: Path) -> None:
         "c) Tài liệu SRS: Link đường dẫn tới file tài liệu đặc tả SRS đầy đủ chuẩn IEEE 830: " + SRS_URL,
     )
 
-    # LAB 2 a) Use Case overview — already drawn in LAB 1
+    # LAB 2 a) Use Case overview: already drawn in LAB 1
     set_text(
         paragraphs[21],
         "a) Biểu đồ Use Case Tổng Quan: Ba actor chính (Reader, Librarian, Admin) với quyền lồng nhau "
@@ -175,7 +175,7 @@ def fill(template: Path, output: Path) -> None:
     )
     set_picture(paragraphs[22], UML_DIR / "use-case-overview.png", width_cm=15)
 
-    # LAB 2 b) Class, c) Sequence, d) ERD — tài liệu đầy đủ: docs/design/SDD.docx
+    # LAB 2 b) Class, c) Sequence, d) ERD: tài liệu đầy đủ: docs/design/SDD.docx
     set_text(
         paragraphs[23],
         "b) Biểu đồ Lớp (Class Diagram): gói Domain gồm 10 entity ánh xạ 1-1 với Prisma schema "
@@ -192,11 +192,11 @@ def fill(template: Path, output: Path) -> None:
         "và Gợi ý sách (huấn luyện + phục vụ).",
     )
     set_picture(paragraphs[26], UML_DIR / "sequence-borrow.png", width_cm=16)
-    p_seq2 = insert_after(paragraphs[26], "Sequence 2 — Nhận trả sách, tính phạt, thu tiền (US08, US12):")
+    p_seq2 = insert_after(paragraphs[26], "Sequence 2: Nhận trả sách, tính phạt, thu tiền (US08, US12):")
     p_seq2_img = insert_after(p_seq2, "", UML_DIR / "sequence-return-fine.png", 15)
-    p_seq3 = insert_after(p_seq2_img, "Sequence 3 — Gợi ý sách cá nhân hoá (US18):")
+    p_seq3 = insert_after(p_seq2_img, "Sequence 3: Gợi ý sách cá nhân hoá (US18):")
     p_seq3_img = insert_after(p_seq3, "", UML_DIR / "sequence-recommend.png", 15)
-    p_act = insert_after(p_seq3_img, "Activity Diagram — quy trình cho mượn sách tại quầy:")
+    p_act = insert_after(p_seq3_img, "Activity Diagram: quy trình cho mượn sách tại quầy:")
     insert_after(p_act, "", UML_DIR / "activity-borrow.png", 12)
     set_text(
         paragraphs[27],
@@ -208,10 +208,10 @@ def fill(template: Path, output: Path) -> None:
         "API đầy đủ (Method, URL, Request Body, Response Code, mã lỗi) trong docs/design/SDD.docx.",
     )
     set_picture(paragraphs[28], ERD_DIR / "erd.png", width_cm=16)
-    p_arch = insert_after(paragraphs[28], "Sơ đồ kiến trúc — API Gateway, Services, Database, tích hợp ngoài:")
+    p_arch = insert_after(paragraphs[28], "Sơ đồ kiến trúc: API Gateway, Services, Database, tích hợp ngoài:")
     insert_after(p_arch, "", UML_DIR / "architecture.png", 16)
 
-    # LAB 3 — kết quả Backend API và AI/ML (số đo thật, xem docs/tools/lab3_content.py).
+    # LAB 3: kết quả Backend API và AI/ML (số đo thật, xem docs/tools/lab3_content.py).
     # Ảnh giao diện (đoạn 33, 34) để trống tới khi frontend hoàn thiện.
     set_text(paragraphs[31], BACKEND_SUMMARY)
     set_text(paragraphs[32], "b) Kết quả giao diện Frontend UI/UX:")

@@ -1,5 +1,5 @@
 @startuml sequence-return-fine
-' Sequence 2 — Nhận trả sách, tự tính phạt quá hạn, thu tiền (US08, US12)
+' Sequence 2: Nhận trả sách, tự tính phạt quá hạn, thu tiền (US08, US12)
 skinparam sequenceMessageAlign center
 skinparam participant {
   BackgroundColor #F7F5F0
@@ -41,7 +41,7 @@ S -> DB : COMMIT
 S --> LC : {loan, fine?}
 deactivate S
 LC --> FE : 200 {loan, fine: {amount: 15000}}
-FE --> L : "Trả trễ 3 ngày — phạt 15.000đ"
+FE --> L : "Trả trễ 3 ngày: phạt 15.000đ"
 
 == Thu tiền phạt ==
 L -> FE : Bấm "Đã thu"

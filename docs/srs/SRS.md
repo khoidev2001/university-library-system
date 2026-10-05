@@ -1,16 +1,16 @@
 # TÀI LIỆU ĐẶC TẢ YÊU CẦU PHẦN MỀM (SRS)
 
-## Hệ thống Quản lý Thư viện Trường Đại học — University Library System (ULS)
+## Hệ thống Quản lý Thư viện Trường Đại học: University Library System (ULS)
 
 | | |
 |---|---|
 | Phiên bản | 1.0 |
 | Ngày | 22/09/2026 |
 | Chuẩn áp dụng | IEEE Std 830-1998 |
-| Môn học | Công nghệ Phần mềm — Khoa CNTT, Trường ĐH Xây dựng Miền Trung |
+| Môn học | Công nghệ Phần mềm, Khoa CNTT, Trường ĐH Xây dựng Miền Trung |
 | Giảng viên hướng dẫn | TS. Lê Tỷ Khánh |
-| Đề tài | Đề tài 8 — Phần mềm Quản lý Thư viện Trường Đại học |
-| Nhóm thực hiện | Trần Đình Khôi — 23Q74802012006 (Nhóm trưởng); [Họ tên SV 2] — [MSSV 2] |
+| Đề tài | Đề tài 8: Phần mềm Quản lý Thư viện Trường Đại học |
+| Nhóm thực hiện | Trần Đình Khôi, 23Q74802012006 (Nhóm trưởng); [Họ tên SV 2], [MSSV 2] |
 
 ### Lịch sử phiên bản
 
@@ -47,7 +47,7 @@ ULS là ứng dụng web quản lý nghiệp vụ thư viện của một trư�
 
 | Thuật ngữ | Ý nghĩa |
 |---|---|
-| ULS | University Library System — hệ thống này |
+| ULS | University Library System, hệ thống này |
 | Reader / Bạn đọc | Người dùng có quyền mượn sách: sinh viên (STUDENT) hoặc giảng viên (LECTURER) |
 | Librarian / Thủ thư | Nhân viên thư viện, thao tác nghiệp vụ tại quầy |
 | Admin / Quản trị | Người quản trị hệ thống, cấu hình chính sách và tài khoản |
@@ -55,13 +55,13 @@ ULS là ứng dụng web quản lý nghiệp vụ thư viện của một trư�
 | Copy / Bản sao | Một cuốn sách vật lý cụ thể, có mã vạch riêng |
 | Loan / Phiếu mượn | Bản ghi một lần mượn một bản sao |
 | Fine / Phạt | Khoản tiền phát sinh do trả trễ hoặc làm mất sách |
-| Loan Policy / Chính sách mượn | Bộ tham số: số cuốn tối đa, số ngày mượn, số lần gia hạn, mức phạt — theo loại bạn đọc |
+| Loan Policy / Chính sách mượn | Bộ tham số: số cuốn tối đa, số ngày mượn, số lần gia hạn, mức phạt, theo loại bạn đọc |
 | US | User Story |
-| AC | Acceptance Criteria — điều kiện nghiệm thu |
+| AC | Acceptance Criteria, điều kiện nghiệm thu |
 | FR / NFR | Functional / Non-functional Requirement |
-| BR | Business Rule — quy tắc nghiệp vụ |
-| JWT | JSON Web Token — cơ chế xác thực không trạng thái |
-| RBAC | Role-Based Access Control — phân quyền theo vai trò |
+| BR | Business Rule, quy tắc nghiệp vụ |
+| JWT | JSON Web Token, cơ chế xác thực không trạng thái |
+| RBAC | Role-Based Access Control, phân quyền theo vai trò |
 | API | Application Programming Interface (REST/JSON) |
 | SRS | Software Requirements Specification |
 
@@ -69,7 +69,7 @@ ULS là ứng dụng web quản lý nghiệp vụ thư viện của một trư�
 
 1. IEEE Std 830-1998, *IEEE Recommended Practice for Software Requirements Specifications*.
 2. TS. Lê Tỷ Khánh, *Hướng dẫn thực hành LAB kèm tài liệu hỗ trợ Bài tập lớn*, môn Công nghệ Phần mềm, 2026.
-3. *10 Bài tập nhóm — Kế hoạch Quản lý Dự án*, Đề tài 8, 2026.
+3. *10 Bài tập nhóm: Kế hoạch Quản lý Dự án*, Đề tài 8, 2026.
 4. Bộ dữ liệu goodbooks-10k (CC BY-SA 4.0), https://github.com/zygmuntz/goodbooks-10k.
 5. Google Books API, https://developers.google.com/books.
 6. Tài liệu NestJS, Next.js, Prisma, FastAPI, scikit-learn (phiên bản hiện hành).
@@ -107,7 +107,7 @@ ULS là hệ thống độc lập, xây dựng mới, không kế thừa hệ th
 - **AI Service** tách riêng, không kết nối trực tiếp cơ sở dữ liệu; cung cấp hai năng lực: gợi ý sách và dự báo trả trễ.
 - **Google Books API** là tích hợp bên ngoài, dùng khi nạp dữ liệu ban đầu và khi Admin nhập sách hàng loạt theo ISBN (FR-BOOK-05).
 
-![Hình 2.1 — Sơ đồ bối cảnh hệ thống](../uml/system-context.png)
+![Hình 2.1: Sơ đồ bối cảnh hệ thống](../uml/system-context.png)
 
 ## 2.2. Chức năng sản phẩm (tóm tắt)
 
@@ -141,14 +141,14 @@ ULS là hệ thống độc lập, xây dựng mới, không kế thừa hệ th
 | **AI Service** | Nhận yêu cầu từ Backend, trả về danh sách gợi ý / xác suất trả trễ; lấy dữ liệu huấn luyện từ Backend |
 | **Google Books API** | Cung cấp thông tin sách theo ISBN khi nạp dữ liệu ban đầu và khi nhập hàng loạt |
 
-![Hình 2.2 — Phân cấp actor và quyền](../uml/actor-hierarchy.png)
+![Hình 2.2: Phân cấp actor và quyền](../uml/actor-hierarchy.png)
 
-![Hình 2.3 — Sơ đồ Use Case tổng quan](../uml/use-case-overview.png)
+![Hình 2.3: Sơ đồ Use Case tổng quan](../uml/use-case-overview.png)
 
 ## 2.4. Ràng buộc
 
 - **Công nghệ:** Frontend Next.js 15 + TypeScript + TailwindCSS; Backend NestJS 10 + Prisma + PostgreSQL 16; AI Service FastAPI + scikit-learn. Đóng gói Docker, CI/CD GitHub Actions.
-- **Triển khai:** hạ tầng miễn phí (Vercel, Render free, Neon free) — không có thẻ thanh toán; dịch vụ backend có thể "ngủ" sau 15 phút không dùng.
+- **Triển khai:** hạ tầng miễn phí (Vercel, Render free, Neon free), không có thẻ thanh toán; dịch vụ backend có thể "ngủ" sau 15 phút không dùng.
 - **Thời gian:** 8 tuần, theo 4 LAB của môn học.
 - **Nhân lực:** nhóm sinh viên 1–2 người làm chính (báo cáo ghi 4 thành viên).
 - **Quy ước mã nguồn:** tên file, hàm, biến bằng tiếng Anh; giao diện và tài liệu tiếng Việt.
@@ -197,7 +197,7 @@ ULS là hệ thống độc lập, xây dựng mới, không kế thừa hệ th
 |---|---|---|
 | Frontend ↔ Backend | REST/JSON qua HTTPS, xác thực Bearer JWT | Toàn bộ chức năng; đặc tả OpenAPI 3 sinh từ Swagger |
 | Backend ↔ AI Service | REST/JSON nội bộ | `GET /recommend`, `POST /predict-overdue`, `POST /train`, `GET /health` |
-| AI Service ↔ Backend | REST/JSON, header `X-Internal-Key` | `GET /internal/training-data` — dữ liệu huấn luyện |
+| AI Service ↔ Backend | REST/JSON, header `X-Internal-Key` | `GET /internal/training-data`, dữ liệu huấn luyện |
 | Backend ↔ PostgreSQL | TCP, Prisma ORM | Lưu trữ |
 | Backend ↔ Google Books API | HTTPS | Lấy thông tin sách theo ISBN (seed và FR-BOOK-05), tối đa 1.000 yêu cầu/ngày |
 
@@ -210,7 +210,7 @@ ULS là hệ thống độc lập, xây dựng mới, không kế thừa hệ th
 
 Quy ước: mỗi FR có mã `FR-<nhóm>-<số>`, mức ưu tiên **Cao / Trung bình / Thấp**.
 
-### 3.2.1. F1 — Xác thực và phân quyền
+### 3.2.1. F1: Xác thực và phân quyền
 
 **Mô tả:** Người dùng đăng ký, đăng nhập và được phân quyền theo vai trò.
 
@@ -222,7 +222,7 @@ Quy ước: mỗi FR có mã `FR-<nhóm>-<số>`, mức ưu tiên **Cao / Trung 
 | FR-AUTH-04 | Người dùng xem được thông tin tài khoản của mình (`/auth/me`). | Trung bình |
 | FR-AUTH-05 | Tài khoản bị khoá (`is_active = false`) không đăng nhập được, trả lỗi `ACCOUNT_LOCKED`. | Cao |
 
-### 3.2.2. F2 — Quản lý sách và bản sao
+### 3.2.2. F2: Quản lý sách và bản sao
 
 | Mã | Yêu cầu | Ưu tiên |
 |---|---|---|
@@ -235,7 +235,7 @@ Quy ước: mỗi FR có mã `FR-<nhóm>-<số>`, mức ưu tiên **Cao / Trung 
 | FR-COPY-02 | Thủ thư cập nhật trạng thái bản sao trong tập {AVAILABLE, BORROWED, LOST, MAINTENANCE}; không thể đặt AVAILABLE cho bản sao đang có phiếu mượn ACTIVE. | Cao |
 | FR-COPY-03 | Hệ thống hiển thị số bản sao còn mượn được (AVAILABLE) của mỗi đầu sách. | Cao |
 
-### 3.2.3. F3 — Quản lý bạn đọc
+### 3.2.3. F3: Quản lý bạn đọc
 
 | Mã | Yêu cầu | Ưu tiên |
 |---|---|---|
@@ -245,7 +245,7 @@ Quy ước: mỗi FR có mã `FR-<nhóm>-<số>`, mức ưu tiên **Cao / Trung 
 | FR-USER-04 | Thủ thư sửa loại bạn đọc (STUDENT ↔ LECTURER). | Thấp |
 | FR-USER-05 | Admin tạo tài khoản có vai trò LIBRARIAN hoặc ADMIN. | Cao |
 
-### 3.2.4. F4 — Mượn, trả, gia hạn, phạt
+### 3.2.4. F4: Mượn, trả, gia hạn, phạt
 
 | Mã | Yêu cầu | Ưu tiên |
 |---|---|---|
@@ -260,7 +260,7 @@ Quy ước: mỗi FR có mã `FR-<nhóm>-<số>`, mức ưu tiên **Cao / Trung 
 | FR-FINE-02 | Thủ thư xem danh sách khoản phạt chưa thanh toán và ghi nhận đã thu (`paid_at`, người thu). | Cao |
 | FR-LOAN-08 | Mọi lỗi nghiệp vụ trả HTTP 400/409 với mã lỗi rõ ràng: `LOAN_LIMIT_REACHED`, `HAS_OVERDUE_LOAN`, `UNPAID_FINE`, `COPY_NOT_AVAILABLE`, `ACCOUNT_LOCKED`, `RENEW_LIMIT_REACHED`, `LOAN_OVERDUE_CANNOT_RENEW`, `NOT_A_READER`. | Cao |
 
-### 3.2.5. F5 — Tìm kiếm
+### 3.2.5. F5: Tìm kiếm
 
 | Mã | Yêu cầu | Ưu tiên |
 |---|---|---|
@@ -269,7 +269,7 @@ Quy ước: mỗi FR có mã `FR-<nhóm>-<số>`, mức ưu tiên **Cao / Trung 
 | FR-SEARCH-03 | Phân trang: mặc định 20 kết quả/trang, tối đa 100; trả về tổng số kết quả. | Cao |
 | FR-SEARCH-04 | Xem chi tiết đầu sách: thông tin, tác giả, số bản còn, điểm đánh giá trung bình, danh sách bản sao (thủ thư). | Cao |
 
-### 3.2.6. F6 — Thống kê, báo cáo
+### 3.2.6. F6: Thống kê, báo cáo
 
 | Mã | Yêu cầu | Ưu tiên |
 |---|---|---|
@@ -279,21 +279,21 @@ Quy ước: mỗi FR có mã `FR-<nhóm>-<số>`, mức ưu tiên **Cao / Trung 
 | FR-REPORT-04 | Tồn kho theo thể loại: tổng bản sao, đang mượn, còn, mất/bảo trì (biểu đồ). | Trung bình |
 | FR-REPORT-05 | Chỉ Librarian và Admin truy cập báo cáo. | Cao |
 
-### 3.2.7. F7 — Đánh giá sách
+### 3.2.7. F7: Đánh giá sách
 
 | Mã | Yêu cầu | Ưu tiên |
 |---|---|---|
 | FR-RATE-01 | Bạn đọc chấm 1–5 sao cho đầu sách **đã từng mượn và trả**; mỗi bạn đọc một điểm/đầu sách, chấm lại thì ghi đè. | Trung bình |
 | FR-RATE-02 | Trang chi tiết sách hiển thị điểm trung bình và số lượt đánh giá. | Thấp |
 
-### 3.2.8. F8 — Cấu hình chính sách mượn
+### 3.2.8. F8: Cấu hình chính sách mượn
 
 | Mã | Yêu cầu | Ưu tiên |
 |---|---|---|
 | FR-POLICY-01 | Admin xem và sửa chính sách mượn theo loại bạn đọc: `max_books`, `loan_days`, `renew_limit`, `renew_extra_days`, `fine_per_day`. Giá trị phải là số nguyên dương. | Trung bình |
 | FR-POLICY-02 | Thay đổi chính sách áp dụng cho phiếu mượn tạo **sau** thời điểm sửa; phiếu đang mượn giữ nguyên hạn. | Trung bình |
 
-### 3.2.9. F9 — AI gợi ý sách
+### 3.2.9. F9: AI gợi ý sách
 
 | Mã | Yêu cầu | Ưu tiên |
 |---|---|---|
@@ -302,7 +302,7 @@ Quy ước: mỗi FR có mã `FR-<nhóm>-<số>`, mức ưu tiên **Cao / Trung 
 | FR-AI-03 | Gợi ý loại trừ sách bạn đọc đã mượn; ưu tiên sách còn bản mượn được. | Trung bình |
 | FR-AI-04 | Mô hình được huấn luyện lại qua `POST /train` (Admin) hoặc khi AI Service khởi động. | Trung bình |
 
-### 3.2.10. F10 — AI dự báo trả trễ
+### 3.2.10. F10: AI dự báo trả trễ
 
 | Mã | Yêu cầu | Ưu tiên |
 |---|---|---|
@@ -330,7 +330,7 @@ Quy ước: mỗi FR có mã `FR-<nhóm>-<số>`, mức ưu tiên **Cao / Trung 
 | NFR-SEC-03 | RBAC trên mọi endpoint ghi dữ liệu; bạn đọc chỉ truy cập dữ liệu của mình (`/loans/me`, `/fines/me`). |
 | NFR-SEC-04 | Kiểm tra hợp lệ toàn bộ dữ liệu đầu vào (class-validator); từ chối trường lạ. |
 | NFR-SEC-05 | Giới hạn tốc độ đăng nhập: 10 lần/phút/IP. |
-| NFR-SEC-06 | Chỉ dùng truy vấn tham số hoá (Prisma) — chống SQL injection; escape đầu ra — chống XSS. |
+| NFR-SEC-06 | Chỉ dùng truy vấn tham số hoá (Prisma), chống SQL injection; escape đầu ra, chống XSS. |
 | NFR-SEC-07 | HTTPS trên môi trường triển khai; CORS whitelist. |
 | NFR-SEC-08 | Endpoint nội bộ `/internal/*` yêu cầu khoá `X-Internal-Key`. |
 
@@ -372,7 +372,7 @@ Quy ước: mỗi FR có mã `FR-<nhóm>-<số>`, mức ưu tiên **Cao / Trung 
 
 ## 3.4. Quy tắc nghiệp vụ (Business Rules)
 
-**Chính sách mượn mặc định** (Admin thay đổi được — FR-POLICY-01):
+**Chính sách mượn mặc định** (Admin thay đổi được: FR-POLICY-01):
 
 | Loại bạn đọc | Số cuốn tối đa | Hạn mượn | Gia hạn | Mức phạt trễ |
 |---|---|---|---|---|
@@ -396,7 +396,7 @@ Quy ước: mỗi FR có mã `FR-<nhóm>-<số>`, mức ưu tiên **Cao / Trung 
 
 ---
 
-# PHỤ LỤC A — PRODUCT BACKLOG (USER STORIES)
+# PHỤ LỤC A: PRODUCT BACKLOG (USER STORIES)
 
 Quy ước Story Point theo Fibonacci (1, 2, 3, 5, 8). Ưu tiên: **Must** (bắt buộc MVP), **Should**, **Could**. Tổng: **20 User Story, 77 điểm**. Backlog quản lý trên GitHub Projects của repo.
 
@@ -425,16 +425,16 @@ Quy ước Story Point theo Fibonacci (1, 2, 3, 5, 8). Ưu tiên: **Must** (bắ
 
 **Tổng điểm theo sprint:** Sprint 1 = 29 · Sprint 2 = 35 · Sprint 3 = 13. (Sprint 0 = scaffold, Sprint 4 = triển khai, không tính story.)
 
-# PHỤ LỤC B — MA TRẬN TRUY VẾT
+# PHỤ LỤC B: MA TRẬN TRUY VẾT
 
 | User Story | Yêu cầu chức năng | Quy tắc nghiệp vụ |
 |---|---|---|
-| US01 | FR-AUTH-01 | — |
-| US02 | FR-AUTH-02, FR-AUTH-03, FR-AUTH-04, FR-AUTH-05 | — |
+| US01 | FR-AUTH-01 | không có |
+| US02 | FR-AUTH-02, FR-AUTH-03, FR-AUTH-04, FR-AUTH-05 | không có |
 | US03 | FR-BOOK-01, FR-BOOK-02, FR-BOOK-03, FR-BOOK-05 | BR-12 |
-| US04 | FR-COPY-01, FR-COPY-02, FR-COPY-03 | — |
-| US05 | FR-SEARCH-01, FR-SEARCH-02, FR-SEARCH-03 | — |
-| US06 | FR-SEARCH-04, FR-COPY-03 | — |
+| US04 | FR-COPY-01, FR-COPY-02, FR-COPY-03 | không có |
+| US05 | FR-SEARCH-01, FR-SEARCH-02, FR-SEARCH-03 | không có |
+| US06 | FR-SEARCH-04, FR-COPY-03 | không có |
 | US07 | FR-LOAN-01, FR-LOAN-02, FR-LOAN-08 | BR-01…BR-05, BR-10 |
 | US08 | FR-LOAN-03 | BR-07, BR-09 |
 | US09 | FR-LOAN-04, FR-LOAN-08 | BR-06 |
@@ -442,10 +442,10 @@ Quy ước Story Point theo Fibonacci (1, 2, 3, 5, 8). Ưu tiên: **Must** (bắ
 | US11 | FR-LOAN-06 | BR-08 |
 | US12 | FR-FINE-01, FR-FINE-02 | BR-04 |
 | US13 | FR-USER-01, FR-USER-02, FR-USER-03, FR-USER-04 | BR-05 |
-| US14 | FR-USER-05 | — |
+| US14 | FR-USER-05 | không có |
 | US15 | FR-POLICY-01, FR-POLICY-02 | BR-10 |
 | US16 | FR-REPORT-01…05 | BR-09 |
 | US17 | FR-RATE-01, FR-RATE-02 | BR-11 |
-| US18 | FR-AI-01…04 | — |
-| US19 | FR-AI-05, FR-AI-06, FR-AI-07, FR-LOAN-02 | — |
+| US18 | FR-AI-01…04 | không có |
+| US19 | FR-AI-05, FR-AI-06, FR-AI-07, FR-LOAN-02 | không có |
 | US20 | FR-BOOK-04 | BR-12 |

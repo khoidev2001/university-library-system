@@ -1,5 +1,5 @@
 @startuml sequence-borrow
-' Sequence 1 — Cho mượn sách tại quầy, kèm dự báo nguy cơ trả trễ (US07, US19)
+' Sequence 1: Cho mượn sách tại quầy, kèm dự báo nguy cơ trả trễ (US07, US19)
 skinparam sequenceMessageAlign center
 skinparam participant {
   BackgroundColor #F7F5F0

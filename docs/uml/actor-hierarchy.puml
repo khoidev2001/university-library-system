@@ -1,5 +1,5 @@
 @startuml actor-hierarchy
-' Phân cấp actor và quyền — SRS mục 2.3
+' Phân cấp actor và quyền: SRS mục 2.3
 skinparam actorStyle awesome
 skinparam defaultTextAlignment center
 skinparam note {

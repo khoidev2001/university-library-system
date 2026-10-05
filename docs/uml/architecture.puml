@@ -1,5 +1,5 @@
 @startuml architecture
-' Sơ đồ kiến trúc hệ thống — API Gateway, Services, Database, tích hợp ngoài (checklist LAB 2)
+' Sơ đồ kiến trúc hệ thống: API Gateway, Services, Database, tích hợp ngoài (checklist LAB 2)
 skinparam componentStyle rectangle
 skinparam defaultTextAlignment center
 skinparam component {
@@ -31,7 +31,7 @@ node "API Gateway\nNginx (local :8080) / Vercel + Render (cloud)" as GW {
   [/ai/* → ai-service] as R3
 }
 
-node "Backend — NestJS (Modular Monolith)" as BE {
+node "Backend: NestJS (Modular Monolith)" as BE {
   [Auth\nJWT - RBAC] as Auth
   [Books - Authors\nCategories - Copies] as Books
   [Users\n(Bạn đọc)] as Users
@@ -44,7 +44,7 @@ node "Backend — NestJS (Modular Monolith)" as BE {
   [Exception Filter\nValidationPipe - Swagger] as Cross
 }
 
-node "AI Service — FastAPI" as AI {
+node "AI Service: FastAPI" as AI {
   [Recommender\nTF-IDF + item-CF] as Recm
   [Overdue Model\nLogReg / RandomForest] as Ovd
   [Data Client] as DC

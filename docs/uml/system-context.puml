@@ -1,5 +1,5 @@
 @startuml system-context
-' Sơ đồ bối cảnh hệ thống — SRS mục 2.1
+' Sơ đồ bối cảnh hệ thống: SRS mục 2.1
 skinparam componentStyle rectangle
 skinparam defaultTextAlignment center
 skinparam rectangle {

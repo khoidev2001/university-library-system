@@ -1,5 +1,5 @@
 @startuml use-case-overview
-' Use Case tổng quan — Hệ thống Quản lý Thư viện Trường Đại học (ULS)
+' Use Case tổng quan: Hệ thống Quản lý Thư viện Trường Đại học (ULS)
 left to right direction
 skinparam packageStyle rectangle
 skinparam actorStyle awesome
