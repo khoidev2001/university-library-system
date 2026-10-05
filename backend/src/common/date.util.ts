@@ -4,7 +4,9 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
  * Múi giờ thư viện (phút so với UTC). Mặc định +07:00 — giờ Việt Nam.
  * Phạt tính theo NGÀY LỊCH địa phương, nên mốc này quyết định ranh giới ngày.
  */
-export const LIBRARY_UTC_OFFSET_MINUTES = Number(process.env.LIBRARY_UTC_OFFSET_MINUTES ?? 420);
+export const LIBRARY_UTC_OFFSET_MINUTES = Number(
+  process.env.LIBRARY_UTC_OFFSET_MINUTES ?? 420,
+);
 
 /** Mốc nửa đêm (theo giờ thư viện) của ngày chứa `d`, quy về epoch ms. */
 function startOfLibraryDay(d: Date, offsetMinutes: number): number {
@@ -21,7 +23,10 @@ export function overdueDays(
   at: Date = new Date(),
   offsetMinutes: number = LIBRARY_UTC_OFFSET_MINUTES,
 ): number {
-  const days = (startOfLibraryDay(at, offsetMinutes) - startOfLibraryDay(dueAt, offsetMinutes)) / MS_PER_DAY;
+  const days =
+    (startOfLibraryDay(at, offsetMinutes) -
+      startOfLibraryDay(dueAt, offsetMinutes)) /
+    MS_PER_DAY;
   return days > 0 ? days : 0;
 }
 
@@ -34,7 +39,9 @@ export function isOverdue(
   at: Date = new Date(),
   offsetMinutes: number = LIBRARY_UTC_OFFSET_MINUTES,
 ): boolean {
-  return loan.returnedAt === null && overdueDays(loan.dueAt, at, offsetMinutes) > 0;
+  return (
+    loan.returnedAt === null && overdueDays(loan.dueAt, at, offsetMinutes) > 0
+  );
 }
 
 /**
@@ -45,7 +52,9 @@ export function overdueCutoff(
   at: Date = new Date(),
   offsetMinutes: number = LIBRARY_UTC_OFFSET_MINUTES,
 ): Date {
-  return new Date(startOfLibraryDay(at, offsetMinutes) - offsetMinutes * 60 * 1000);
+  return new Date(
+    startOfLibraryDay(at, offsetMinutes) - offsetMinutes * 60 * 1000,
+  );
 }
 
 export function addDays(from: Date, days: number): Date {

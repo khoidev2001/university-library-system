@@ -89,39 +89,57 @@ async function main(): Promise<void> {
 
   const now = Date.now();
   const windowMs = HISTORY_MONTHS * 30 * MS_PER_DAY;
+
+  // Pha 1: rải lượt mượn lên trục thời gian rồi SẮP XẾP THEO NGÀY MƯỢN.
+  // Bắt buộc phải sắp xếp: số sách đang giữ và số lần trễ trước đó chỉ có nghĩa khi
+  // duyệt đúng trình tự thời gian. Nếu quyết định theo thứ tự đọc rating thì quy luật
+  // "càng từng trễ càng dễ trễ" không tồn tại trong dữ liệu, và mô hình học được gì.
+  const draft = ratings
+    .map((rating, index) => {
+      const copies = copiesByBook.get(rating.bookId);
+      if (!copies?.length) return null;
+      const loanDays = loanDaysOf.get(readerType.get(rating.userId) ?? MemberType.STUDENT) ?? 14;
+      const borrowedAt = new Date(now - windowMs + random() * windowMs);
+      return {
+        userId: rating.userId,
+        copyId: copies[index % copies.length],
+        createdById: librarians[index % librarians.length].id,
+        borrowedAt,
+        dueAt: new Date(borrowedAt.getTime() + loanDays * MS_PER_DAY),
+        loanDays,
+      };
+    })
+    .filter((row): row is NonNullable<typeof row> => row !== null)
+    .sort((a, b) => a.borrowedAt.getTime() - b.borrowedAt.getTime());
+
+  // Pha 2: duyệt theo thời gian, trạng thái của mỗi bạn đọc cập nhật dần.
   const planned: PlannedLoan[] = [];
   const activeCopy = new Set<number>(); // mỗi bản sao chỉ 1 phiếu ACTIVE
   const priorOverdueOf = new Map<number, number>();
-  const concurrentOf = new Map<number, number>();
+  const openUntilOf = new Map<number, number[]>(); // userId → các mốc trả của phiếu đang mở
 
-  for (const [index, rating] of ratings.entries()) {
-    const copies = copiesByBook.get(rating.bookId);
-    if (!copies?.length) continue;
-    const copyId = copies[index % copies.length];
+  for (const row of draft) {
+    const open = (openUntilOf.get(row.userId) ?? []).filter((until) => until > row.borrowedAt.getTime());
+    openUntilOf.set(row.userId, open);
 
-    const loanDays = loanDaysOf.get(readerType.get(rating.userId) ?? MemberType.STUDENT) ?? 14;
-    const borrowedAt = new Date(now - windowMs + random() * windowMs);
-    const dueAt = new Date(borrowedAt.getTime() + loanDays * MS_PER_DAY);
-
-    const concurrent = concurrentOf.get(rating.userId) ?? 0;
-    const priorOverdue = priorOverdueOf.get(rating.userId) ?? 0;
-    const late = random() < overdueProbability(concurrent, borrowedAt.getMonth() + 1, priorOverdue);
+    const priorOverdue = priorOverdueOf.get(row.userId) ?? 0;
+    const late = random() < overdueProbability(open.length, row.borrowedAt.getMonth() + 1, priorOverdue);
 
     // Chưa trả: phiếu còn hạn, hoặc một phần phiếu trễ mà bạn đọc vẫn đang giữ sách
     // (cần có để báo cáo "bạn đọc quá hạn" và quy tắc BR-03 có dữ liệu thật).
-    const notYetDue = dueAt.getTime() > now;
+    const notYetDue = row.dueAt.getTime() > now;
     const stillOutAndLate = !notYetDue && late && random() < 0.08;
-    const stillOut = (notYetDue || stillOutAndLate) && !activeCopy.has(copyId);
+    const stillOut = (notYetDue || stillOutAndLate) && !activeCopy.has(row.copyId);
     if (stillOut) {
-      if (stillOutAndLate) priorOverdueOf.set(rating.userId, priorOverdue + 1);
-      activeCopy.add(copyId);
-      concurrentOf.set(rating.userId, concurrent + 1);
+      if (stillOutAndLate) priorOverdueOf.set(row.userId, priorOverdue + 1);
+      activeCopy.add(row.copyId);
+      open.push(Number.MAX_SAFE_INTEGER); // còn đang giữ
       planned.push({
-        copyId,
-        userId: rating.userId,
-        createdById: librarians[index % librarians.length].id,
-        borrowedAt,
-        dueAt,
+        copyId: row.copyId,
+        userId: row.userId,
+        createdById: row.createdById,
+        borrowedAt: row.borrowedAt,
+        dueAt: row.dueAt,
         returnedAt: null,
         status: LoanStatus.ACTIVE,
         renewedCount: random() < 0.15 ? 1 : 0,
@@ -130,16 +148,19 @@ async function main(): Promise<void> {
     }
 
     const lateDays = late ? 1 + Math.floor(random() * 20) : 0;
-    const returnedAt = new Date(dueAt.getTime() + (late ? lateDays * MS_PER_DAY : -random() * loanDays * MS_PER_DAY));
+    const returnedAt = new Date(
+      row.dueAt.getTime() + (late ? lateDays * MS_PER_DAY : -random() * row.loanDays * MS_PER_DAY),
+    );
     if (returnedAt.getTime() > now) continue; // chưa tới ngày trả thật thì bỏ qua
-    if (late) priorOverdueOf.set(rating.userId, priorOverdue + 1);
+    if (late) priorOverdueOf.set(row.userId, priorOverdue + 1);
+    open.push(returnedAt.getTime());
 
     planned.push({
-      copyId,
-      userId: rating.userId,
-      createdById: librarians[index % librarians.length].id,
-      borrowedAt,
-      dueAt,
+      copyId: row.copyId,
+      userId: row.userId,
+      createdById: row.createdById,
+      borrowedAt: row.borrowedAt,
+      dueAt: row.dueAt,
       returnedAt,
       status: LoanStatus.RETURNED,
       renewedCount: 0,

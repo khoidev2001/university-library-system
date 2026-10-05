@@ -30,14 +30,35 @@ describe('overdueDays (BR-07, đếm theo ngày lịch)', () => {
 
 describe('isOverdue', () => {
   it('chỉ đúng với phiếu chưa trả và đã sang ngày sau hạn', () => {
-    expect(isOverdue({ dueAt: new Date('2026-10-04T09:00:00.000Z'), returnedAt: null }, NOW)).toBe(true);
-    expect(isOverdue({ dueAt: new Date('2026-10-05T00:00:00.000Z'), returnedAt: null }, NOW)).toBe(false);
-    expect(isOverdue({ dueAt: new Date('2026-10-06T09:00:00.000Z'), returnedAt: null }, NOW)).toBe(false);
+    expect(
+      isOverdue(
+        { dueAt: new Date('2026-10-04T09:00:00.000Z'), returnedAt: null },
+        NOW,
+      ),
+    ).toBe(true);
+    expect(
+      isOverdue(
+        { dueAt: new Date('2026-10-05T00:00:00.000Z'), returnedAt: null },
+        NOW,
+      ),
+    ).toBe(false);
+    expect(
+      isOverdue(
+        { dueAt: new Date('2026-10-06T09:00:00.000Z'), returnedAt: null },
+        NOW,
+      ),
+    ).toBe(false);
   });
 
   it('phiếu đã trả thì không bao giờ quá hạn', () => {
     expect(
-      isOverdue({ dueAt: new Date('2026-10-01T09:00:00.000Z'), returnedAt: new Date('2026-10-04T09:00:00.000Z') }, NOW),
+      isOverdue(
+        {
+          dueAt: new Date('2026-10-01T09:00:00.000Z'),
+          returnedAt: new Date('2026-10-04T09:00:00.000Z'),
+        },
+        NOW,
+      ),
     ).toBe(false);
   });
 });

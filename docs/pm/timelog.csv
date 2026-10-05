@@ -13,3 +13,6 @@ date,person,wbs_id,hours,note
 2026-10-05,SV1,4.3,4,LoansService: mượn/trả/gia hạn/báo mất + BR-01..BR-08; FinesService; AiClient có timeout
 2026-10-05,SV1,4.5,2,RatingsService; ReportsService 4 báo cáo; seed mô phỏng 11.7k phiếu mượn
 2026-10-05,SV1,5.1,2,Unit test 44 ca; e2e 8 ca trên Postgres thật; smoke 36 lời gọi; sửa phạt theo ngày lịch
+2026-10-05,SV1,4.6,4,AI Service: recommender TF-IDF + item-CF, overdue model LogReg vs RF, metrics; 23 test
+2026-10-05,SV1,4.7,3,Backend: internal/training-data, recommendations, fallback 503; sua seed cho nhat quan thoi gian
+2026-10-05,SV1,2.3,1,Cap nhat SDD, README va dien muc LAB 3 trong bao cao bang so do that

@@ -1,7 +1,23 @@
-import { Controller, Get, HttpCode, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  ParseIntPipe,
+  Post,
+  Query,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Role } from '@prisma/client';
-import { CurrentUser, JwtUser } from '../../common/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  JwtUser,
+} from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { QueryFinesDto } from './dto/fines.dto';
 import { FinesService } from './fines.service';
@@ -21,7 +37,9 @@ export class FinesController {
 
   @Get()
   @Roles(Role.LIBRARIAN)
-  @ApiOperation({ summary: 'Danh sách khoản phạt; mặc định xem cả đã và chưa thu' })
+  @ApiOperation({
+    summary: 'Danh sách khoản phạt; mặc định xem cả đã và chưa thu',
+  })
   findAll(@Query() query: QueryFinesDto) {
     return this.fines.findAll(query);
   }

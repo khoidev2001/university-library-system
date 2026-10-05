@@ -3,8 +3,14 @@ import { Type } from 'class-transformer';
 import { IsDateString, IsInt, IsOptional, Max, Min } from 'class-validator';
 
 export class TopBooksQueryDto {
-  @ApiPropertyOptional({ example: '2026-01-01' }) @IsOptional() @IsDateString() from?: string;
-  @ApiPropertyOptional({ example: '2026-12-31' }) @IsOptional() @IsDateString() to?: string;
+  @ApiPropertyOptional({ example: '2026-01-01' })
+  @IsOptional()
+  @IsDateString()
+  from?: string;
+  @ApiPropertyOptional({ example: '2026-12-31' })
+  @IsOptional()
+  @IsDateString()
+  to?: string;
   @ApiPropertyOptional({ default: 10, minimum: 1, maximum: 50 })
   @IsOptional()
   @Type(() => Number)

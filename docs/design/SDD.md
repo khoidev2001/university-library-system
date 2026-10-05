@@ -333,6 +333,8 @@ CREATE TABLE "book_authors" (
 |---|---|---|---|---|
 | GET | `/recommendations/me?k=10` | R | query | 200 `{items: [BookSummary], source: MODEL\|POPULAR\|NONE, reason?}` |
 | POST | `/recommendations/train` | A | — | 202 `{status: "started"}` · 503 `AI_UNAVAILABLE` |
+| GET | `/recommendations/metrics` | L | — | 200 số đo hai mô hình (chuyển tiếp từ AI `/metrics`) · 503 `AI_UNAVAILABLE` |
+| GET | `/recommendations/overdue-accuracy` | L | — | 200 `{sampled, predictedHigh, actuallyLate, hitRate}` — đối chiếu dự báo đã lưu với kết quả thật |
 | GET | `/internal/training-data` | AI (header `X-Internal-Key`) | — | 200 `{books: [{id, title, authors, category, description}], interactions: [{userId, bookId, type: LOAN\|RATING, score?, borrowedAt?, dueAt?, returnedAt?}], users: [{id, memberType}]}` · 401 |
 | GET | `/health` | Pub | — | 200 `{status, service, database, timestamp}` |
 
@@ -344,7 +346,7 @@ CREATE TABLE "book_authors" (
 | GET | `/recommend?user_id=&k=10` | query | 200 `{user_id, book_ids: [int], source: "model"\|"popular"}` · 503 model chưa sẵn sàng |
 | POST | `/predict-overdue` | `{member_type, prior_loans, prior_overdue, active_loans, category_id, loan_days, month}` | 200 `{risk: 0.0–1.0, model: "rf"\|"logreg"}` · 503 |
 | POST | `/train` | — | 202 `{status: "training"}` |
-| GET | `/metrics` | — | 200 `{recommender: {precision_at_5, recall_at_5, trained_at}, overdue: {accuracy, precision, recall, f1, roc_auc, trained_at}}` |
+| GET | `/metrics` | — | 200 `{recommender: {books, users, interactions, precision_at_5, recall_at_5, evaluated_users, trained_at}, overdue: {samples, positive_rate, chosen, logistic_regression: {...}, random_forest: {...}, trained_at}, lastTraining, note}` |
 
 ## 5.10. Bảng mã lỗi nghiệp vụ
 
@@ -392,5 +394,7 @@ CREATE TABLE "book_authors" (
 | 2 | "Quá hạn" là trạng thái dẫn xuất, đếm theo ngày lịch | Tránh cron và trạng thái lệch; phạt theo ngày lịch đúng cách thư viện tính | Truy vấn dùng `due_at < overdueCutoff(now)` (nửa đêm đầu ngày hôm nay, giờ thư viện); có index `due_at`; hàm chung `src/common/date.util.ts` để API và báo cáo không lệch nhau |
 | 3 | Chính sách mượn trong bảng, chụp vào phiếu lúc tạo | Admin đổi qua UI; phiếu cũ không bị ảnh hưởng | `due_at` tính tại thời điểm mượn (BR-10) |
 | 4 | AI không chạm DB, lấy dữ liệu qua `/internal/training-data` | Một nơi sở hữu schema; AI thay được | Backend thêm 1 endpoint; AI cần key |
+| 7 | Mô hình giữ trong bộ nhớ, huấn luyện lại khi khởi động và khi gọi `/train` | 1.000 sách × 2.000 bạn đọc train hết ~1,5 s nên không cần lưu `.joblib` lên đĩa ephemeral của Render | Khởi động lại là mất model vài giây rồi có lại; `/health` báo `not_loaded` trong lúc đó, API gọi vào nhận 503 và Backend tự fallback |
+| 8 | Phiếu `LOST` không được coi là lần trả | Nếu tính là trả thì mô hình học nhầm là trả đúng hạn | `/internal/training-data` trả `returnedAt = null` cho phiếu LOST |
 | 5 | Gọi AI có timeout + fallback | Render free cold start ~50 s không được chặn quầy | `overdueRisk` có thể null; UI hiển thị "không có dự báo" |
 | 6 | Google Books chỉ ở seed và nhập hàng loạt, không gọi khi tra cứu | Giới hạn 1.000 req/ngày; tra cứu phải < 1 s | Dữ liệu sách lưu cục bộ, có `goodbooks_id`/`isbn` để đối chiếu |

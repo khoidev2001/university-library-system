@@ -17,24 +17,37 @@ describe('ReportsService', () => {
   beforeEach(async () => {
     prisma = createPrismaMock();
     const moduleRef = await Test.createTestingModule({
-      providers: [ReportsService, { provide: PrismaService, useValue: prisma }, { provide: PoliciesService, useValue: policies }],
+      providers: [
+        ReportsService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: PoliciesService, useValue: policies },
+      ],
     }).compile();
     service = moduleRef.get(ReportsService);
     jest.clearAllMocks();
-    policies.getFor.mockImplementation(async (t: MemberType) => ({ finePerDay: t === MemberType.LECTURER ? 5000 : 5000 }));
+    policies.getFor.mockImplementation(async (t: MemberType) => ({
+      finePerDay: t === MemberType.LECTURER ? 5000 : 5000,
+    }));
   });
 
   describe('topBooks', () => {
     it('ranks by loan count and respects the limit', async () => {
       prisma.loan.findMany.mockResolvedValue([
-        { copy: { bookId: 1 } }, { copy: { bookId: 1 } }, { copy: { bookId: 2 } }, { copy: { bookId: 1 } }, { copy: { bookId: 2 } }, { copy: { bookId: 3 } },
+        { copy: { bookId: 1 } },
+        { copy: { bookId: 1 } },
+        { copy: { bookId: 2 } },
+        { copy: { bookId: 1 } },
+        { copy: { bookId: 2 } },
+        { copy: { bookId: 3 } },
       ]);
       prisma.book.findMany.mockResolvedValue([
         { id: 1, title: 'A', coverUrl: null },
         { id: 2, title: 'B', coverUrl: null },
       ]);
 
-      const rows = await service.topBooks(Object.assign(new TopBooksQueryDto(), { limit: 2 }));
+      const rows = await service.topBooks(
+        Object.assign(new TopBooksQueryDto(), { limit: 2 }),
+      );
 
       expect(rows).toEqual([
         { book: { id: 1, title: 'A', coverUrl: null }, loanCount: 3 },
@@ -44,7 +57,12 @@ describe('ReportsService', () => {
 
     it('passes the date range through and returns [] with no loans', async () => {
       prisma.loan.findMany.mockResolvedValue([]);
-      const rows = await service.topBooks(Object.assign(new TopBooksQueryDto(), { from: '2026-01-01', to: '2026-06-30' }));
+      const rows = await service.topBooks(
+        Object.assign(new TopBooksQueryDto(), {
+          from: '2026-01-01',
+          to: '2026-06-30',
+        }),
+      );
       expect(rows).toEqual([]);
       expect(prisma.loan.findMany.mock.calls[0][0].where.borrowedAt).toEqual({
         gte: new Date('2026-01-01'),
@@ -59,15 +77,27 @@ describe('ReportsService', () => {
       {
         id: 5,
         dueAt: new Date('2026-10-02T09:00:00.000Z'),
-        user: { id: 7, fullName: 'SV', memberCode: 'SV001', memberType: MemberType.STUDENT },
+        user: {
+          id: 7,
+          fullName: 'SV',
+          memberCode: 'SV001',
+          memberType: MemberType.STUDENT,
+        },
         copy: { book: { id: 3, title: 'T' } },
       },
     ]);
 
     const rows = await service.overdueReaders(NOW);
 
-    expect(prisma.loan.findMany.mock.calls[0][0].where).toMatchObject({ status: LoanStatus.ACTIVE, dueAt: { lt: overdueCutoff(NOW) } });
-    expect(rows[0]).toMatchObject({ loanId: 5, overdueDays: 3, estimatedFine: 15000 });
+    expect(prisma.loan.findMany.mock.calls[0][0].where).toMatchObject({
+      status: LoanStatus.ACTIVE,
+      dueAt: { lt: overdueCutoff(NOW) },
+    });
+    expect(rows[0]).toMatchObject({
+      loanId: 5,
+      overdueDays: 3,
+      estimatedFine: 15000,
+    });
   });
 
   it('loansByMonth keeps empty months at 0 and counts the rest', async () => {
@@ -101,7 +131,14 @@ describe('ReportsService', () => {
     const rows = await service.inventoryByCategory();
 
     expect(rows).toEqual([
-      { category: { id: 1, name: 'Fantasy' }, total: 4, available: 1, borrowed: 1, lost: 1, maintenance: 1 },
+      {
+        category: { id: 1, name: 'Fantasy' },
+        total: 4,
+        available: 1,
+        borrowed: 1,
+        lost: 1,
+        maintenance: 1,
+      },
     ]);
   });
 });

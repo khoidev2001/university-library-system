@@ -52,8 +52,11 @@ export class ReportsService {
       select: { copy: { select: { bookId: true } } },
     });
     const counts = new Map<number, number>();
-    for (const loan of loans) counts.set(loan.copy.bookId, (counts.get(loan.copy.bookId) ?? 0) + 1);
-    const top = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, query.limit);
+    for (const loan of loans)
+      counts.set(loan.copy.bookId, (counts.get(loan.copy.bookId) ?? 0) + 1);
+    const top = [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, query.limit);
     if (top.length === 0) return [];
 
     const books = await this.prisma.book.findMany({
@@ -71,7 +74,14 @@ export class ReportsService {
     const loans = await this.prisma.loan.findMany({
       where: { status: LoanStatus.ACTIVE, dueAt: { lt: overdueCutoff(at) } },
       include: {
-        user: { select: { id: true, fullName: true, memberCode: true, memberType: true } },
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            memberCode: true,
+            memberType: true,
+          },
+        },
         copy: { include: { book: { select: { id: true, title: true } } } },
       },
       orderBy: { dueAt: 'asc' },
@@ -82,10 +92,15 @@ export class ReportsService {
     }
     return loans.map((loan) => {
       const days = overdueDays(loan.dueAt, at);
-      const finePerDay = policies.get(loan.user.memberType ?? MemberType.STUDENT) ?? 0;
+      const finePerDay =
+        policies.get(loan.user.memberType ?? MemberType.STUDENT) ?? 0;
       return {
         loanId: loan.id,
-        user: { id: loan.user.id, fullName: loan.user.fullName, memberCode: loan.user.memberCode },
+        user: {
+          id: loan.user.id,
+          fullName: loan.user.fullName,
+          memberCode: loan.user.memberCode,
+        },
         book: loan.copy.book,
         dueAt: loan.dueAt,
         overdueDays: days,
@@ -95,16 +110,26 @@ export class ReportsService {
   }
 
   /** FR-REPORT-03: lượt mượn theo tháng, N tháng gần nhất (kể cả tháng không có lượt nào). */
-  async loansByMonth(months: number, at: Date = new Date()): Promise<MonthCount[]> {
-    const start = new Date(Date.UTC(at.getUTCFullYear(), at.getUTCMonth() - (months - 1), 1));
+  async loansByMonth(
+    months: number,
+    at: Date = new Date(),
+  ): Promise<MonthCount[]> {
+    const start = new Date(
+      Date.UTC(at.getUTCFullYear(), at.getUTCMonth() - (months - 1), 1),
+    );
     const loans = await this.prisma.loan.findMany({
       where: { borrowedAt: { gte: start } },
       select: { borrowedAt: true },
     });
     const counts = new Map<string, number>();
     for (let i = 0; i < months; i++) {
-      const d = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + i, 1));
-      counts.set(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`, 0);
+      const d = new Date(
+        Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + i, 1),
+      );
+      counts.set(
+        `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`,
+        0,
+      );
     }
     for (const loan of loans) {
       const key = `${loan.borrowedAt.getUTCFullYear()}-${String(loan.borrowedAt.getUTCMonth() + 1).padStart(2, '0')}`;
@@ -116,12 +141,24 @@ export class ReportsService {
   /** FR-REPORT-04: tồn kho theo thể loại, đếm từ trạng thái bản sao. */
   async inventoryByCategory(): Promise<InventoryRow[]> {
     const [categories, copies] = await Promise.all([
-      this.prisma.category.findMany({ select: { id: true, name: true }, orderBy: { name: 'asc' } }),
-      this.prisma.bookCopy.findMany({ select: { status: true, book: { select: { categoryId: true } } } }),
+      this.prisma.category.findMany({
+        select: { id: true, name: true },
+        orderBy: { name: 'asc' },
+      }),
+      this.prisma.bookCopy.findMany({
+        select: { status: true, book: { select: { categoryId: true } } },
+      }),
     ]);
     const rows = new Map<number, InventoryRow>();
     for (const c of categories) {
-      rows.set(c.id, { category: c, total: 0, available: 0, borrowed: 0, lost: 0, maintenance: 0 });
+      rows.set(c.id, {
+        category: c,
+        total: 0,
+        available: 0,
+        borrowed: 0,
+        lost: 0,
+        maintenance: 0,
+      });
     }
     for (const copy of copies) {
       const row = rows.get(copy.book.categoryId);

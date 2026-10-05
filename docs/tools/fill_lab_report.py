@@ -13,6 +13,8 @@ from pathlib import Path
 from docx import Document
 from docx.shared import Cm
 
+from lab3_content import AI_SNIPPET, AI_SUMMARY, BACKEND_SUMMARY
+
 UML_DIR = Path(__file__).resolve().parents[1] / "uml"
 ERD_DIR = Path(__file__).resolve().parents[1] / "erd"
 
@@ -207,6 +209,12 @@ def fill(template: Path, output: Path) -> None:
     set_picture(paragraphs[28], ERD_DIR / "erd.png", width_cm=16)
     p_arch = insert_after(paragraphs[28], "Sơ đồ kiến trúc — API Gateway, Services, Database, tích hợp ngoài:")
     insert_after(p_arch, "", UML_DIR / "architecture.png", 16)
+
+    # LAB 3 — kết quả Backend API và AI/ML (số đo thật, xem docs/tools/lab3_content.py).
+    # Ảnh giao diện (đoạn 33, 34) để trống tới khi frontend hoàn thiện.
+    set_text(paragraphs[31], BACKEND_SUMMARY)
+    set_text(paragraphs[36], AI_SUMMARY)
+    set_cell(doc.tables[3].cell(0, 0), AI_SNIPPET)
 
     doc.save(output)
 
