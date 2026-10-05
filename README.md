@@ -1,6 +1,6 @@
 # University Library System (ULS)
 
-Hệ thống Quản lý Thư viện Trường Đại học — Đề tài 8, môn Công nghệ Phần mềm, Khoa CNTT, Trường ĐH Xây dựng Miền Trung. GVHD: TS. Lê Tỷ Khánh.
+Hệ thống Quản lý Thư viện Trường Đại học: Đề tài 8, môn Công nghệ Phần mềm, Khoa CNTT, Trường ĐH Xây dựng Miền Trung. GVHD: TS. Lê Tỷ Khánh.
 
 Ứng dụng web quản lý sách, bạn đọc, mượn/trả, tìm kiếm, thống kê; tích hợp AI gợi ý sách và dự báo nguy cơ trả trễ.
 
@@ -9,10 +9,11 @@ Hệ thống Quản lý Thư viện Trường Đại học — Đề tài 8, mô
 | Tài liệu | Đường dẫn |
 |---|---|
 | Kế hoạch tổng thể | [docs/PLAN.md](docs/PLAN.md) |
-| SRS (IEEE 830) — LAB 1 | [docs/srs/SRS.md](docs/srs/SRS.md) · [SRS.docx](docs/srs/SRS.docx) |
-| Tài liệu thiết kế (SDD) — LAB 2 | [docs/design/SDD.md](docs/design/SDD.md) · [SDD.docx](docs/design/SDD.docx) — kiến trúc, UML, ERD, đặc tả API |
-| Biểu đồ UML (PlantUML + PNG) | [docs/uml/](docs/uml/) — use case, class, 3 sequence, activity, architecture |
+| SRS (IEEE 830), LAB 1 | [docs/srs/SRS.md](docs/srs/SRS.md) · [SRS.docx](docs/srs/SRS.docx) |
+| Tài liệu thiết kế (SDD), LAB 2 | [docs/design/SDD.md](docs/design/SDD.md) · [SDD.docx](docs/design/SDD.docx), kiến trúc, UML, ERD, đặc tả API |
+| Biểu đồ UML (PlantUML + PNG) | [docs/uml/](docs/uml/), use case, class, 3 sequence, activity, architecture |
 | ERD + DDL (sinh từ Prisma) | [docs/erd/](docs/erd/) |
+| Brief slide thuyết trình | [LAB 1](docs/report/LAB1_slides_brief.md) · [LAB 2](docs/report/LAB2_slides_brief.md) |
 | Báo cáo 4 LAB (mẫu của GV) | [docs/report/LAB_Report.docx](docs/report/LAB_Report.docx) |
 | Kế hoạch quản lý dự án, EVA | [docs/pm/](docs/pm/) |
 | Product Backlog | [Issues](https://github.com/khoidev2001/university-library-system/issues?q=label%3Auser-story) (label `user-story`, milestone theo sprint) · [Projects](https://github.com/khoidev2001/university-library-system/projects) |
@@ -78,7 +79,7 @@ python backend/test/smoke-sprint3.py http://localhost:8080/api http://localhost:
 pytest --rootdir ai-service ai-service                            # 23 test AI, ngưỡng coverage 80%
 ```
 
-Hai script smoke chạy trên hệ thống **đang chạy** với dữ liệu seed — đây là bằng chứng mức "chạy thật" cho phần đụng cơ sở dữ liệu và tiền.
+Hai script smoke chạy trên hệ thống **đang chạy** với dữ liệu seed, đây là bằng chứng mức "chạy thật" cho phần đụng cơ sở dữ liệu và tiền.
 
 ## Giao diện
 
@@ -126,7 +127,7 @@ python docs/tools/fill_lab_report.py docs/report/LAB_report_template.docx docs/r
 python docs/tools/create_backlog.py --repo <owner>/<repo>
 ```
 
-## Tạo bảng Kanban (GitHub Projects) — làm một lần trên web
+## Tạo bảng Kanban (GitHub Projects): làm một lần trên web
 
 1. Repo → tab **Projects** → **New project** → chọn **Board** → đặt tên `ULS Product Backlog`.
 2. Trong board: **+ Add item** → **Add from repository** → chọn tất cả issue có label `user-story`.

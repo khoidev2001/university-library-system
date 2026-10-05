@@ -1,5 +1,5 @@
 @startuml erd
-' Sinh tự động từ backend/prisma/schema.prisma bằng docs/tools/prisma_to_erd.py — KHÔNG sửa tay
+' Sinh tự động từ backend/prisma/schema.prisma bằng docs/tools/prisma_to_erd.py, KHÔNG sửa tay
 hide circle
 skinparam linetype ortho
 skinparam entity {

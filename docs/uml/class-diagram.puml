@@ -1,5 +1,5 @@
 @startuml class-diagram
-' Class Diagram — tầng domain (entity theo Prisma) + tầng service của Backend NestJS
+' Class Diagram: tầng domain (entity theo Prisma) + tầng service của Backend NestJS
 skinparam classAttributeIconSize 0
 skinparam class {
   BackgroundColor #F7F5F0

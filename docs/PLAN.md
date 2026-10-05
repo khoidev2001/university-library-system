@@ -1,13 +1,13 @@
 # PLAN: Hệ thống Quản lý Thư viện Trường Đại học (Đề tài 8)
 
-> Môn Công nghệ Phần mềm — ĐH Xây dựng Miền Trung — GVHD: TS. Lê Tỷ Khánh
+> Môn Công nghệ Phần mềm: ĐH Xây dựng Miền Trung. GVHD: TS. Lê Tỷ Khánh
 > Ngày lập: 2026-09-21 · Bản 2 (sau review đối chiếu 3 file đề bài, cùng ngày)
 
 ## 0. Hai sản phẩm phải nộp, một mã nguồn, một hạn nộp
 
 | Sản phẩm | Theo file | Gồm |
 |---|---|---|
-| **A. Báo cáo 4 LAB** + mã nguồn | `4_LAB_va_HD.SV.pdf`, `Mau_BC_Thuc_Hanh_LAB.docx` | SRS, UML/ERD/API, code BE+FE+AI, Docker/CI/deploy — **điền thẳng vào file mẫu .docx** |
+| **A. Báo cáo 4 LAB** + mã nguồn | `4_LAB_va_HD.SV.pdf`, `Mau_BC_Thuc_Hanh_LAB.docx` | SRS, UML/ERD/API, code BE+FE+AI, Docker/CI/deploy, **điền thẳng vào file mẫu .docx** |
 | **B. Kế hoạch Quản lý Dự án** | `10 BT Nhom.SV.pdf` | Word 30-40 trang: SOW, WBS, CPM + Gantt, rủi ro, org chart + RACI, kiểm thử, NPV/ROI, **EVA** + Excel + slide 15' |
 
 Cả hai nộp **cuối kỳ (~8 tuần)**, cùng một môn. Nhóm thật 1-2 người; báo cáo ghi 4 tên theo mẫu.
@@ -15,15 +15,15 @@ Cả hai nộp **cuối kỳ (~8 tuần)**, cùng một môn. Nhóm thật 1-2 n
 **Hai dòng thời gian, đừng lẫn:**
 
 - **Lịch thật** (mục 9): 8 tuần, 1-2 người làm.
-- **Dự án mô phỏng** trong báo cáo PM (mục 10): 16 tuần, 4 người, dùng cho SOW/WBS/CPM/EVA. Quy ước **1 tuần thật = 2 tuần mô phỏng**; EV lấy từ issue đóng thật, AC lấy từ `docs/pm/timelog.csv` thật. Đề bài cho phép giả định độ trễ nếu số thật không đẹp — nhưng phải ghi rõ giả định.
+- **Dự án mô phỏng** trong báo cáo PM (mục 10): 16 tuần, 4 người, dùng cho SOW/WBS/CPM/EVA. Quy ước **1 tuần thật = 2 tuần mô phỏng**; EV lấy từ issue đóng thật, AC lấy từ `docs/pm/timelog.csv` thật. Đề bài cho phép giả định độ trễ nếu số thật không đẹp nhưng phải ghi rõ giả định.
 
 **Nguyên tắc: code trước, tài liệu sinh từ code.** ERD từ Prisma schema, DDL từ `prisma/migrations/*.sql`, API spec export từ Swagger, Class Diagram vẽ từ entity thật, backlog = GitHub Issues thật. Không viết tài liệu hai lần.
 
 ## 1. Phạm vi nghiệp vụ
 
-**Actor:** `Reader` (bạn đọc — gồm `STUDENT` và `LECTURER`), `Librarian` (thủ thư), `Admin` (quản trị).
+**Actor:** `Reader` (bạn đọc: gồm `STUDENT` và `LECTURER`), `Librarian` (thủ thư), `Admin` (quản trị).
 
-**Chức năng bắt buộc (MVP)** — bám đúng 5 module đề 8 nêu + AI:
+**Chức năng bắt buộc (MVP)**: bám đúng 5 module đề 8 nêu + AI:
 
 | # | Module (theo đề) | Chức năng |
 |---|---|---|
@@ -94,7 +94,7 @@ Cả hai nộp **cuối kỳ (~8 tuần)**, cùng một môn. Nhóm thật 1-2 n
 **Lưu ý vận hành:**
 
 - Render free ngủ sau 15', lần đầu gọi ~50s. Trước demo phải đánh thức. Ghi vào hạn chế.
-- Gọi AI `/predict-overdue` khi tạo loan phải có **timeout 2s + fallback** (`risk: null`) — không được để cold start chặn thao tác cho mượn.
+- Gọi AI `/predict-overdue` khi tạo loan phải có **timeout 2s + fallback** (`risk: null`), không được để cold start chặn thao tác cho mượn.
 - Model AI **train lại lúc khởi động** (vài giây với 1k sách × 2k user), cache `.joblib` trong `/tmp`; không commit binary. `POST /train` để train lại thủ công.
 - Nginx gateway chỉ có ở local; production FE gọi thẳng Render. Sơ đồ kiến trúc vẽ bản local (có gateway) và ghi chú bản cloud.
 - goodbooks-10k là CC BY-SA → ghi attribution trong README và SRS.
@@ -170,7 +170,7 @@ ratings(id, user_id→users, book_id→books, score 1-5, created_at, UNIQUE(user
 | internal | `GET /internal/training-data` (header `X-Internal-Key`) | AI service |
 | AI service | `GET /recommend?user_id=&k=10`, `POST /predict-overdue`, `POST /train`, `GET /health`, `GET /metrics` | internal |
 
-Mọi lỗi trả format thống nhất qua global exception filter; lỗi nghiệp vụ dùng mã rõ ràng (`LOAN_LIMIT_REACHED`, `HAS_OVERDUE_LOAN`, `UNPAID_FINE`, `COPY_NOT_AVAILABLE`, `ACCOUNT_LOCKED`, `RENEW_LIMIT_REACHED`…) — vừa là checklist "Exception Handling tốt" của LAB 3, vừa là tên test case.
+Mọi lỗi trả format thống nhất qua global exception filter; lỗi nghiệp vụ dùng mã rõ ràng (`LOAN_LIMIT_REACHED`, `HAS_OVERDUE_LOAN`, `UNPAID_FINE`, `COPY_NOT_AVAILABLE`, `ACCOUNT_LOCKED`, `RENEW_LIMIT_REACHED`…), vừa là checklist "Exception Handling tốt" của LAB 3, vừa là tên test case.
 
 ## 6. Dữ liệu seed & Module AI/ML (LAB 3)
 
@@ -182,18 +182,18 @@ Mọi lỗi trả format thống nhất qua global exception filter; lỗi nghi�
 4. `simulate-loans.ts`: rating ≥ 4 ⇒ đã mượn. **Sinh nhãn trả trễ bằng xác suất, không bằng rule cứng**: base 15%, +8% mỗi cuốn đang mượn cùng lúc, +15% nếu tháng thi (1, 6), +10% nếu đã từng trễ, ±nhiễu; ngày trả trễ ~ 1-20 ngày. Ghi rõ trong báo cáo: **dữ liệu mượn/trả là mô phỏng**, nên metric mô hình 2 phản ánh quy luật mô phỏng.
 5. Tài khoản demo: 1 admin, 2 librarian, vài reader STUDENT/LECTURER với mật khẩu cố định ghi trong README.
 
-**Mô hình 1 — Gợi ý sách (hybrid):**
+**Mô hình 1: Gợi ý sách (hybrid):**
 
 - Content-based: TF-IDF trên `title + authors + category + description` → cosine similarity
 - Item-based collaborative filtering trên ma trận user×book (ratings + loans)
 - Trộn 0.5/0.5, cold-start (user chưa có lịch sử) → sách mượn nhiều nhất trong thể loại người đó đã xem, hoặc toàn hệ thống
-- **Đo:** Precision@5 / Recall@5 trên hold-out (giấu 20% loans mỗi user) — con số ghi vào báo cáo
+- **Đo:** Precision@5 / Recall@5 trên hold-out (giấu 20% loans mỗi user), con số ghi vào báo cáo
 
-**Mô hình 2 — Dự báo trả trễ:**
+**Mô hình 2: Dự báo trả trễ:**
 
 - Feature: số lần quá hạn trước đó, tỉ lệ quá hạn, số sách đang mượn, member_type, thể loại, số ngày hạn, tháng mượn
 - Logistic Regression vs Random Forest, chọn cái tốt hơn
-- **Đo:** Accuracy, Precision, Recall, F1, ROC-AUC trên 20% test — bảng so sánh 2 mô hình trong báo cáo
+- **Đo:** Accuracy, Precision, Recall, F1, ROC-AUC trên 20% test, bảng so sánh 2 mô hình trong báo cáo
 - Dùng: khi thủ thư cho mượn, UI hiện badge "Nguy cơ trả trễ: 72%"; lưu vào `loans.predicted_overdue_risk` để sau đối chiếu
 
 **Luồng dữ liệu:** AI gọi `GET /internal/training-data` của BE (loans, ratings, books, users.member_type) khi khởi động và khi `POST /train`. Model train xong giữ trong bộ nhớ + `.joblib` ở `/tmp`.
@@ -202,7 +202,7 @@ Mọi lỗi trả format thống nhất qua global exception filter; lỗi nghi�
 
 | Tầng | Công cụ | Nội dung |
 |---|---|---|
-| Backend unit | Jest, mock Prisma | `LoansService` (mọi quy tắc mục 1 — mỗi mã lỗi một test), `FinesService`, `RatingsService`, `PoliciesService`, `AuthService`, `ReportsService` — threshold 80% trong `jest.config` cho `**/*.service.ts` |
+| Backend unit | Jest, mock Prisma | `LoansService` (mọi quy tắc mục 1, mỗi mã lỗi một test), `FinesService`, `RatingsService`, `PoliciesService`, `AuthService`, `ReportsService`, threshold 80% trong `jest.config` cho `**/*.service.ts` |
 | Backend e2e | Jest + supertest + **Postgres thật** (service container trong CI) | mượn → gia hạn → trả trễ → phạt → thanh toán; báo mất; chứng minh SQL/Prisma chạy thật |
 | AI | pytest-cov, threshold 80% | recommender, feature engineering, endpoint, fallback khi BE không trả dữ liệu |
 | Frontend | ESLint + `next build` trong CI; vài test Vitest cho util | không tính coverage (yêu cầu chỉ tính lớp nghiệp vụ) |
@@ -211,7 +211,7 @@ Mọi lỗi trả format thống nhất qua global exception filter; lỗi nghi�
 
 ## 8. CI/CD
 
-`ci-cd.yml` — 3 job song song khi push/PR: `backend` (lint, unit, e2e với postgres service, coverage artifact), `ai-service` (pytest-cov), `frontend` (lint, build).
+`ci-cd.yml`: 3 job song song khi push/PR: `backend` (lint, unit, e2e với postgres service, coverage artifact), `ai-service` (pytest-cov), `frontend` (lint, build).
 Job `deploy` chỉ chạy khi merge `main`: gọi Render Deploy Hook cho BE + AI (Render build từ Dockerfile trong repo); Vercel tự deploy qua GitHub integration. Không cần đẩy image lên GHCR.
 
 **Git flow (cũng là "quản lý cấu hình" cho báo cáo PM):** `main` bảo vệ, nhánh `feat/*`, PR bắt buộc CI xanh, Conventional Commits, tag `v0.1.0 … v1.0.0` cuối mỗi sprint. Làm việc trong worktree riêng, chỉ push khi được bảo.
@@ -222,29 +222,29 @@ Job `deploy` chỉ chạy khi merge `main`: gọi Render Deploy Hook cho BE + AI
 |---|---|---|---|---|
 | **0** | tuần này | Scaffold monorepo, Prisma schema, Neon, docker-compose lên với `/health` 3 service, CI skeleton xanh, exception filter, **timelog.csv bắt đầu ghi** | README, 18-20 US lên GitHub Projects (gắn mã WBS) | `v0.1.0` |
 | **1** | 1-2 | Auth + roles, Books/Authors/Categories/Copies CRUD, Users (quản lý bạn đọc), Policies, seed goodbooks + Google Books | **LAB 1:** SRS IEEE 830 (có NFR số cụ thể). **LAB 2:** Use Case, ERD + DDL, kiến trúc, API spec v1 | `v0.2.0` |
-| **2** | 3-4 | Loans/Fines/Ratings/Reports + unit + e2e ≥80%; FE: login, danh sách sách, chi tiết, trang mượn của tôi, trang thủ thư (cho mượn, trả, bạn đọc), admin policies | **LAB 2:** Class + 3 Sequence (Mượn kèm AI, Trả + phạt, Gợi ý) + Activity (Mượn sách). **PM:** SOW, WBS, ước lượng, CPM, Gantt — dựng sớm để có PV cho EVA | `v0.3.0` |
+| **2** | 3-4 | Loans/Fines/Ratings/Reports + unit + e2e ≥80%; FE: login, danh sách sách, chi tiết, trang mượn của tôi, trang thủ thư (cho mượn, trả, bạn đọc), admin policies | **LAB 2:** Class + 3 Sequence (Mượn kèm AI, Trả + phạt, Gợi ý) + Activity (Mượn sách). **PM:** SOW, WBS, ước lượng, CPM, Gantt, dựng sớm để có PV cho EVA | `v0.3.0` |
 | **3** | 5-6 | AI service: data client, 2 mô hình, metrics; BE gọi AI (timeout/fallback); FE: trang gợi ý, badge nguy cơ trễ, dashboard biểu đồ | **LAB 3:** kết quả, accuracy, snippet, ảnh UI. **PM:** rủi ro, RACI, chất lượng, tài chính | `v0.4.0` |
 | **4** | 7-8 | Deploy Render + Vercel + Neon, CI/CD deploy job, chỉnh coverage, fix bug | **LAB 4** + điền mẫu .docx. **PM:** EVA từ timelog + issues, Excel, slide, hoàn thiện Word | `v1.0.0` |
 
 Với 1-2 người: sprint 1-2 nặng nhất; khung + test dựng trước, người còn lại điền tài liệu và làm UI. Phần PM được rải từ sprint 2 (không dồn hết vào sprint 4 như bản 1) vì WBS/PV phải có trước thì EVA mới đo được.
 
-## 10. Báo cáo Quản lý Dự án (sản phẩm B) — dự án mô phỏng 16 tuần, 4 người
+## 10. Báo cáo Quản lý Dự án (sản phẩm B): dự án mô phỏng 16 tuần, 4 người
 
 1. **SOW:** mục tiêu SMART, stakeholder (Ban GĐ thư viện, thủ thư, sinh viên, giảng viên, phòng CNTT, GVHD), giả định (16 tuần, 4 người bán thời gian ~10h/tuần/người, hạ tầng free-tier, dữ liệu sách có sẵn ISBN) / ràng buộc (ngân sách, hạn cuối kỳ, không có thẻ thanh toán)
-2. **WBS 3 cấp** — cấp 1 theo pha: 1 Khởi tạo → 2 Phân tích → 3 Thiết kế → 4 Phát triển → 5 Kiểm thử → 6 Triển khai → 7 Quản lý dự án. **Cấp 2 của pha Phát triển theo đúng 5 module đề 8 + AI**: 4.1 Quản lý sách, 4.2 Quản lý bạn đọc, 4.3 Mượn/trả, 4.4 Tìm kiếm, 4.5 Báo cáo, 4.6 AI, 4.7 Tích hợp. Cấp 3 = BE/FE của từng module. Ước lượng giờ công từng work package (3-point PERT), tổng ~600-700 giờ. Mỗi GitHub Issue gắn mã WBS.
+2. **WBS 3 cấp**: cấp 1 theo pha: 1 Khởi tạo → 2 Phân tích → 3 Thiết kế → 4 Phát triển → 5 Kiểm thử → 6 Triển khai → 7 Quản lý dự án. **Cấp 2 của pha Phát triển theo đúng 5 module đề 8 + AI**: 4.1 Quản lý sách, 4.2 Quản lý bạn đọc, 4.3 Mượn/trả, 4.4 Tìm kiếm, 4.5 Báo cáo, 4.6 AI, 4.7 Tích hợp. Cấp 3 = BE/FE của từng module. Ước lượng giờ công từng work package (3-point PERT), tổng ~600-700 giờ. Mỗi GitHub Issue gắn mã WBS.
 3. **CPM:** ~18-20 hoạt động, phụ thuộc FS/SS, bảng ES/EF/LS/LF/Slack, đường găng dự kiến: Phân tích → Schema → Mượn/trả BE → Tích hợp AI → Test → Deploy. Sơ đồ mạng (PlantUML/draw.io) + **Gantt** (sheet Excel).
-4. **8 rủi ro** — kỹ thuật: Render free ngủ khi demo, Google Books thiếu dữ liệu/rate limit, model accuracy thấp, coverage không đạt, scope creep; nghiệp vụ thư viện: dữ liệu sách nhập sai/thiếu ISBN, thủ thư không chịu chuyển sang hệ thống mới, mất dữ liệu seed. Ma trận xác suất×tác động + ứng phó từng rủi ro.
+4. **8 rủi ro**: kỹ thuật: Render free ngủ khi demo, Google Books thiếu dữ liệu/rate limit, model accuracy thấp, coverage không đạt, scope creep; nghiệp vụ thư viện: dữ liệu sách nhập sai/thiếu ISBN, thủ thư không chịu chuyển sang hệ thống mới, mất dữ liệu seed. Ma trận xác suất×tác động + ứng phó từng rủi ro.
 5. **Nguồn lực:** **org chart** nhóm 4 vai trò (PM/Scrum Master-Fullstack, Backend, Frontend, AI) + **RACI** vai trò × work package.
 6. **Chất lượng:** Unit/Integration/System/UAT, milestone = 5 tag release, tiêu chí = checklist trong file LAB + coverage 80%.
 7. **Tài chính:** chi phí = giờ công × 50.000đ + hạ tầng (0đ free-tier, ghi phương án trả phí); lợi ích = giờ thủ thư tiết kiệm/năm × đơn giá + giảm thất thoát sách; NPV 3 năm r=10%, ROI, Payback.
-8. **EVA (đặc thù đề 8):** 16 tuần mô phỏng = 8 tuần thật (1:2). PV theo WBS + lịch. Tại 4 mốc báo cáo (tuần 4/8/12/16 mô phỏng = tuần 2/4/6/8 thật): EV = % hoàn thành WP theo issue đóng × PV của WP; AC = giờ trong `timelog.csv` × 50.000đ. Tính SV/CV/SPI/CPI/EAC/ETC/VAC, biểu đồ đường PV-EV-AC, giải thích tình trạng. Nếu số thật lệch xấu thì giữ nguyên và giải thích — đó chính là nội dung đề yêu cầu. Excel công thức dựng sẵn, chỉ điền AC/EV.
-9. **Phân công:** mỗi thành viên (4 tên) phụ trách ít nhất 1 phần (Ước lượng & Lịch / Rủi ro / EVA / Kiểm thử) — ghi rõ theo yêu cầu đề.
+8. **EVA (đặc thù đề 8):** 16 tuần mô phỏng = 8 tuần thật (1:2). PV theo WBS + lịch. Tại 4 mốc báo cáo (tuần 4/8/12/16 mô phỏng = tuần 2/4/6/8 thật): EV = % hoàn thành WP theo issue đóng × PV của WP; AC = giờ trong `timelog.csv` × 50.000đ. Tính SV/CV/SPI/CPI/EAC/ETC/VAC, biểu đồ đường PV-EV-AC, giải thích tình trạng. Nếu số thật lệch xấu thì giữ nguyên và giải thích, đó chính là nội dung đề yêu cầu. Excel công thức dựng sẵn, chỉ điền AC/EV.
+9. **Phân công:** mỗi thành viên (4 tên) phụ trách ít nhất 1 phần (Ước lượng & Lịch / Rủi ro / EVA / Kiểm thử), ghi rõ theo yêu cầu đề.
 
 ## 11. Quyết định đã chốt (2026-09-21)
 
 | Hạng mục | Quyết định |
 |---|---|
-| Đề tài | Đề 8 — Quản lý Thư viện Trường Đại học |
+| Đề tài | Đề 8, Quản lý Thư viện Trường Đại học |
 | Hạn nộp | Cả 2 sản phẩm cuối kỳ (~8 tuần), cùng môn |
 | Nhóm | 1-2 người làm chính, 4 tên trong báo cáo |
 | Backend | NestJS (Node/TypeScript) + Prisma |
@@ -266,14 +266,14 @@ Với 1-2 người: sprint 1-2 nặng nhất; khung + test dựng trước, ngư
 | EVA | 16 tuần mô phỏng = 8 tuần thật (1:2), EV/AC số thật |
 | Ngoài MVP | Không reservation / email / thanh toán online / mobile |
 
-## 12. Việc tiếp theo — Sprint 0
+## 12. Việc tiếp theo: Sprint 0
 
 1. `git init` + repo GitHub `university-library-system`, bảo vệ `main`
-2. Tạo `docs/pm/timelog.csv` — ghi giờ ngay từ việc này
+2. Tạo `docs/pm/timelog.csv`: ghi giờ ngay từ việc này
 3. Tạo project Neon, lấy `DATABASE_URL`; lấy Google Books API key; `.env.example` cho 3 service
 4. Scaffold `backend/` (NestJS + Prisma schema mục 4 + exception filter), `frontend/` (Next.js), `ai-service/` (FastAPI)
 5. `docker-compose.yml` + `gateway/nginx.conf`
 6. `.github/workflows/ci-cd.yml` skeleton
 7. Kiểm chứng thật: `docker compose up` → 3 endpoint `/health` trả 200 qua gateway; `prisma migrate` chạy được trên Neon
-8. Tải goodbooks-10k, kiểm tra tỉ lệ sách có ISBN và tỉ lệ Google Books trả description (thử 50 cuốn) — nếu < 70% thì đổi sang Open Library bổ sung
+8. Tải goodbooks-10k, kiểm tra tỉ lệ sách có ISBN và tỉ lệ Google Books trả description (thử 50 cuốn), nếu < 70% thì đổi sang Open Library bổ sung
 9. Tạo 18-20 User Story trên GitHub Issues/Projects, gắn mã WBS

@@ -1,5 +1,5 @@
 @startuml activity-borrow
-' Activity Diagram — quy trình cho mượn sách tại quầy (BR-01…BR-05, FR-LOAN-01/02)
+' Activity Diagram: quy trình cho mượn sách tại quầy (BR-01…BR-05, FR-LOAN-01/02)
 skinparam activity {
   BackgroundColor #F7F5F0
   BorderColor #1B2A41

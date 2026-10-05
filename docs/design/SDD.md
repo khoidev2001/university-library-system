@@ -1,16 +1,16 @@
 # TÀI LIỆU THIẾT KẾ HỆ THỐNG (SDD)
 
-## Hệ thống Quản lý Thư viện Trường Đại học — University Library System (ULS)
+## Hệ thống Quản lý Thư viện Trường Đại học: University Library System (ULS)
 
 | | |
 |---|---|
 | Phiên bản | 1.0 |
 | Ngày | 23/09/2026 |
-| Bài thực hành | LAB 02 — Thiết kế Kiến trúc Hệ thống & Mô hình hóa UML |
-| Môn học | Công nghệ Phần mềm — Khoa CNTT, Trường ĐH Xây dựng Miền Trung |
+| Bài thực hành | LAB 02, Thiết kế Kiến trúc Hệ thống & Mô hình hóa UML |
+| Môn học | Công nghệ Phần mềm, Khoa CNTT, Trường ĐH Xây dựng Miền Trung |
 | Giảng viên hướng dẫn | TS. Lê Tỷ Khánh |
-| Đề tài | Đề tài 8 — Phần mềm Quản lý Thư viện Trường Đại học |
-| Nhóm thực hiện | Trần Đình Khôi — 23Q74802012006 (Nhóm trưởng); [Họ tên SV 2] — [MSSV 2] |
+| Đề tài | Đề tài 8: Phần mềm Quản lý Thư viện Trường Đại học |
+| Nhóm thực hiện | Trần Đình Khôi, 23Q74802012006 (Nhóm trưởng); [Họ tên SV 2], [MSSV 2] |
 | Tài liệu liên quan | SRS v1.0 (`docs/srs/SRS.md`), Prisma schema (`backend/prisma/schema.prisma`) |
 
 ### Lịch sử phiên bản
@@ -53,7 +53,7 @@ Bao gồm: kiến trúc tổng thể và lựa chọn công nghệ; mô hình UM
 
 ULS dùng kiến trúc **Modular Monolith cho Backend + AI Service tách riêng**, giao tiếp REST/JSON. Lựa chọn này thay vì microservices đầy đủ vì: nghiệp vụ thư viện gắn kết chặt (mượn ↔ bản sao ↔ phạt cần transaction chung), nhóm 1–2 người, hạ tầng miễn phí. Phần AI tách riêng vì khác ngôn ngữ (Python/scikit-learn), có chu kỳ huấn luyện riêng và được phép lỗi mà không ảnh hưởng nghiệp vụ.
 
-![Hình 2.1 — Sơ đồ kiến trúc: API Gateway, Services, Database, tích hợp ngoài](../uml/architecture.png)
+![Hình 2.1: Sơ đồ kiến trúc: API Gateway, Services, Database, tích hợp ngoài](../uml/architecture.png)
 
 | Thành phần | Vai trò | Công nghệ | Triển khai |
 |---|---|---|---|
@@ -62,7 +62,7 @@ ULS dùng kiến trúc **Modular Monolith cho Backend + AI Service tách riêng*
 | **Backend API** | Nguồn sự thật duy nhất; toàn bộ quy tắc nghiệp vụ; xác thực/phân quyền; Swagger | NestJS 10, Prisma 6, Passport-JWT, class-validator | Render |
 | **AI Service** | Gợi ý sách, dự báo trả trễ; lấy dữ liệu huấn luyện từ Backend | FastAPI, scikit-learn, pandas | Render |
 | **Database** | Lưu trữ quan hệ, 10 bảng, 3NF | PostgreSQL 16 | Neon |
-| **Tích hợp ngoài** | Thông tin sách theo ISBN (mô tả, NXB, thể loại, bìa) | Google Books API | — |
+| **Tích hợp ngoài** | Thông tin sách theo ISBN (mô tả, NXB, thể loại, bìa) | Google Books API | không có |
 
 ## 2.2. Kiến trúc phân tầng Backend
 
@@ -96,7 +96,7 @@ Thành phần cắt ngang (cross-cutting): `ValidationPipe` (whitelist, forbidNo
 
 | Từ → Đến | Giao thức | Bảo vệ | Timeout / Fallback |
 |---|---|---|---|
-| Frontend → Backend | REST/JSON, HTTPS | Bearer JWT, CORS whitelist | — |
+| Frontend → Backend | REST/JSON, HTTPS | Bearer JWT, CORS whitelist | không có |
 | Backend → AI Service | REST/JSON nội bộ | Mạng nội bộ | `predict-overdue` 2 s → `risk = null`; `recommend` 3 s → danh sách rỗng |
 | AI Service → Backend | REST/JSON | Header `X-Internal-Key` | Không có dữ liệu → giữ model cũ |
 | Backend → Google Books | HTTPS | API key | Không tìm thấy → bỏ qua ISBN đó, báo cáo lại |
@@ -110,13 +110,13 @@ Thành phần cắt ngang (cross-cutting): `ValidationPipe` (whitelist, forbidNo
 
 Ba actor chính với quyền lồng nhau (Admin ⊃ Librarian ⊃ Reader), hai actor phụ là AI Service và Google Books API. Chi tiết mô tả actor và use case ở SRS mục 2.3.
 
-![Hình 3.1 — Use Case tổng quan](../uml/use-case-overview.png)
+![Hình 3.1: Use Case tổng quan](../uml/use-case-overview.png)
 
 ## 3.2. Class Diagram
 
 Sơ đồ lớp gồm hai gói: **Domain** (entity ánh xạ 1-1 với Prisma schema, có phương thức dẫn xuất `isOverdue`, `overdueDays`) và **Application** (các Service của NestJS và hai client ra ngoài `AiClient`, `GoogleBooksClient`). `LoansService` là lớp trung tâm của nghiệp vụ: phụ thuộc `PoliciesService` (lấy chính sách), `FinesService` (tính/tạo phạt), `CopiesService` (đổi trạng thái bản sao) và `AiClient` (dự báo).
 
-![Hình 3.2 — Class Diagram](../uml/class-diagram.png)
+![Hình 3.2: Class Diagram](../uml/class-diagram.png)
 
 ## 3.3. Sequence Diagram
 
@@ -124,21 +124,21 @@ Sơ đồ lớp gồm hai gói: **Domain** (entity ánh xạ 1-1 với Prisma sc
 
 Luồng phức tạp nhất của hệ thống: 5 điều kiện chặn (BR-01…BR-05), gọi AI có timeout, và transaction gồm tạo phiếu + đổi trạng thái bản sao.
 
-![Hình 3.3 — Sequence: cho mượn sách](../uml/sequence-borrow.png)
+![Hình 3.3: Sequence: cho mượn sách](../uml/sequence-borrow.png)
 
 ### 3.3.2. Nhận trả sách, tính phạt, thu tiền (US08, US12)
 
-![Hình 3.4 — Sequence: nhận trả và phạt](../uml/sequence-return-fine.png)
+![Hình 3.4: Sequence: nhận trả và phạt](../uml/sequence-return-fine.png)
 
 ### 3.3.3. Gợi ý sách cá nhân hoá (US18)
 
 Gồm hai pha: huấn luyện (AI Service kéo dữ liệu từ Backend) và phục vụ gợi ý (Backend gọi AI, làm giàu kết quả bằng dữ liệu sách thật, fallback khi AI lỗi).
 
-![Hình 3.5 — Sequence: gợi ý sách](../uml/sequence-recommend.png)
+![Hình 3.5: Sequence: gợi ý sách](../uml/sequence-recommend.png)
 
-## 3.4. Activity Diagram — quy trình cho mượn
+## 3.4. Activity Diagram: quy trình cho mượn
 
-![Hình 3.6 — Activity: cho mượn sách tại quầy](../uml/activity-borrow.png)
+![Hình 3.6: Activity: cho mượn sách tại quầy](../uml/activity-borrow.png)
 
 ---
 
@@ -146,22 +146,24 @@ Gồm hai pha: huấn luyện (AI Service kéo dữ liệu từ Backend) và ph�
 
 ## 4.1. ERD (sinh từ Prisma schema)
 
-![Hình 4.1 — ERD chuẩn 3NF, 10 bảng](../erd/erd.png)
+![Hình 4.1: ERD chuẩn 3NF, 10 bảng](../erd/erd.png)
 
 ## 4.2. Mô tả bảng
 
 | Bảng | Mục đích | Khoá chính | Khoá ngoại | Ràng buộc |
 |---|---|---|---|---|
-| `users` | Mọi tài khoản: bạn đọc, thủ thư, admin | `id` | — | `email` UNIQUE, `member_code` UNIQUE, `role` enum, `member_type` enum (chỉ READER có) |
-| `loan_policies` | Chính sách mượn theo loại bạn đọc (BR-10) | `id` | — | `member_type` UNIQUE |
-| `authors` | Tác giả | `id` | — | — |
-| `categories` | Thể loại | `id` | — | `name`, `slug` UNIQUE |
+| `users` | Mọi tài khoản: bạn đọc, thủ thư, admin | `id` | không có | `email` UNIQUE, `member_code` UNIQUE, `role` enum, `member_type` enum (chỉ READER có) |
+| `loan_policies` | Chính sách mượn theo loại bạn đọc (BR-10) | `id` | không có | `member_type` UNIQUE |
+| `authors` | Tác giả | `id` | không có | |
+| `categories` | Thể loại | `id` | không có | `name`, `slug` UNIQUE |
 | `books` | Đầu sách | `id` | `category_id → categories` | `isbn` UNIQUE, `goodbooks_id` UNIQUE, `price` cho phạt mất |
-| `book_authors` | Quan hệ **n-n** sách – tác giả | (`book_id`, `author_id`) | cả hai, ON DELETE CASCADE | — |
+| `book_authors` | Quan hệ **n-n** sách – tác giả | (`book_id`, `author_id`) | cả hai, ON DELETE CASCADE | không có |
 | `book_copies` | Bản sao vật lý | `id` | `book_id → books` | `barcode` UNIQUE, `status` enum |
 | `loans` | Phiếu mượn | `id` | `copy_id`, `user_id`, `created_by → users` | `status` enum; index (`user_id`,`status`), (`due_at`) |
 | `fines` | Khoản phạt | `id` | `loan_id → loans`, `paid_to → users` (SET NULL) | `type` enum; index (`paid_at`) |
 | `ratings` | Đánh giá sách | `id` | `user_id`, `book_id` | UNIQUE (`user_id`,`book_id`), `score` 1–5 |
+
+**Khoá:** mọi bảng đều có khoá chính (`id` tự tăng, riêng `book_authors` dùng khoá phức `(book_id, author_id)`); mọi liên kết đều khai báo khoá ngoại có ràng buộc tham chiếu, xem phần DDL ở mục 4.4.
 
 **Quan hệ:** 1-n: categories–books, books–book_copies, book_copies–loans, users–loans (2 vai: reader, created_by), loans–fines, users–ratings, books–ratings. n-n: books–authors qua `book_authors`.
 
@@ -169,7 +171,7 @@ Gồm hai pha: huấn luyện (AI Service kéo dữ liệu từ Backend) và ph�
 
 - **1NF:** mọi cột nguyên tử; danh sách tác giả không lưu chuỗi "A, B" mà tách bảng `book_authors`.
 - **2NF:** bảng có khoá phức `book_authors` không có cột phụ thuộc một phần khoá.
-- **3NF:** không có phụ thuộc bắc cầu — thông tin thể loại tách `categories`; chính sách mượn tách `loan_policies` thay vì lặp trong `users`; tiền phạt tách `fines` thay vì cột trong `loans` (một phiếu có thể vừa phạt trễ vừa phạt mất).
+- **3NF:** không có phụ thuộc bắc cầu: thông tin thể loại tách `categories`; chính sách mượn tách `loan_policies` thay vì lặp trong `users`; tiền phạt tách `fines` thay vì cột trong `loans` (một phiếu có thể vừa phạt trễ vừa phạt mất).
 - **Dẫn xuất không lưu:** trạng thái "quá hạn" tính từ `due_at`, `returned_at` (BR-09); số bản còn tính từ `book_copies.status`.
 
 ## 4.4. DDL minh hoạ
@@ -239,7 +241,7 @@ CREATE TABLE "book_authors" (
 | 401 | Thiếu / sai / hết hạn JWT |
 | 403 | Đúng JWT nhưng sai vai trò, hoặc truy cập dữ liệu người khác |
 | 404 | Không tìm thấy tài nguyên |
-| 409 | Vi phạm quy tắc nghiệp vụ hoặc trùng dữ liệu — `error` là mã nghiệp vụ (bảng 5.10) |
+| 409 | Vi phạm quy tắc nghiệp vụ hoặc trùng dữ liệu, `error` là mã nghiệp vụ (bảng 5.10) |
 | 500 | Lỗi hệ thống |
 
 **Format lỗi thống nhất (global exception filter):**
@@ -254,20 +256,20 @@ CREATE TABLE "book_authors" (
 }
 ```
 
-## 5.2. Auth — `/api/auth`
+## 5.2. Auth: `/api/auth`
 
 | Method | URL | Vai trò | Request body | Response |
 |---|---|---|---|---|
 | POST | `/auth/register` | Pub | `{email, password (≥8), fullName, memberType: STUDENT\|LECTURER, memberCode}` | 201 `{id, email, fullName, role: READER, memberType, memberCode}` · 400 · 409 `EMAIL_EXISTS` / `MEMBER_CODE_EXISTS` |
 | POST | `/auth/login` | Pub | `{email, password}` | 200 `{accessToken, user}` · 400 · 401 `INVALID_CREDENTIALS` · 403 `ACCOUNT_LOCKED` |
-| GET | `/auth/me` | R/L/A | — | 200 `{id, email, fullName, role, memberType, memberCode, isActive}` · 401 |
+| GET | `/auth/me` | R/L/A | không có | 200 `{id, email, fullName, role, memberType, memberCode, isActive}` · 401 |
 
-## 5.3. Users — `/api/users` (quản lý bạn đọc)
+## 5.3. Users: `/api/users` (quản lý bạn đọc)
 
 | Method | URL | Vai trò | Request | Response |
 |---|---|---|---|---|
 | GET | `/users?q=&role=&isActive=&page=&limit=` | L | query | 200 `{items: [User], total, page, limit}` · 403 |
-| GET | `/users/:id` | L | — | 200 `{...User, activeLoans, unpaidFines}` · 404 |
+| GET | `/users/:id` | L | không có | 200 `{...User, activeLoans, unpaidFines}` · 404 |
 | GET | `/users/:id/loans?status=&page=` | L | query | 200 `{items: [Loan], total}` · 404 |
 | PATCH | `/users/:id` | L | `{isActive?, memberType?, fullName?}` | 200 User · 400 · 404 |
 | POST | `/users` | A | `{email, password, fullName, role: LIBRARIAN\|ADMIN}` | 201 User · 400 · 403 · 409 `EMAIL_EXISTS` |
@@ -277,40 +279,40 @@ CREATE TABLE "book_authors" (
 | Method | URL | Vai trò | Request | Response |
 |---|---|---|---|---|
 | GET | `/books?q=&categoryId=&authorId=&available=&page=&limit=` | Pub | query | 200 `{items: [BookSummary], total, page, limit}` |
-| GET | `/books/:id` | Pub | — | 200 `{...Book, authors[], category, copiesTotal, copiesAvailable, ratingAvg, ratingCount}` · 404 |
+| GET | `/books/:id` | Pub | không có | 200 `{...Book, authors[], category, copiesTotal, copiesAvailable, ratingAvg, ratingCount}` · 404 |
 | POST | `/books` | L | `{title, isbn?, description?, publisher?, publishedYear?, price, coverUrl?, categoryId, authorIds[]}` | 201 Book · 400 · 409 `ISBN_EXISTS` |
 | PATCH | `/books/:id` | L | các trường trên (tuỳ chọn) | 200 Book · 400 · 404 · 409 |
-| DELETE | `/books/:id` | L | — | 204 · 404 · 409 `BOOK_HAS_ACTIVE_LOANS` |
+| DELETE | `/books/:id` | L | không có | 204 · 404 · 409 `BOOK_HAS_ACTIVE_LOANS` |
 | POST | `/books/import` | A | `{isbns: string[] (≤100)}` | 200 `{created: [Book], skipped: [{isbn, reason: EXISTS\|NOT_FOUND}]}` · 400 |
-| GET | `/books/:id/copies` | L | — | 200 `[BookCopy]` · 404 |
+| GET | `/books/:id/copies` | L | không có | 200 `[BookCopy]` · 404 |
 | POST | `/books/:id/copies` | L | `{barcode, shelfLocation?}` | 201 BookCopy · 400 · 404 · 409 `BARCODE_EXISTS` |
 | PATCH | `/copies/:id` | L | `{status?, shelfLocation?}` | 200 BookCopy · 400 · 404 · 409 `COPY_HAS_ACTIVE_LOAN` |
 | GET | `/authors?q=&page=` | Pub | query | 200 `{items, total}` |
 | POST / PATCH / DELETE | `/authors`, `/authors/:id` | L | `{name}` | 201 / 200 / 204 · 400 · 404 |
-| GET | `/categories` | Pub | — | 200 `[Category]` |
+| GET | `/categories` | Pub | không có | 200 `[Category]` |
 | POST / PATCH / DELETE | `/categories`, `/categories/:id` | L | `{name, slug?}` | 201 / 200 / 204 · 400 · 404 · 409 `CATEGORY_EXISTS` / `CATEGORY_IN_USE` |
 
-## 5.5. Loans — `/api/loans`
+## 5.5. Loans: `/api/loans`
 
 | Method | URL | Vai trò | Request | Response |
 |---|---|---|---|---|
 | POST | `/loans` | L | `{barcode, memberCode}` | 201 `{loan: Loan, overdueRisk: number\|null}` · 400 · 404 `USER_NOT_FOUND` / `COPY_NOT_FOUND` · 409 `NOT_A_READER`, `ACCOUNT_LOCKED`, `COPY_NOT_AVAILABLE`, `LOAN_LIMIT_REACHED`, `HAS_OVERDUE_LOAN`, `UNPAID_FINE` |
-| POST | `/loans/:id/return` | L | — | 200 `{loan, fine: Fine\|null, overdueDays}` · 404 · 409 `LOAN_NOT_ACTIVE` |
-| POST | `/loans/:id/report-lost` | L | — | 200 `{loan, fine}` · 404 · 409 `LOAN_NOT_ACTIVE` |
-| POST | `/loans/:id/renew` | R | — | 200 Loan · 403 (phiếu người khác) · 404 · 409 `LOAN_NOT_ACTIVE`, `RENEW_LIMIT_REACHED`, `LOAN_OVERDUE_CANNOT_RENEW`, `UNPAID_FINE` |
+| POST | `/loans/:id/return` | L | không có | 200 `{loan, fine: Fine\|null, overdueDays}` · 404 · 409 `LOAN_NOT_ACTIVE` |
+| POST | `/loans/:id/report-lost` | L | không có | 200 `{loan, fine}` · 404 · 409 `LOAN_NOT_ACTIVE` |
+| POST | `/loans/:id/renew` | R | không có | 200 Loan · 403 (phiếu người khác) · 404 · 409 `LOAN_NOT_ACTIVE`, `RENEW_LIMIT_REACHED`, `LOAN_OVERDUE_CANNOT_RENEW`, `UNPAID_FINE` |
 | GET | `/loans/me?status=&page=` | R | query | 200 `{items: [LoanWithBook], total}` |
 | GET | `/loans?status=&overdue=true&userId=&page=` | L | query | 200 `{items: [LoanWithBookUser], total}` |
-| GET | `/loans/:id` | L | — | 200 Loan · 404 |
+| GET | `/loans/:id` | L | không có | 200 Loan · 404 |
 
 Đối tượng `Loan`: `{id, copy: {id, barcode, book: {id, title, coverUrl}}, user: {id, fullName, memberCode}, borrowedAt, dueAt, returnedAt, renewedCount, status, predictedOverdueRisk, isOverdue, overdueDays}`.
 
-## 5.6. Fines — `/api/fines`
+## 5.6. Fines: `/api/fines`
 
 | Method | URL | Vai trò | Request | Response |
 |---|---|---|---|---|
-| GET | `/fines/me` | R | — | 200 `{items: [Fine], unpaidTotal}` |
+| GET | `/fines/me` | R | không có | 200 `{items: [Fine], unpaidTotal}` |
 | GET | `/fines?paid=false&userId=&page=` | L | query | 200 `{items: [FineWithLoanUser], total}` |
-| POST | `/fines/:id/pay` | L | — | 200 Fine · 404 · 409 `FINE_ALREADY_PAID` |
+| POST | `/fines/:id/pay` | L | không có | 200 Fine · 404 · 409 `FINE_ALREADY_PAID` |
 
 `Fine`: `{id, loanId, type: OVERDUE\|LOST, amount, paidAt, paidTo, createdAt, loan: {book: {title}, dueAt, returnedAt}}`.
 
@@ -318,35 +320,35 @@ CREATE TABLE "book_authors" (
 
 | Method | URL | Vai trò | Request | Response |
 |---|---|---|---|---|
-| GET | `/policies` | Pub | — | 200 `[{memberType, maxBooks, loanDays, renewLimit, renewExtraDays, finePerDay}]` |
+| GET | `/policies` | Pub | không có | 200 `[{memberType, maxBooks, loanDays, renewLimit, renewExtraDays, finePerDay}]` |
 | PATCH | `/policies/:memberType` | A | `{maxBooks?, loanDays?, renewLimit?, renewExtraDays?, finePerDay?}` (nguyên dương) | 200 Policy · 400 · 403 · 404 |
 | POST | `/books/:id/ratings` | R | `{score: 1..5}` | 200 `{id, score}` (tạo hoặc ghi đè) · 400 · 403 `NOT_BORROWED` · 404 |
-| GET | `/books/:id/ratings/summary` | Pub | — | 200 `{avg, count}` |
+| GET | `/books/:id/ratings/summary` | Pub | không có | 200 `{avg, count}` |
 | GET | `/reports/top-books?from=&to=&limit=10` | L | query | 200 `[{book, loanCount}]` |
-| GET | `/reports/overdue` | L | — | 200 `[{user, loan, overdueDays, estimatedFine}]` |
+| GET | `/reports/overdue` | L | không có | 200 `[{user, loan, overdueDays, estimatedFine}]` |
 | GET | `/reports/loans-by-month?months=12` | L | query | 200 `[{month: "2026-09", count}]` |
-| GET | `/reports/inventory` | L | — | 200 `[{category, total, available, borrowed, lost, maintenance}]` |
+| GET | `/reports/inventory` | L | không có | 200 `[{category, total, available, borrowed, lost, maintenance}]` |
 
 ## 5.8. Recommendations & Internal
 
 | Method | URL | Vai trò | Request | Response |
 |---|---|---|---|---|
 | GET | `/recommendations/me?k=10` | R | query | 200 `{items: [BookSummary], source: MODEL\|POPULAR\|NONE, reason?}` |
-| POST | `/recommendations/train` | A | — | 202 `{status: "started"}` · 503 `AI_UNAVAILABLE` |
-| GET | `/recommendations/metrics` | L | — | 200 số đo hai mô hình (chuyển tiếp từ AI `/metrics`) · 503 `AI_UNAVAILABLE` |
-| GET | `/recommendations/overdue-accuracy` | L | — | 200 `{sampled, predictedHigh, actuallyLate, hitRate}` — đối chiếu dự báo đã lưu với kết quả thật |
-| GET | `/internal/training-data` | AI (header `X-Internal-Key`) | — | 200 `{books: [{id, title, authors, category, description}], interactions: [{userId, bookId, type: LOAN\|RATING, score?, borrowedAt?, dueAt?, returnedAt?}], users: [{id, memberType}]}` · 401 |
-| GET | `/health` | Pub | — | 200 `{status, service, database, timestamp}` |
+| POST | `/recommendations/train` | A | không có | 202 `{status: "started"}` · 503 `AI_UNAVAILABLE` |
+| GET | `/recommendations/metrics` | L | không có | 200 số đo hai mô hình (chuyển tiếp từ AI `/metrics`) · 503 `AI_UNAVAILABLE` |
+| GET | `/recommendations/overdue-accuracy` | L | không có | 200 `{sampled, predictedHigh, actuallyLate, hitRate}`, đối chiếu dự báo đã lưu với kết quả thật |
+| GET | `/internal/training-data` | AI (header `X-Internal-Key`) | không có | 200 `{books: [{id, title, authors, category, description}], interactions: [{userId, bookId, type: LOAN\|RATING, score?, borrowedAt?, dueAt?, returnedAt?}], users: [{id, memberType}]}` · 401 |
+| GET | `/health` | Pub | không có | 200 `{status, service, database, timestamp}` |
 
 ## 5.9. AI Service (nội bộ, cổng 8000, qua gateway `/ai`)
 
 | Method | URL | Request | Response |
 |---|---|---|---|
-| GET | `/health` | — | 200 `{status, service, models: {recommender, overdue}}` |
+| GET | `/health` | không có | 200 `{status, service, models: {recommender, overdue}}` |
 | GET | `/recommend?user_id=&k=10` | query | 200 `{user_id, book_ids: [int], source: "model"\|"popular"}` · 503 model chưa sẵn sàng |
 | POST | `/predict-overdue` | `{member_type, prior_loans, prior_overdue, active_loans, category_id, loan_days, month}` | 200 `{risk: 0.0–1.0, model: "rf"\|"logreg"}` · 503 |
-| POST | `/train` | — | 202 `{status: "training"}` |
-| GET | `/metrics` | — | 200 `{recommender: {books, users, interactions, precision_at_5, recall_at_5, evaluated_users, trained_at}, overdue: {samples, positive_rate, chosen, logistic_regression: {...}, random_forest: {...}, trained_at}, lastTraining, note}` |
+| POST | `/train` | không có | 202 `{status: "training"}` |
+| GET | `/metrics` | không có | 200 `{recommender: {books, users, interactions, precision_at_5, recall_at_5, evaluated_users, trained_at}, overdue: {samples, positive_rate, chosen, logistic_regression: {...}, random_forest: {...}, trained_at}, lastTraining, note}` |
 
 ## 5.10. Bảng mã lỗi nghiệp vụ
 

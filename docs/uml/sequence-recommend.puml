@@ -1,5 +1,5 @@
 @startuml sequence-recommend
-' Sequence 3 — Gợi ý sách cá nhân hoá (US18) và huấn luyện mô hình
+' Sequence 3: Gợi ý sách cá nhân hoá (US18) và huấn luyện mô hình
 skinparam sequenceMessageAlign center
 skinparam participant {
   BackgroundColor #F7F5F0
