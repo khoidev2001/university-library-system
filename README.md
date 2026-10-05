@@ -73,9 +73,27 @@ pnpm --dir backend test:cov                       # unit, mock Prisma, ngưỡng
 DATABASE_URL=... pnpm --dir backend test:e2e      # supertest trên Postgres thật
 python backend/test/smoke-sprint1.py http://localhost:8080/api   # 48 lời gọi API: auth, catalog, users, policies
 python backend/test/smoke-sprint2.py http://localhost:8080/api uls-postgres-1   # 36 lời gọi: mượn/trả/phạt/đánh giá/báo cáo
+python backend/test/smoke-sprint3.py http://localhost:8080/api http://localhost:8080/ai uls-postgres-1   # 16 lời gọi: AI gợi ý + dự báo
+pytest --rootdir ai-service ai-service                            # 23 test AI, ngưỡng coverage 80%
 ```
 
 Hai script smoke chạy trên hệ thống **đang chạy** với dữ liệu seed — đây là bằng chứng mức "chạy thật" cho phần đụng cơ sở dữ liệu và tiền.
+
+## AI Service
+
+Khởi động xong, AI Service tự kéo dữ liệu qua `GET /api/internal/training-data` (header `X-Internal-Key`) rồi huấn luyện; `GET /ai/health` báo `recommender`/`overdue` đã `ready` chưa.
+
+| Endpoint | Việc |
+|---|---|
+| `GET /ai/recommend?user_id=&k=` | Gợi ý sách (TF-IDF + item-based CF, trộn 50/50) |
+| `POST /ai/predict-overdue` | Xác suất trả trễ (Logistic Regression / Random Forest, chọn ROC-AUC cao hơn) |
+| `POST /ai/train` · `GET /ai/metrics` | Huấn luyện lại · số đo mô hình |
+
+Qua Backend: `GET /api/recommendations/me` (bạn đọc), `GET /api/recommendations/metrics` và `/overdue-accuracy` (thủ thư), `POST /api/recommendations/train` (admin).
+
+**AI chết không làm sập nghiệp vụ:** cho mượn vẫn thành công với `overdueRisk = null`, trang gợi ý rơi về sách mượn nhiều (`source: POPULAR`), endpoint quản trị AI trả `503 AI_UNAVAILABLE`.
+
+Số đo gần nhất trên dữ liệu seed (05/10/2026): Precision@5 = 0,309 · Recall@5 = 0,110; dự báo trả trễ ROC-AUC 0,762 (Logistic Regression) so với 0,756 (Random Forest). Lịch sử mượn/trả là **dữ liệu mô phỏng**, nên các số này phản ánh quy luật mô phỏng.
 
 ## Công cụ tài liệu
 

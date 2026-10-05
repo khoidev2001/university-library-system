@@ -73,6 +73,32 @@ export class AiClient {
     }
   }
 
+  /** FR-AI-04: yêu cầu AI Service huấn luyện lại (nó tự kéo dữ liệu qua /internal/training-data). */
+  async train(): Promise<void> {
+    try {
+      const res = await this.fetchImpl(`${this.baseUrl}/train`, {
+        method: 'POST',
+        signal: AbortSignal.timeout(this.recommendTimeoutMs),
+      });
+      if (!res.ok) throw new AiUnavailableError(`HTTP ${res.status}`);
+    } catch (e) {
+      throw e instanceof AiUnavailableError ? e : new AiUnavailableError((e as Error).message);
+    }
+  }
+
+  /** Số đo mô hình để đưa vào báo cáo LAB 3. */
+  async metrics(): Promise<unknown> {
+    try {
+      const res = await this.fetchImpl(`${this.baseUrl}/metrics`, {
+        signal: AbortSignal.timeout(this.recommendTimeoutMs),
+      });
+      if (!res.ok) throw new AiUnavailableError(`HTTP ${res.status}`);
+      return await res.json();
+    } catch (e) {
+      throw e instanceof AiUnavailableError ? e : new AiUnavailableError((e as Error).message);
+    }
+  }
+
   /** Danh sách bookId gợi ý; ném AiUnavailableError khi AI không sẵn sàng. */
   async recommend(userId: number, k: number): Promise<number[]> {
     try {

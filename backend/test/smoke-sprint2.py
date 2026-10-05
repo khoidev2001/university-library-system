@@ -96,7 +96,10 @@ s, b = call("POST", "/loans", {"barcode": barcodes[0], "memberCode": MEMBER_CODE
 expect("cho mượn", s, 201)
 loan_id = b["loan"]["id"]
 assert b["loan"]["status"] == "ACTIVE" and b["loan"]["renewedCount"] == 0, b["loan"]
-assert b["overdueRisk"] is None, "AI chưa chạy → phải fallback null, không được chặn mượn"
+risk = b["overdueRisk"]
+assert risk is None or (isinstance(risk, float) and 0.0 <= risk <= 1.0), (
+    f"AI chạy thì phải là xác suất 0..1, AI tắt thì phải là null (fallback), nhận {risk!r}"
+)
 due_days = int(sql(f"SELECT DATE_PART('day', due_at - borrowed_at) FROM loans WHERE id={loan_id}"))
 assert due_days == 14, f"hạn phải là 14 ngày theo chính sách STUDENT, nhận {due_days}"
 assert sql(f"SELECT status FROM book_copies WHERE barcode='{barcodes[0]}'") == "BORROWED"

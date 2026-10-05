@@ -74,3 +74,27 @@ describe('AiClient.recommend', () => {
     expect(await client(empty).recommend(7, 10)).toEqual([]);
   });
 });
+
+describe('AiClient.train / metrics', () => {
+  it('train gọi POST /train và chịu được lỗi', async () => {
+    const ok = jest.fn().mockResolvedValue({ ok: true });
+    await expect(client(ok).train()).resolves.toBeUndefined();
+    expect(ok.mock.calls[0][0]).toBe('http://ai:8000/train');
+    expect(ok.mock.calls[0][1].method).toBe('POST');
+
+    const down = jest.fn().mockRejectedValue(new Error('ECONNREFUSED'));
+    await expect(client(down).train()).rejects.toBeInstanceOf(AiUnavailableError);
+
+    const http503 = jest.fn().mockResolvedValue({ ok: false, status: 503 });
+    await expect(client(http503).train()).rejects.toBeInstanceOf(AiUnavailableError);
+  });
+
+  it('metrics trả nguyên payload của AI service', async () => {
+    const payload = { recommender: { precision_at_5: 0.31 }, overdue: { chosen: 'logistic_regression' } };
+    const ok = jest.fn().mockResolvedValue({ ok: true, json: async () => payload });
+    await expect(client(ok).metrics()).resolves.toEqual(payload);
+
+    const down = jest.fn().mockResolvedValue({ ok: false, status: 500 });
+    await expect(client(down).metrics()).rejects.toBeInstanceOf(AiUnavailableError);
+  });
+});

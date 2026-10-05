@@ -40,6 +40,10 @@ services:
     environment:
       BACKEND_URL: http://backend:3000/api
       INTERNAL_API_KEY: ${INTERNAL_API_KEY:-dev-internal}
+      # Huấn luyện lại khi khởi động; đặt 0 nếu muốn chủ động gọi POST /train
+      TRAIN_ON_STARTUP: ${TRAIN_ON_STARTUP:-1}
+    depends_on:
+      - backend
 
   frontend:
     build: ./frontend
