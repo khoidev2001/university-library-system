@@ -14,7 +14,10 @@ describe('InternalService.trainingData', () => {
   beforeEach(async () => {
     prisma = createPrismaMock();
     const moduleRef = await Test.createTestingModule({
-      providers: [InternalService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        InternalService,
+        { provide: PrismaService, useValue: prisma },
+      ],
     }).compile();
     service = moduleRef.get(InternalService);
 
@@ -24,17 +27,28 @@ describe('InternalService.trainingData', () => {
         title: 'Dune',
         description: 'Sand',
         category: { name: 'Sci-Fi' },
-        authors: [{ author: { name: 'Herbert' } }, { author: { name: 'Anderson' } }],
+        authors: [
+          { author: { name: 'Herbert' } },
+          { author: { name: 'Anderson' } },
+        ],
       },
     ]);
     prisma.user.findMany.mockResolvedValue([{ id: 7, memberType: 'STUDENT' }]);
-    prisma.rating.findMany.mockResolvedValue([{ userId: 7, bookId: 1, score: 5 }]);
+    prisma.rating.findMany.mockResolvedValue([
+      { userId: 7, bookId: 1, score: 5 },
+    ]);
   });
 
   it('flattens authors and keeps the category name', async () => {
     prisma.loan.findMany.mockResolvedValue([]);
     const data = await service.trainingData();
-    expect(data.books[0]).toEqual({ id: 1, title: 'Dune', authors: 'Herbert, Anderson', category: 'Sci-Fi', description: 'Sand' });
+    expect(data.books[0]).toEqual({
+      id: 1,
+      title: 'Dune',
+      authors: 'Herbert, Anderson',
+      category: 'Sci-Fi',
+      description: 'Sand',
+    });
     expect(data.users).toEqual([{ id: 7, memberType: 'STUDENT' }]);
   });
 
@@ -54,9 +68,19 @@ describe('InternalService.trainingData', () => {
 
     expect(data.interactions).toHaveLength(2);
     const loan = data.interactions.find((i) => i.type === 'LOAN')!;
-    expect(loan).toMatchObject({ userId: 7, bookId: 1, categoryId: 3, returnedAt: '2026-09-14T00:00:00.000Z' });
+    expect(loan).toMatchObject({
+      userId: 7,
+      bookId: 1,
+      categoryId: 3,
+      returnedAt: '2026-09-14T00:00:00.000Z',
+    });
     const rating = data.interactions.find((i) => i.type === 'RATING')!;
-    expect(rating).toMatchObject({ userId: 7, bookId: 1, score: 5, borrowedAt: null });
+    expect(rating).toMatchObject({
+      userId: 7,
+      bookId: 1,
+      score: 5,
+      borrowedAt: null,
+    });
   });
 
   it('a LOST loan is never reported as returned (nhãn trả đúng hạn sẽ sai)', async () => {
@@ -71,7 +95,9 @@ describe('InternalService.trainingData', () => {
       },
     ]);
 
-    const loan = (await service.trainingData()).interactions.find((i) => i.type === 'LOAN')!;
+    const loan = (await service.trainingData()).interactions.find(
+      (i) => i.type === 'LOAN',
+    )!;
     expect(loan.returnedAt).toBeNull();
   });
 });
@@ -84,16 +110,24 @@ describe('InternalKeyGuard', () => {
   }
 
   function guard(configured?: string): InternalKeyGuard {
-    return new InternalKeyGuard({ get: () => configured } as unknown as ConfigService);
+    return new InternalKeyGuard({
+      get: () => configured,
+    } as unknown as ConfigService);
   }
 
   it('accepts the configured key only', () => {
     expect(guard('secret').canActivate(context('secret'))).toBe(true);
-    expect(() => guard('secret').canActivate(context('wrong'))).toThrow(UnauthorizedException);
-    expect(() => guard('secret').canActivate(context(undefined))).toThrow(UnauthorizedException);
+    expect(() => guard('secret').canActivate(context('wrong'))).toThrow(
+      UnauthorizedException,
+    );
+    expect(() => guard('secret').canActivate(context(undefined))).toThrow(
+      UnauthorizedException,
+    );
   });
 
   it('refuses everything when no key is configured', () => {
-    expect(() => guard(undefined).canActivate(context('anything'))).toThrow(UnauthorizedException);
+    expect(() => guard(undefined).canActivate(context('anything'))).toThrow(
+      UnauthorizedException,
+    );
   });
 });

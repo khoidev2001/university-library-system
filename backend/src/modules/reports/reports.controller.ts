@@ -19,7 +19,9 @@ export class ReportsController {
   }
 
   @Get('overdue')
-  @ApiOperation({ summary: 'Bạn đọc đang quá hạn kèm số ngày trễ và phạt ước tính' })
+  @ApiOperation({
+    summary: 'Bạn đọc đang quá hạn kèm số ngày trễ và phạt ước tính',
+  })
   overdue() {
     return this.reports.overdueReaders();
   }

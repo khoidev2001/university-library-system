@@ -46,7 +46,9 @@ export class RecommendationsService {
     let bookIds: number[] = [];
     let source: RecommendationSource = 'MODEL';
     try {
-      bookIds = (await this.ai.recommend(userId, k + excluded.size)).filter((id) => !excluded.has(id)).slice(0, k);
+      bookIds = (await this.ai.recommend(userId, k + excluded.size))
+        .filter((id) => !excluded.has(id))
+        .slice(0, k);
     } catch (e) {
       if (!(e instanceof AiUnavailableError)) throw e;
       this.logger.warn(`AI không sẵn sàng, dùng sách mượn nhiều: ${e.message}`);
@@ -58,14 +60,22 @@ export class RecommendationsService {
       source = 'POPULAR';
       bookIds = await this.popularBookIds(k, excluded);
     }
-    if (bookIds.length === 0) return { items: [], source: 'NONE', reason: 'NO_DATA' };
+    if (bookIds.length === 0)
+      return { items: [], source: 'NONE', reason: 'NO_DATA' };
 
     const items = await this.loadBooks(bookIds);
-    return { items, source, ...(source === 'POPULAR' && { reason: 'AI_UNAVAILABLE_OR_COLD_START' }) };
+    return {
+      items,
+      source,
+      ...(source === 'POPULAR' && { reason: 'AI_UNAVAILABLE_OR_COLD_START' }),
+    };
   }
 
   /** FR-AI-02: cold-start và fallback — sách được mượn nhiều nhất, trừ sách đã mượn. */
-  private async popularBookIds(k: number, excluded: Set<number>): Promise<number[]> {
+  private async popularBookIds(
+    k: number,
+    excluded: Set<number>,
+  ): Promise<number[]> {
     const groups = await this.prisma.loan.groupBy({
       by: ['copyId'],
       _count: { _all: true },
@@ -99,7 +109,10 @@ export class RecommendationsService {
         coverUrl: true,
         category: { select: { id: true, name: true } },
         authors: { select: { author: { select: { name: true } } } },
-        copies: { where: { status: CopyStatus.AVAILABLE }, select: { id: true } },
+        copies: {
+          where: { status: CopyStatus.AVAILABLE },
+          select: { id: true },
+        },
       },
     });
     const byId = new Map(books.map((b) => [b.id, b]));
@@ -133,25 +146,41 @@ export class RecommendationsService {
       return await action();
     } catch (e) {
       if (e instanceof AiUnavailableError) {
-        throw new BusinessException('AI_UNAVAILABLE', e.message, HttpStatus.SERVICE_UNAVAILABLE);
+        throw new BusinessException(
+          'AI_UNAVAILABLE',
+          e.message,
+          HttpStatus.SERVICE_UNAVAILABLE,
+        );
       }
       throw e;
     }
   }
 
   /** Thống kê độ chính xác thực tế của dự báo trả trễ (so dự báo đã lưu với kết quả thật). */
-  async overdueAccuracy(): Promise<{ sampled: number; predictedHigh: number; actuallyLate: number; hitRate: number | null }> {
+  async overdueAccuracy(): Promise<{
+    sampled: number;
+    predictedHigh: number;
+    actuallyLate: number;
+    hitRate: number | null;
+  }> {
     const loans = await this.prisma.loan.findMany({
-      where: { predictedOverdueRisk: { not: null }, status: LoanStatus.RETURNED },
+      where: {
+        predictedOverdueRisk: { not: null },
+        status: LoanStatus.RETURNED,
+      },
       select: { predictedOverdueRisk: true, dueAt: true, returnedAt: true },
     });
     const high = loans.filter((l) => (l.predictedOverdueRisk ?? 0) >= 0.5);
-    const lateAmongHigh = high.filter((l) => l.returnedAt && l.returnedAt > l.dueAt).length;
+    const lateAmongHigh = high.filter(
+      (l) => l.returnedAt && l.returnedAt > l.dueAt,
+    ).length;
     return {
       sampled: loans.length,
       predictedHigh: high.length,
       actuallyLate: lateAmongHigh,
-      hitRate: high.length ? Number((lateAmongHigh / high.length).toFixed(3)) : null,
+      hitRate: high.length
+        ? Number((lateAmongHigh / high.length).toFixed(3))
+        : null,
     };
   }
 }

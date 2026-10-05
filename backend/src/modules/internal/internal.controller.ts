@@ -13,7 +13,10 @@ export class InternalController {
 
   @Get('training-data')
   @ApiHeader({ name: 'X-Internal-Key', required: true })
-  @ApiOperation({ summary: 'Dữ liệu huấn luyện cho AI Service (sách, bạn đọc, lượt mượn, đánh giá)' })
+  @ApiOperation({
+    summary:
+      'Dữ liệu huấn luyện cho AI Service (sách, bạn đọc, lượt mượn, đánh giá)',
+  })
   trainingData() {
     return this.internal.trainingData();
   }

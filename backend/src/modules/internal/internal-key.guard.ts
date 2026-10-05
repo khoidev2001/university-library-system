@@ -1,4 +1,9 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 
@@ -12,9 +17,14 @@ export class InternalKeyGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const expected = this.config.get<string>('INTERNAL_API_KEY');
-    if (!expected) throw new UnauthorizedException('INTERNAL_API_KEY chưa được cấu hình');
-    const provided = context.switchToHttp().getRequest<Request>().header('x-internal-key');
-    if (provided !== expected) throw new UnauthorizedException('X-Internal-Key không hợp lệ');
+    if (!expected)
+      throw new UnauthorizedException('INTERNAL_API_KEY chưa được cấu hình');
+    const provided = context
+      .switchToHttp()
+      .getRequest<Request>()
+      .header('x-internal-key');
+    if (provided !== expected)
+      throw new UnauthorizedException('X-Internal-Key không hợp lệ');
     return true;
   }
 }

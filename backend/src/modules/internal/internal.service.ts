@@ -53,7 +53,10 @@ export class InternalService {
         },
         orderBy: { id: 'asc' },
       }),
-      this.prisma.user.findMany({ where: { role: 'READER' }, select: { id: true, memberType: true } }),
+      this.prisma.user.findMany({
+        where: { role: 'READER' },
+        select: { id: true, memberType: true },
+      }),
       this.prisma.loan.findMany({
         select: {
           userId: true,
@@ -61,10 +64,14 @@ export class InternalService {
           dueAt: true,
           returnedAt: true,
           status: true,
-          copy: { select: { bookId: true, book: { select: { categoryId: true } } } },
+          copy: {
+            select: { bookId: true, book: { select: { categoryId: true } } },
+          },
         },
       }),
-      this.prisma.rating.findMany({ select: { userId: true, bookId: true, score: true } }),
+      this.prisma.rating.findMany({
+        select: { userId: true, bookId: true, score: true },
+      }),
     ]);
 
     const interactions: TrainingInteraction[] = [
@@ -76,7 +83,10 @@ export class InternalService {
         borrowedAt: loan.borrowedAt.toISOString(),
         dueAt: loan.dueAt.toISOString(),
         // Phiếu LOST coi như chưa trả: mô hình không được học đó là lần trả đúng hạn.
-        returnedAt: loan.status === LoanStatus.RETURNED && loan.returnedAt ? loan.returnedAt.toISOString() : null,
+        returnedAt:
+          loan.status === LoanStatus.RETURNED && loan.returnedAt
+            ? loan.returnedAt.toISOString()
+            : null,
         categoryId: loan.copy.book.categoryId,
       })),
       ...ratings.map((rating) => ({

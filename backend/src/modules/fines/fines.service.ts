@@ -34,7 +34,10 @@ export class FinesService {
   }
 
   /** BR-04: tổng tiền phạt chưa thanh toán của một bạn đọc. */
-  async unpaidTotal(userId: number, tx: Prisma.TransactionClient = this.prisma): Promise<number> {
+  async unpaidTotal(
+    userId: number,
+    tx: Prisma.TransactionClient = this.prisma,
+  ): Promise<number> {
     const result = await tx.fine.aggregate({
       _sum: { amount: true },
       where: { paidAt: null, loan: { userId } },
@@ -52,7 +55,9 @@ export class FinesService {
     return tx.fine.create({ data: { loanId, type, amount } });
   }
 
-  async findMine(userId: number): Promise<{ items: FineRow[]; unpaidTotal: number }> {
+  async findMine(
+    userId: number,
+  ): Promise<{ items: FineRow[]; unpaidTotal: number }> {
     const [items, unpaid] = await Promise.all([
       this.prisma.fine.findMany({
         where: { loan: { userId } },
@@ -66,11 +71,18 @@ export class FinesService {
 
   async findAll(query: QueryFinesDto): Promise<Page<FineRow>> {
     const where: Prisma.FineWhereInput = {
-      ...(query.paid !== undefined && (query.paid ? { paidAt: { not: null } } : { paidAt: null })),
+      ...(query.paid !== undefined &&
+        (query.paid ? { paidAt: { not: null } } : { paidAt: null })),
       ...(query.userId && { loan: { userId: query.userId } }),
     };
     const [items, total] = await this.prisma.$transaction([
-      this.prisma.fine.findMany({ where, include: fineInclude, orderBy: { createdAt: 'desc' }, skip: query.skip, take: query.limit }),
+      this.prisma.fine.findMany({
+        where,
+        include: fineInclude,
+        orderBy: { createdAt: 'desc' },
+        skip: query.skip,
+        take: query.limit,
+      }),
       this.prisma.fine.count({ where }),
     ]);
     return toPage(items, total, query);
@@ -80,7 +92,11 @@ export class FinesService {
   async pay(fineId: number, librarianId: number): Promise<FineRow> {
     const fine = await this.prisma.fine.findUnique({ where: { id: fineId } });
     if (!fine) throw new NotFoundException('Không tìm thấy khoản phạt');
-    if (fine.paidAt) throw new BusinessException('FINE_ALREADY_PAID', 'Khoản phạt này đã được thanh toán');
+    if (fine.paidAt)
+      throw new BusinessException(
+        'FINE_ALREADY_PAID',
+        'Khoản phạt này đã được thanh toán',
+      );
     return this.prisma.fine.update({
       where: { id: fineId },
       data: { paidAt: new Date(), paidToId: librarianId },

@@ -1,7 +1,24 @@
-import { Body, Controller, Get, HttpCode, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  ParseIntPipe,
+  Post,
+  Query,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Role } from '@prisma/client';
-import { CurrentUser, JwtUser } from '../../common/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  JwtUser,
+} from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { BorrowDto, QueryLoansDto } from './dto/loans.dto';
 import { LoansService } from './loans.service';
@@ -14,11 +31,19 @@ export class LoansController {
 
   @Post()
   @Roles(Role.LIBRARIAN)
-  @ApiOperation({ summary: 'Cho mượn tại quầy bằng mã vạch + mã bạn đọc; kèm dự báo nguy cơ trả trễ' })
-  @ApiResponse({ status: 201, description: '{ loan, overdueRisk } — overdueRisk có thể null khi AI không sẵn sàng' })
+  @ApiOperation({
+    summary:
+      'Cho mượn tại quầy bằng mã vạch + mã bạn đọc; kèm dự báo nguy cơ trả trễ',
+  })
+  @ApiResponse({
+    status: 201,
+    description:
+      '{ loan, overdueRisk } — overdueRisk có thể null khi AI không sẵn sàng',
+  })
   @ApiResponse({
     status: 409,
-    description: 'NOT_A_READER | ACCOUNT_LOCKED | COPY_NOT_AVAILABLE | LOAN_LIMIT_REACHED | HAS_OVERDUE_LOAN | UNPAID_FINE',
+    description:
+      'NOT_A_READER | ACCOUNT_LOCKED | COPY_NOT_AVAILABLE | LOAN_LIMIT_REACHED | HAS_OVERDUE_LOAN | UNPAID_FINE',
   })
   borrow(@Body() dto: BorrowDto, @CurrentUser() user: JwtUser) {
     return this.loans.borrow(dto, user.id);
@@ -33,7 +58,9 @@ export class LoansController {
 
   @Get()
   @Roles(Role.LIBRARIAN)
-  @ApiOperation({ summary: 'Tra cứu phiếu mượn; lọc theo trạng thái, quá hạn, bạn đọc' })
+  @ApiOperation({
+    summary: 'Tra cứu phiếu mượn; lọc theo trạng thái, quá hạn, bạn đọc',
+  })
   findMany(@Query() query: QueryLoansDto) {
     return this.loans.findMany(query);
   }
@@ -67,7 +94,11 @@ export class LoansController {
   @Roles(Role.READER)
   @HttpCode(200)
   @ApiOperation({ summary: 'Bạn đọc tự gia hạn phiếu của mình' })
-  @ApiResponse({ status: 409, description: 'LOAN_NOT_ACTIVE | LOAN_OVERDUE_CANNOT_RENEW | RENEW_LIMIT_REACHED | UNPAID_FINE' })
+  @ApiResponse({
+    status: 409,
+    description:
+      'LOAN_NOT_ACTIVE | LOAN_OVERDUE_CANNOT_RENEW | RENEW_LIMIT_REACHED | UNPAID_FINE',
+  })
   renew(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: JwtUser) {
     return this.loans.renew(id, user.id);
   }

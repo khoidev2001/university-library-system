@@ -33,7 +33,9 @@ export class RatingsService {
     });
   }
 
-  async summary(bookId: number): Promise<{ avg: number | null; count: number }> {
+  async summary(
+    bookId: number,
+  ): Promise<{ avg: number | null; count: number }> {
     const result = await this.prisma.rating.aggregate({
       where: { bookId },
       _avg: { score: true },

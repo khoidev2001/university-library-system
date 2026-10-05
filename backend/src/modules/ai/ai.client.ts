@@ -38,9 +38,13 @@ export class AiClient {
     config: ConfigService,
     private readonly fetchImpl: typeof fetch = fetch,
   ) {
-    this.baseUrl = config.get<string>('AI_SERVICE_URL', 'http://localhost:8000').replace(/\/$/, '');
+    this.baseUrl = config
+      .get<string>('AI_SERVICE_URL', 'http://localhost:8000')
+      .replace(/\/$/, '');
     this.predictTimeoutMs = Number(config.get('AI_TIMEOUT_MS', 2000));
-    this.recommendTimeoutMs = Number(config.get('AI_RECOMMEND_TIMEOUT_MS', 3000));
+    this.recommendTimeoutMs = Number(
+      config.get('AI_RECOMMEND_TIMEOUT_MS', 3000),
+    );
   }
 
   /** Xác suất trả trễ 0..1, hoặc null khi AI không sẵn sàng (không ném lỗi). */
@@ -65,10 +69,13 @@ export class AiClient {
         return null;
       }
       const body = (await res.json()) as { risk?: number };
-      if (typeof body.risk !== 'number' || body.risk < 0 || body.risk > 1) return null;
+      if (typeof body.risk !== 'number' || body.risk < 0 || body.risk > 1)
+        return null;
       return body.risk;
     } catch (e) {
-      this.logger.warn(`predict-overdue lỗi: ${(e as Error).message} — bỏ qua dự báo`);
+      this.logger.warn(
+        `predict-overdue lỗi: ${(e as Error).message} — bỏ qua dự báo`,
+      );
       return null;
     }
   }
@@ -82,7 +89,9 @@ export class AiClient {
       });
       if (!res.ok) throw new AiUnavailableError(`HTTP ${res.status}`);
     } catch (e) {
-      throw e instanceof AiUnavailableError ? e : new AiUnavailableError((e as Error).message);
+      throw e instanceof AiUnavailableError
+        ? e
+        : new AiUnavailableError((e as Error).message);
     }
   }
 
@@ -95,7 +104,9 @@ export class AiClient {
       if (!res.ok) throw new AiUnavailableError(`HTTP ${res.status}`);
       return await res.json();
     } catch (e) {
-      throw e instanceof AiUnavailableError ? e : new AiUnavailableError((e as Error).message);
+      throw e instanceof AiUnavailableError
+        ? e
+        : new AiUnavailableError((e as Error).message);
     }
   }
 
@@ -105,7 +116,9 @@ export class AiClient {
       const url = new URL(`${this.baseUrl}/recommend`);
       url.searchParams.set('user_id', String(userId));
       url.searchParams.set('k', String(k));
-      const res = await this.fetchImpl(url, { signal: AbortSignal.timeout(this.recommendTimeoutMs) });
+      const res = await this.fetchImpl(url, {
+        signal: AbortSignal.timeout(this.recommendTimeoutMs),
+      });
       if (!res.ok) throw new AiUnavailableError(`HTTP ${res.status}`);
       const body = (await res.json()) as { book_ids?: number[] };
       return Array.isArray(body.book_ids) ? body.book_ids : [];
