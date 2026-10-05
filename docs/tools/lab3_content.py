@@ -1,4 +1,4 @@
-"""Nội dung mục 2.3 (LAB 03) của báo cáo — số liệu đo trên hệ thống chạy thật 05/10/2026.
+"""Nội dung mục 2.3 (LAB 03) của báo cáo: số liệu đo trên hệ thống chạy thật 05/10/2026.
 
 Nguồn số: GET /metrics của AI Service sau khi huấn luyện trên dữ liệu seed thật
 (1.000 sách, 1.999 bạn đọc, 11.546 phiếu mượn mô phỏng), và GET /api/docs-json của Backend.
@@ -20,15 +20,15 @@ BACKEND_SUMMARY = "\n".join(
 
 AI_SUMMARY = "\n".join(
     [
-        "• Thuật toán/Mô hình 1 — Gợi ý sách (lai): TF-IDF trên tiêu đề + tác giả + thể loại + mô tả (cosine "
+        "• Thuật toán/Mô hình 1, gợi ý sách (lai): TF-IDF trên tiêu đề + tác giả + thể loại + mô tả (cosine "
         "similarity) trộn 50/50 với Collaborative Filtering item-based trên ma trận bạn đọc × sách. Đo trên tập "
         "hold-out 20%: Precision@5 = 0,309 và Recall@5 = 0,110 (1.000 sách, 1.999 bạn đọc, 122.353 tương tác, "
-        "300 bạn đọc được đánh giá) — vượt ngưỡng nghiệm thu 0,15 của US18.",
-        "• Thuật toán/Mô hình 2 — Dự báo nguy cơ trả trễ: so sánh Logistic Regression với Random Forest trên "
+        "300 bạn đọc được đánh giá), vượt ngưỡng nghiệm thu 0,15 của US18.",
+        "• Thuật toán/Mô hình 2, dự báo nguy cơ trả trễ: so sánh Logistic Regression với Random Forest trên "
         "10.895 phiếu đã trả (tỉ lệ trễ 60,4%), tách 20% làm tập kiểm tra.",
         "    – Logistic Regression: Accuracy 0,695 · Precision 0,788 · Recall 0,677 · F1 0,728 · ROC-AUC 0,762",
         "    – Random Forest:       Accuracy 0,694 · Precision 0,766 · Recall 0,710 · F1 0,737 · ROC-AUC 0,756",
-        "    Hệ thống tự chọn Logistic Regression vì ROC-AUC cao hơn — đạt ngưỡng 0,70 của US19.",
+        "    Hệ thống tự chọn Logistic Regression vì ROC-AUC cao hơn, đạt ngưỡng 0,70 của US19.",
         "• Đặc trưng: số lần mượn trước đó, số lần và tỉ lệ trả trễ trước đó, số sách đang giữ, loại bạn đọc, "
         "thể loại sách, số ngày mượn, tháng mượn và cờ mùa thi. Đặc trưng dựng theo trình tự thời gian: mỗi phiếu "
         "chỉ dùng thông tin có trước ngày mượn.",
@@ -43,7 +43,7 @@ AI_SUMMARY = "\n".join(
 
 AI_SNIPPET = "\n".join(
     [
-        "Snippet 1 — ai-service/app/overdue_model.py: chọn mô hình tốt hơn theo ROC-AUC",
+        "Snippet 1. ai-service/app/overdue_model.py: chọn mô hình tốt hơn theo ROC-AUC",
         'logistic = Pipeline([("scaler", StandardScaler()),',
         '                     ("clf", LogisticRegression(max_iter=1000, class_weight="balanced"))',
         "                    ]).fit(x_train, y_train)",
@@ -53,12 +53,32 @@ AI_SNIPPET = "\n".join(
         "forest_scores   = score_model(forest,   x_test, y_test)",
         "self.model = forest if forest_scores.roc_auc >= logistic_scores.roc_auc else logistic",
         "",
-        "Snippet 2 — backend/src/modules/ai/ai.client.ts: AI chậm không được chặn quầy mượn (FR-LOAN-02)",
+        "Snippet 2. backend/src/modules/ai/ai.client.ts: AI chậm không được chặn quầy mượn (FR-LOAN-02)",
         "const res = await fetch(`${this.baseUrl}/predict-overdue`, {",
         "  method: 'POST',",
         "  body: JSON.stringify(features),",
         "  signal: AbortSignal.timeout(this.predictTimeoutMs),   // 2 giây",
         "});",
         "// lỗi hoặc quá hạn chờ -> trả null, phiếu mượn vẫn được tạo bình thường",
+    ]
+)
+
+FRONTEND_SUMMARY = "\n".join(
+    [
+        "• Công nghệ: Next.js 15 App Router + TypeScript + TailwindCSS 4, TanStack Query cho trạng thái máy chủ, "
+        "Recharts cho biểu đồ, Lucide cho biểu tượng.",
+        "• Các trang công khai (trang chủ, tra cứu, chi tiết sách, quy định) dựng phía máy chủ nên xem được nội "
+        "dung ngay cả khi tắt JavaScript và máy tìm kiếm đọc được. Tình trạng còn mấy bản trên kệ dựng theo từng "
+        "yêu cầu để không hiển thị số liệu cũ.",
+        "• Chuẩn SEO: tiêu đề và mô tả riêng cho từng trang, thẻ canonical, Open Graph, dữ liệu có cấu trúc "
+        "schema.org (Library kèm SearchAction, Book kèm aggregateRating và tình trạng còn sách, FAQPage cho trang "
+        "quy định), sitemap.xml và robots.txt sinh tự động; khu vực tài khoản và nghiệp vụ bị chặn khỏi chỉ mục.",
+        "• Khả năng tiếp cận: ngôn ngữ trang là tiếng Việt, mỗi trang một thẻ h1, liên kết bỏ qua phần đầu trang, "
+        "nhãn cho mọi ô nhập, bảng có caption và tiêu đề cột, viền focus rõ ràng, tôn trọng thiết lập giảm chuyển động.",
+        "• Giao diện thích ứng: đã kiểm ở bề rộng 390 px, không có cuộn ngang, thanh điều hướng thu gọn thành nút menu.",
+        "• Phân quyền trên giao diện: thanh điều hướng và các trang đổi theo vai trò; quyền thật vẫn do backend "
+        "quyết định nên sửa giao diện không vượt được kiểm soát.",
+        "• Thông báo lỗi dịch sang tiếng Việt theo từng mã nghiệp vụ, ví dụ khi bạn đọc còn nợ phạt hoặc đã mượn "
+        "đủ số cuốn thì thủ thư thấy đúng lý do bị chặn.",
     ]
 )

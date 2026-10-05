@@ -47,6 +47,14 @@ services:
 
   frontend:
     build: ./frontend
+    environment:
+      # Trình duyệt gọi /api cùng origin qua gateway (mặc định trong mã nguồn).
+      # Server component gọi thẳng backend trong mạng nội bộ.
+      API_URL: http://backend:3000/api
+      # Chỉ dùng cho thẻ canonical và sitemap; đổi theo tên miền thật khi triển khai
+      NEXT_PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-http://localhost:8080}
+    depends_on:
+      - backend
 
   gateway:
     image: nginx:1.27-alpine

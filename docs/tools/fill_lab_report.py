@@ -13,10 +13,11 @@ from pathlib import Path
 from docx import Document
 from docx.shared import Cm
 
-from lab3_content import AI_SNIPPET, AI_SUMMARY, BACKEND_SUMMARY
+from lab3_content import AI_SNIPPET, AI_SUMMARY, BACKEND_SUMMARY, FRONTEND_SUMMARY
 
 UML_DIR = Path(__file__).resolve().parents[1] / "uml"
 ERD_DIR = Path(__file__).resolve().parents[1] / "erd"
+SHOT_DIR = Path(__file__).resolve().parents[1] / "report" / "screenshots"
 
 REPO_URL = "https://github.com/khoidev2001/university-library-system"
 SRS_URL = f"{REPO_URL}/blob/main/docs/srs/SRS.docx"
@@ -213,6 +214,25 @@ def fill(template: Path, output: Path) -> None:
     # LAB 3 — kết quả Backend API và AI/ML (số đo thật, xem docs/tools/lab3_content.py).
     # Ảnh giao diện (đoạn 33, 34) để trống tới khi frontend hoàn thiện.
     set_text(paragraphs[31], BACKEND_SUMMARY)
+    set_text(paragraphs[32], "b) Kết quả giao diện Frontend UI/UX:")
+    set_text(paragraphs[33], FRONTEND_SUMMARY)
+    # Ảnh chụp từ hệ thống đang chạy thật (docker compose), xem docs/report/screenshots
+    shots = [
+        ("Trang chủ: ô tìm kiếm, thể loại và sách còn trên kệ", "01-trang-chu.jpg"),
+        ("Tra cứu sách với bộ lọc thể loại và tình trạng", "02-tra-cuu-sach.jpg"),
+        ("Chi tiết sách kèm tình trạng bản sao và điểm đánh giá", "03-chi-tiet-sach.jpg"),
+        ("Bạn đọc xem sách đang mượn và gia hạn trực tuyến", "04-sach-cua-toi.jpg"),
+        ("Trang gợi ý sách cho bạn đọc", "05-goi-y.jpg"),
+        ("Quầy mượn trả của thủ thư, có dự báo nguy cơ trả trễ", "06-quay-muon-tra.jpg"),
+        ("Thống kê thư viện với biểu đồ lượt mượn và tồn kho", "07-thong-ke.jpg"),
+    ]
+    anchor = paragraphs[34]
+    set_text(anchor, f"Hình 1. {shots[0][0]}")
+    anchor = insert_after(anchor, "", SHOT_DIR / shots[0][1], 15)
+    for index, (caption, filename) in enumerate(shots[1:], start=2):
+        anchor = insert_after(anchor, f"Hình {index}. {caption}")
+        anchor = insert_after(anchor, "", SHOT_DIR / filename, 15)
+
     set_text(paragraphs[36], AI_SUMMARY)
     set_cell(doc.tables[3].cell(0, 0), AI_SNIPPET)
 
