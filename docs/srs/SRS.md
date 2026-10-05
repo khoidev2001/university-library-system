@@ -387,7 +387,7 @@ Quy ước: mỗi FR có mã `FR-<nhóm>-<số>`, mức ưu tiên **Cao / Trung 
 | BR-04 | Không cho mượn khi bạn đọc còn khoản phạt chưa thanh toán. |
 | BR-05 | Không cho mượn khi thẻ bị khoá hoặc bản sao không ở trạng thái AVAILABLE. |
 | BR-06 | Gia hạn chỉ khi: phiếu ACTIVE, chưa quá hạn, `renewed_count < renew_limit`, không có phạt chưa trả. |
-| BR-07 | Phạt trễ = số ngày trễ (làm tròn lên, tính theo ngày lịch) × `fine_per_day`; tạo khi trả sách hoặc báo mất. |
+| BR-07 | Phạt trễ = số **ngày lịch** trễ × `fine_per_day`; tạo khi trả sách hoặc báo mất. Trả trong chính ngày hết hạn (dù muộn giờ) không bị phạt; sang ngày hôm sau tính 1 ngày. Ngày lịch theo giờ thư viện (mặc định UTC+7, đổi bằng `LIBRARY_UTC_OFFSET_MINUTES`). |
 | BR-08 | Báo mất: phạt mất = giá bìa sách + phạt trễ tính đến ngày báo; phiếu và bản sao chuyển LOST. |
 | BR-09 | "Quá hạn" là trạng thái suy ra từ `due_at`, không lưu cứng; báo cáo quá hạn tính tại thời điểm truy vấn. |
 | BR-10 | Chính sách mượn được "chụp" vào phiếu tại thời điểm tạo (`due_at` đã tính); đổi chính sách không ảnh hưởng phiếu cũ. |

@@ -48,6 +48,9 @@ docker compose up --build
 # Lần đầu (hoặc SEED_RESET=1 để làm lại): 1.000 sách, 2.000 bạn đọc, 229k rating, 2 chính sách mượn
 docker compose exec backend pnpm prisma db seed
 # hoặc chạy ngoài Docker: DATABASE_URL=postgresql://uls:uls@localhost:5434/uls pnpm --dir backend prisma db seed
+
+# Lịch sử mượn/trả MÔ PHỎNG (cần cho báo cáo thống kê và cho AI ở Sprint 3)
+pnpm --dir backend seed:loans        # SEED_LOANS_RESET=1 để sinh lại, SEED_LOANS_MAX để đổi số lượng
 ```
 
 | Tài khoản | Mật khẩu | Vai trò |
@@ -68,8 +71,11 @@ GOOGLE_BOOKS_API_KEY=... python backend/prisma/seed/prepare_goodbooks.py --googl
 ```bash
 pnpm --dir backend test:cov                       # unit, mock Prisma, ngưỡng 80%
 DATABASE_URL=... pnpm --dir backend test:e2e      # supertest trên Postgres thật
-python backend/test/smoke-sprint1.py http://localhost:8080/api   # 48 lời gọi API trên hệ thống đang chạy + seed
+python backend/test/smoke-sprint1.py http://localhost:8080/api   # 48 lời gọi API: auth, catalog, users, policies
+python backend/test/smoke-sprint2.py http://localhost:8080/api uls-postgres-1   # 36 lời gọi: mượn/trả/phạt/đánh giá/báo cáo
 ```
+
+Hai script smoke chạy trên hệ thống **đang chạy** với dữ liệu seed — đây là bằng chứng mức "chạy thật" cho phần đụng cơ sở dữ liệu và tiền.
 
 ## Công cụ tài liệu
 

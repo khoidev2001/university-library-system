@@ -389,7 +389,7 @@ CREATE TABLE "book_authors" (
 | # | Quyết định | Lý do | Hệ quả |
 |---|---|---|---|
 | 1 | Modular monolith + AI tách riêng thay vì 4–5 microservices | Nghiệp vụ cần transaction chung; nhóm nhỏ; hạ tầng free | Sơ đồ kiến trúc vẫn có gateway, 3 dịch vụ, DB, tích hợp ngoài; dễ tách thêm sau |
-| 2 | "Quá hạn" là trạng thái dẫn xuất | Tránh cron và trạng thái lệch | Truy vấn dùng `due_at < now()`; có index `due_at` |
+| 2 | "Quá hạn" là trạng thái dẫn xuất, đếm theo ngày lịch | Tránh cron và trạng thái lệch; phạt theo ngày lịch đúng cách thư viện tính | Truy vấn dùng `due_at < overdueCutoff(now)` (nửa đêm đầu ngày hôm nay, giờ thư viện); có index `due_at`; hàm chung `src/common/date.util.ts` để API và báo cáo không lệch nhau |
 | 3 | Chính sách mượn trong bảng, chụp vào phiếu lúc tạo | Admin đổi qua UI; phiếu cũ không bị ảnh hưởng | `due_at` tính tại thời điểm mượn (BR-10) |
 | 4 | AI không chạm DB, lấy dữ liệu qua `/internal/training-data` | Một nơi sở hữu schema; AI thay được | Backend thêm 1 endpoint; AI cần key |
 | 5 | Gọi AI có timeout + fallback | Render free cold start ~50 s không được chặn quầy | `overdueRisk` có thể null; UI hiển thị "không có dự báo" |

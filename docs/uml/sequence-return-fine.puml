@@ -24,8 +24,10 @@ alt loan.status != ACTIVE
 end
 S -> F : calculateOverdue(loan, policy, now)
 note right of F
-  days = ceil((now - due_at) / 1 ngày)
-  amount = max(0, days) x fine_per_day   (BR-07)
+  days = số ngày lịch giữa due_at và now
+         (giờ thư viện, UTC+7)
+  amount = days x fine_per_day   (BR-07)
+  trả trong ngày hết hạn: days = 0
 end note
 F --> S : amount
 S -> DB : BEGIN

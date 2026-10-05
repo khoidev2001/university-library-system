@@ -1,5 +1,9 @@
 # `docker compose up --build` → http://localhost:8080 (gateway), /api/health, /ai/health
 # Cổng đổi qua .env: GATEWAY_PORT, POSTGRES_PORT
+# Ghim tên project để container/volume mang tên dự án (uls-postgres-1, uls_pgdata...).
+# Ghi đè bằng COMPOSE_PROJECT_NAME hoặc `-p` khi chạy từ worktree riêng.
+name: uls
+
 services:
   postgres:
     image: postgres:16-alpine
