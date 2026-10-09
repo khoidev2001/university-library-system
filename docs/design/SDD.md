@@ -10,7 +10,7 @@
 | Môn học | Công nghệ Phần mềm, Khoa CNTT, Trường ĐH Xây dựng Miền Trung |
 | Giảng viên hướng dẫn | TS. Lê Tỷ Khánh |
 | Đề tài | Đề tài 8: Phần mềm Quản lý Thư viện Trường Đại học |
-| Nhóm thực hiện | Trần Đình Khôi, 23Q74802012006 (Nhóm trưởng); [Họ tên SV 2], [MSSV 2] |
+| Nhóm thực hiện | Trần Đình Khôi, 23Q74802012006 (Nhóm trưởng); Nguyễn Như Quỳnh, 21DQ4802011003 |
 | Tài liệu liên quan | SRS v1.0 (`docs/srs/SRS.md`), Prisma schema (`backend/prisma/schema.prisma`) |
 
 ### Lịch sử phiên bản
