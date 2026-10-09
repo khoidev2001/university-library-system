@@ -129,7 +129,7 @@ def fill(template: Path, output: Path) -> None:
     # Cover
     set_text(paragraphs[3], "Đề tài : Đề tài 8: Phần mềm Quản lý Thư viện Trường Đại học")
     cover = doc.tables[0]
-    set_cell(cover.cell(0, 1), "Nhóm [Số nhóm] - Lớp [Tên Lớp/Khóa]")
+    set_cell(cover.cell(0, 1), "Nhóm 3 - Lớp D23CTC2")
     set_cell(
         cover.cell(2, 1),
         "1. Trần Đình Khôi - MSSV: 23Q74802012006 (Nhóm trưởng)\n2. Nguyễn Như Quỳnh - MSSV: 21DQ4802011003",
