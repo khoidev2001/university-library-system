@@ -12,7 +12,7 @@
 | Số slide | 14 slide |
 | Ngôn ngữ | Tiếng Việt, thuật ngữ kỹ thuật giữ tiếng Anh (Use Case, Sequence, ERD, API Gateway) |
 | Tỉ lệ | 16:9 |
-| Người trình bày | Nhóm [Số nhóm]: Trần Đình Khôi (23Q74802012006), [Họ tên SV 2] |
+| Người trình bày | Nhóm [Số nhóm]: Trần Đình Khôi (23Q74802012006), Nguyễn Như Quỳnh (21DQ4802011003) |
 
 **Giảng viên chấm LAB 2 theo 4 tiêu chí**, slide phải cho thấy rõ từng tiêu chí:
 
@@ -52,7 +52,7 @@ Dùng chung bộ nhận diện với slide LAB 1 để hai buổi liền mạch:
 - Eyebrow: `LAB 02 · Thiết kế kiến trúc hệ thống và mô hình hóa UML`
 - Tiêu đề: **Từ đặc tả yêu cầu sang bản thiết kế thi công**
 - Phụ đề: `Đề tài 8 · Kiến trúc · UML · ERD 3NF · Đặc tả 48 API`
-- Dòng dưới: Nhóm [Số nhóm], Trần Đình Khôi và [Họ tên SV 2] · GVHD: TS. Lê Tỷ Khánh · Khoa CNTT, ĐH Xây dựng Miền Trung
+- Dòng dưới: Nhóm [Số nhóm], Trần Đình Khôi và Nguyễn Như Quỳnh · GVHD: TS. Lê Tỷ Khánh · Khoa CNTT, ĐH Xây dựng Miền Trung
 - *Ghi chú nói:* LAB 1 trả lời hệ thống phải làm gì. LAB 2 trả lời hệ thống được dựng ra sao, đủ chi tiết để lập trình.
 
 ### Slide 2: Từ yêu cầu tới thiết kế

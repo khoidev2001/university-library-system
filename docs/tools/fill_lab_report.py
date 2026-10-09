@@ -50,7 +50,7 @@ ACTORS = [
 
 TEAM = [
     ("Trần Đình Khôi", "Scrum Master / Backend & DevOps", "SRS & Backlog (LAB1), ERD & API (LAB2), NestJS + Prisma (LAB3), Docker & CI/CD (LAB4)", "100%"),
-    ("[Họ tên SV 2]", "Frontend & AI/ML", "Actor & NFR (LAB1), UML (LAB2), Next.js UI + AI Service (LAB3), Kiểm thử (LAB4)", "100%"),
+    ("Nguyễn Như Quỳnh", "Frontend & AI/ML", "Actor & NFR (LAB1), UML (LAB2), Next.js UI + AI Service (LAB3), Kiểm thử (LAB4)", "100%"),
 ]
 
 BACKLOG = [
@@ -132,7 +132,7 @@ def fill(template: Path, output: Path) -> None:
     set_cell(cover.cell(0, 1), "Nhóm [Số nhóm] - Lớp [Tên Lớp/Khóa]")
     set_cell(
         cover.cell(2, 1),
-        "1. Trần Đình Khôi - MSSV: 23Q74802012006 (Nhóm trưởng)\n2. [Họ và tên SV 2] - MSSV: [MSSV 2]",
+        "1. Trần Đình Khôi - MSSV: 23Q74802012006 (Nhóm trưởng)\n2. Nguyễn Như Quỳnh - MSSV: 21DQ4802011003",
     )
     set_cell(cover.cell(3, 1), f"GitHub: {REPO_URL}")
     set_cell(cover.cell(4, 1), "Demo Web: (cập nhật ở LAB 4)")
@@ -225,6 +225,7 @@ def fill(template: Path, output: Path) -> None:
         ("Trang gợi ý sách cho bạn đọc", "05-goi-y.jpg"),
         ("Quầy mượn trả của thủ thư, có dự báo nguy cơ trả trễ", "06-quay-muon-tra.jpg"),
         ("Thống kê thư viện với biểu đồ lượt mượn và tồn kho", "07-thong-ke.jpg"),
+        ("Giao diện trên điện thoại, bề rộng 390 px, menu thu gọn, không cuộn ngang", "08-dien-thoai-trang-chu.jpg"),
     ]
     anchor = paragraphs[34]
     set_text(anchor, f"Hình 1. {shots[0][0]}")
