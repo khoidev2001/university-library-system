@@ -12,10 +12,18 @@ from pathlib import Path
 
 from docx import Document
 from docx.enum.table import WD_TABLE_ALIGNMENT
-from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_TAB_ALIGNMENT, WD_TAB_LEADER
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
+
+STYLES = {
+    "default": {"base": 12, "justify": False, "line": None, "before": 0, "after": 6, "tables": (8.5, 9.5, 10), "caption": 11,
+                "h": (16, 14, 13, 12), "bullet_after": None},
+    "qldapm": {"base": 14, "justify": True, "line": 1.15, "before": 2, "after": 2, "tables": (9.5, 10.5, 11.5), "caption": 12,
+               "h": (16, 14, 14, 14), "bullet_after": 2},
+}
+STYLE = dict(STYLES["default"])
 
 INLINE_RE = re.compile(r"(\*\*[^*]+\*\*|`[^`]+`|\*[^*]+\*)")
 
@@ -63,7 +71,8 @@ def add_table(doc: Document, rows: list[list[str]], font_override: float | None 
     if not rows:
         return
     ncols = max(len(r) for r in rows)
-    font_size = font_override or (8.5 if ncols >= 8 else (9.5 if ncols >= 5 else 10))
+    small, mid, big = STYLE["tables"]
+    font_size = font_override or (small if ncols >= 8 else (mid if ncols >= 5 else big))
     table = doc.add_table(rows=len(rows), cols=ncols)
     table.style = "Table Grid"
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -113,14 +122,15 @@ def add_code(doc: Document, lines: list[str]) -> None:
 def setup_styles(doc: Document) -> None:
     normal = doc.styles["Normal"]
     normal.font.name = "Times New Roman"
-    normal.font.size = Pt(12)
+    normal.font.size = Pt(STYLE["base"])
     normal.element.rPr.rFonts.set(qn("w:eastAsia"), "Times New Roman")
-    for level, size in ((1, 16), (2, 14), (3, 13), (4, 12)):
+    for level, size in zip((1, 2, 3, 4), STYLE["h"]):
         style = doc.styles[f"Heading {level}"]
         style.font.name = "Times New Roman"
         style.font.size = Pt(size)
         style.font.bold = True
         style.font.color.rgb = RGBColor(0x1F, 0x3A, 0x5F)
+        style.font.italic = (level == 3 and STYLE["base"] == 14)
         style.element.rPr.rFonts.set(qn("w:eastAsia"), "Times New Roman")
     for section in doc.sections:
         section.left_margin = Cm(2.5)
@@ -129,9 +139,16 @@ def setup_styles(doc: Document) -> None:
         section.bottom_margin = Cm(2)
 
 
-def convert(md_path: Path, out_path: Path) -> None:
+def convert(md_path: Path, out_path: Path, style: str = "default") -> None:
+    STYLE.clear()
+    STYLE.update(STYLES[style])
     doc = Document()
     setup_styles(doc)
+    pf = doc.styles["Normal"].paragraph_format
+    pf.space_before = Pt(STYLE["before"])
+    pf.space_after = Pt(STYLE["after"])
+    if STYLE["line"]:
+        pf.line_spacing = STYLE["line"]
     lines = md_path.read_text(encoding="utf-8").splitlines()
     i = 0
     table_buf: list[list[str]] = []
@@ -173,6 +190,28 @@ def convert(md_path: Path, out_path: Path) -> None:
         stripped = line.strip()
         if not stripped:
             continue
+        if stripped.startswith("@@LIST|"):
+            _, text_part, page_part = stripped.split("|", 2)
+            para = doc.add_paragraph()
+            para.paragraph_format.space_after = Pt(1)
+            para.paragraph_format.left_indent = Cm(0.8)
+            para.paragraph_format.first_line_indent = Cm(-0.8)
+            usable = doc.sections[-1].page_width - doc.sections[-1].left_margin - doc.sections[-1].right_margin
+            para.paragraph_format.tab_stops.add_tab_stop(usable, WD_TAB_ALIGNMENT.RIGHT, WD_TAB_LEADER.DOTS)
+            run = para.add_run(text_part + chr(9) + page_part)
+            run.font.size = Pt(STYLE["base"] - 1)
+            continue
+        if stripped.startswith("@@C|") or stripped.startswith("@@CB|"):
+            parts = stripped.split("|")
+            para = doc.add_paragraph()
+            para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            if parts[0] == "@@CB":
+                run = para.add_run(parts[2])
+                run.bold = True
+                run.font.size = Pt(float(parts[1]))
+            else:
+                run = para.add_run(parts[1])
+            continue
         font_mark = re.match(r"^<!--font:([\d.]+)-->$", stripped)
         if font_mark:
             next_font = float(font_mark.group(1))
@@ -209,7 +248,7 @@ def convert(md_path: Path, out_path: Path) -> None:
                 cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 run = cap.add_run(image.group(1))
                 run.italic = True
-                run.font.size = Pt(11)
+                run.font.size = Pt(STYLE["caption"])
             continue
 
         heading = re.match(r"^(#{1,4})\s+(.*)$", stripped)
@@ -229,6 +268,8 @@ def convert(md_path: Path, out_path: Path) -> None:
         bullet = re.match(r"^[-*]\s+(.*)$", stripped)
         if bullet:
             para = doc.add_paragraph(style="List Bullet")
+            if STYLE["justify"]:
+                para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
             add_inline(para, bullet.group(1))
             continue
 
@@ -237,12 +278,16 @@ def convert(md_path: Path, out_path: Path) -> None:
             para = doc.add_paragraph()
             para.paragraph_format.left_indent = Cm(0.9)
             para.paragraph_format.first_line_indent = Cm(-0.6)
-            para.paragraph_format.space_after = Pt(3)
+            para.paragraph_format.space_after = Pt(STYLE["bullet_after"] if STYLE["bullet_after"] is not None else 3)
+            if STYLE["justify"]:
+                para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
             add_inline(para, f"{numbered.group(1)}. {numbered.group(2)}")
             continue
 
         para = doc.add_paragraph()
-        para.paragraph_format.space_after = Pt(6)
+        para.paragraph_format.space_after = Pt(STYLE["after"])
+        if STYLE["justify"] and not stripped.startswith("**Bảng") and not stripped.startswith("**Hình"):
+            para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         add_inline(para, stripped)
 
     flush_table()

@@ -164,11 +164,11 @@ ACTIVITIES: list[Activity] = [
     Activity("K", "Frontend quầy, báo cáo", 3, [("J", "FS", 0)], "M"),
     Activity("L", "AI gợi ý và dự báo", 5, [("G", "FS", 0), ("I", "SS", 2)], "H"),
     Activity("M", "Tích hợp Backend, AI, Frontend", 2, [("I", "FS", 0), ("K", "FS", 0), ("L", "FS", 0)], "H"),
-    Activity("N", "Kiểm thử đơn vị, tích hợp", 5, [("H", "SS", 2)], "M"),
+    Activity("N", "Kiểm thử đơn vị, tích hợp", 5, [("H", "SS", 2), ("I", "FF", 2)], "M"),
     Activity("O", "Kiểm thử hệ thống, UAT", 2, [("M", "SS", 1), ("N", "FS", 0)], "M"),
     Activity("Q", "Docker, CI/CD", 2, [("H", "FS", 0)]),
     Activity("P", "Triển khai cloud, vận hành thử", 1, [("O", "SS", 1), ("Q", "FS", 0)], "M"),
-    Activity("R", "Tài liệu, đào tạo thủ thư", 2, [("M", "SS", 0)]),
+    Activity("R", "Tài liệu, đào tạo thủ thư", 2, [("M", "SS", 0), ("P", "SF", 0)]),
     Activity("S", "Nghiệm thu, bàn giao", 1, [("P", "FS", 0), ("R", "FS", 0)]),
 ]
 ACT = {a.code: a for a in ACTIVITIES}
@@ -188,6 +188,19 @@ class CpmRow:
         return abs(self.slack) < 1e-9
 
 
+def required_start(kind: str, es_p: float, ef_p: float, lag: float, dur_s: float) -> float:
+    """Ngày bắt đầu sớm nhất của hoạt động sau theo loại quan hệ với hoạt động trước.
+    FS: bắt đầu sau khi trước kết thúc; SS: bắt đầu sau khi trước bắt đầu;
+    FF: kết thúc sau khi trước kết thúc; SF: kết thúc sau khi trước bắt đầu (cộng độ trễ lag)."""
+    if kind == "FS":
+        return ef_p + lag
+    if kind == "SS":
+        return es_p + lag
+    if kind == "FF":
+        return ef_p + lag - dur_s
+    return es_p + lag - dur_s  # SF
+
+
 def run_cpm(acts: list[Activity] | None = None) -> dict[str, CpmRow]:
     acts = acts or ACTIVITIES
     act_by = {a.code: a for a in acts}
@@ -198,7 +211,7 @@ def run_cpm(acts: list[Activity] | None = None) -> dict[str, CpmRow]:
         act = act_by[code]
         start = 0.0
         for pc, kind, lag in act.preds:
-            start = max(start, (ef[pc] if kind == "FS" else es[pc]) + lag)
+            start = max(start, required_start(kind, es[pc], ef[pc], lag, act.dur))
         es[code] = start
         ef[code] = start + act.dur
     project_end = max(ef.values())
@@ -212,10 +225,14 @@ def run_cpm(acts: list[Activity] | None = None) -> dict[str, CpmRow]:
         act = act_by[code]
         bound = project_end
         for sc, kind, lag in succ[code]:
-            if kind == "FS":
+            if kind == "FS":  # LF(p) + lag <= LS(s)
                 bound = min(bound, ls[sc] - lag)
-            else:  # SS: LS(p) + lag <= LS(s)  =>  LF(p) <= LS(s) - lag + dur(p)
+            elif kind == "SS":  # LS(p) + lag <= LS(s)  =>  LF(p) <= LS(s) - lag + dur(p)
                 bound = min(bound, ls[sc] - lag + act.dur)
+            elif kind == "FF":  # LF(p) + lag <= LF(s)
+                bound = min(bound, lf[sc] - lag)
+            else:  # SF: LS(p) + lag <= LF(s)  =>  LF(p) <= LF(s) - lag + dur(p)
+                bound = min(bound, lf[sc] - lag + act.dur)
         lf[code] = bound
         ls[code] = bound - act.dur
     return {c: CpmRow(c, es[c], ef[c], ls[c], lf[c], round(ls[c] - es[c], 6)) for c in order}
@@ -238,7 +255,7 @@ def critical_paths() -> list[list[str]]:
             if pc not in crit:
                 continue
             tight = (
-                abs(CPM[act.code].es - (CPM[pc].ef if kind == "FS" else CPM[pc].es) - lag) < 1e-9
+                abs(CPM[act.code].es - required_start(kind, CPM[pc].es, CPM[pc].ef, lag, act.dur)) < 1e-9
             )
             if tight:
                 succ[pc].append(act.code)
@@ -293,25 +310,24 @@ def normal_cdf(x: float) -> float:
 
 
 # --- Phân bổ giờ theo tuần (PV) ------------------------------------------
-def weekly_plan() -> tuple[dict[int, float], dict[str, dict[int, float]]]:
+def weekly_plan(acts: list[Activity] | None = None) -> tuple[dict[int, float], dict[str, dict[int, float]]]:
     """Giờ kế hoạch mỗi tuần: tổng và theo vai trò. Gói thuộc hoạt động trải đều
     trong [ES, EF] (lịch sớm); LOE trải đều 16 tuần, riêng 7.3 dồn vào tuần báo cáo."""
+    cpm = CPM if acts is None else run_cpm(acts)
     total = {w: 0.0 for w in range(1, WEEKS + 1)}
     by_role = {r: {w: 0.0 for w in range(1, WEEKS + 1)} for r in ROLES}
     for wp in WORK_PACKAGES:
         e = wp.e
         if wp.activity == "LOE":
-            if wp.wbs == "7.3":
-                weeks = [4, 8, 12, 16]
-            else:
-                weeks = list(range(1, WEEKS + 1))
+            share = {w: (e / 4 if wp.wbs == "7.3" and w in (4, 8, 12, 16) else (0.0 if wp.wbs == "7.3" else e / WEEKS))
+                     for w in range(1, WEEKS + 1)}
         else:
-            row = CPM[wp.activity]
-            weeks = list(range(int(row.es) + 1, int(row.ef) + 1))
-        share = e / len(weeks)
-        for w in weeks:
-            total[w] += share
-            by_role[wp.owner][w] += share
+            row = cpm[wp.activity]
+            span = row.ef - row.es
+            share = {w: e * max(0.0, min(w, row.ef) - max(w - 1, row.es)) / span for w in range(1, WEEKS + 1)}
+        for w, h in share.items():
+            total[w] += h
+            by_role[wp.owner][w] += h
     return total, by_role
 
 
@@ -432,6 +448,11 @@ class Risk:
     cost_if: float  # đ nếu xảy ra (tính EMV)
 
     @property
+    def group(self) -> str:
+        """Nhóm rủi ro theo đề môn Quản lý dự án phần mềm: Con người, Tiến trình, Sản phẩm, Công nghệ."""
+        return RISK_GROUP[self.rid]
+
+    @property
     def score(self) -> int:
         return self.p * self.i
 
@@ -439,6 +460,11 @@ class Risk:
     def level(self) -> str:
         return "Cao" if self.score >= 15 else ("Trung bình" if self.score >= 8 else "Thấp")
 
+
+RISK_GROUP = {
+    "R1": "Công nghệ", "R2": "Công nghệ", "R3": "Sản phẩm", "R4": "Tiến trình", "R5": "Tiến trình",
+    "R6": "Tiến trình", "R7": "Sản phẩm", "R8": "Con người", "R9": "Công nghệ", "R10": "Sản phẩm", "R11": "Con người",
+}
 
 # Xác suất rời rạc: 1=10%, 2=30%, 3=50%, 4=70%, 5=90%
 PROB = {1: 0.10, 2: 0.30, 3: 0.50, 4: 0.70, 5: 0.90}
@@ -463,11 +489,11 @@ RISKS: list[Risk] = [
     Risk("R5", "Phình phạm vi (scope creep)", "Người dùng yêu cầu thêm tính năng ngoài MVP (đặt trước, email, thanh toán)",
          "Trễ tiến độ, vượt ngân sách", "Phạm vi", 4, 4, "Giảm thiểu",
          "Chốt danh sách ngoài MVP trong SOW; mọi thay đổi qua Change Request, Product Owner duyệt",
-         "Số CR mở > 2 cùng lúc", "Quản lý dự án", "Đang theo dõi", 800_000),
+         "Số CR mở > 2 cùng lúc", "Quản lý dự án", "Đang theo dõi", 700_000),
     Risk("R6", "Ước lượng thấp hơn thực tế", "Năng suất giả định cao (2,1 giờ/FP), ít dữ liệu lịch sử",
          "Vượt giờ công, SPI/CPI dưới 0,9", "Lịch và chi phí", 3, 4, "Chấp nhận có dự phòng",
          "Ước lượng 3 điểm; dự phòng 10% BAC; theo dõi EVA mỗi 4 tuần; cắt phạm vi khi CPI < 0,85",
-         "SPI hoặc CPI < 0,85", "Quản lý dự án", "Đã xảy ra, trong dự phòng", 800_000),
+         "SPI hoặc CPI < 0,85", "Quản lý dự án", "Đã xảy ra, trong dự phòng", 600_000),
     Risk("R7", "Dữ liệu sách nhập sai hoặc thiếu ISBN", "Nguồn dữ liệu mở không đồng nhất",
          "Tra cứu sai, trùng đầu sách", "Nghiệp vụ", 3, 3, "Giảm thiểu",
          "ISBN duy nhất (409 nếu trùng); kiểm tra định dạng; báo cáo bản ghi bị bỏ qua; rà soát mẫu 50 cuốn",
@@ -475,7 +501,7 @@ RISKS: list[Risk] = [
     Risk("R8", "Thủ thư không muốn chuyển sang hệ thống mới", "Quen sổ sách, ngại thay đổi quy trình",
          "Hệ thống không được dùng, mất lợi ích", "Nghiệp vụ", 3, 4, "Giảm thiểu",
          "Quầy mượn trả đơn giản (nhập mã vạch); đào tạo 2 buổi; chạy song song 2 tuần; thủ thư đại diện dự UAT",
-         "Dưới 60% phiếu mượn nhập qua hệ thống sau 2 tuần", "QA", "Chưa xảy ra", 600_000),
+         "Dưới 60% phiếu mượn nhập qua hệ thống sau 2 tuần", "QA", "Chưa xảy ra", 500_000),
     Risk("R9", "Mất dữ liệu seed hoặc lỗi migration", "Thao tác nhầm trên cơ sở dữ liệu dùng chung",
          "Phải dựng lại dữ liệu mẫu, mất vài giờ", "Kỹ thuật", 2, 3, "Chuyển giao",
          "Neon sao lưu hằng ngày; seed lặp lại được; migration có phiên bản",
@@ -484,6 +510,10 @@ RISKS: list[Risk] = [
          "Tính sai tiền phạt, khiếu nại của bạn đọc", "Chất lượng", 3, 3, "Giảm thiểu",
          "Test biên (23:59 và 00:01); chạy thử luồng thật trên DB; đã sửa theo ngày lịch",
          "Ca test biên đỏ", "QA", "Đã xảy ra, đã sửa", 300_000),
+    Risk("R11", "Thành viên chủ chốt vắng hoặc quá tải", "Nhóm nhỏ làm bán thời gian, trùng kỳ thi và việc khác",
+         "Một vai trò đứng yên, hoạt động găng bị trễ", "Nhân sự", 3, 4, "Giảm thiểu",
+         "Rà soát chéo mỗi Pull Request; tài liệu sinh từ mã; mỗi vai trò có người thay thế; né mốc lớn vào tuần thi",
+         "Một vai trò vắng quá 1 tuần", "Quản lý dự án", "Đang theo dõi", 500_000),
 ]
 
 
@@ -557,8 +587,10 @@ FIN = {
 }
 
 
-def finance() -> dict:
+def finance(years: int | None = None) -> dict:
     f = FIN
+    years = years or f["years"]
+    adoption = list(f["adoption"]) + [1.0] * max(0, years - len(f["adoption"]))
     loans = f["reader_count"] * f["loans_per_reader_year"]
     b_loan = loans * f["minutes_saved_per_loan"] / 60 * f["librarian_rate"]
     b_lookup = f["lookups_per_year"] * f["minutes_saved_per_lookup"] / 60 * f["librarian_rate"]
@@ -569,8 +601,8 @@ def finance() -> dict:
     ops = f["ops_hosting"] + f["ops_maintenance_hours"] * RATE + f["ops_training"]
     flows = [-invest]
     nets = []
-    for y in range(f["years"]):
-        net = benefit_full * f["adoption"][y] - ops
+    for y in range(years):
+        net = benefit_full * adoption[y] - ops
         nets.append(net)
         flows.append(net)
     r = f["discount"]

@@ -114,15 +114,15 @@ def fig_network() -> None:
         for pc, kind, lag in a.preds:
             (x1, y1), (x2, y2) = center(pc), center(a.code)
             crit = m.CPM[pc].critical and m.CPM[a.code].critical and abs(
-                m.CPM[a.code].es - ((m.CPM[pc].ef if kind == "FS" else m.CPM[pc].es) + lag)) < 1e-9
+                m.CPM[a.code].es - m.required_start(kind, m.CPM[pc].es, m.CPM[pc].ef, lag, a.dur)) < 1e-9
             color = RED if crit else "#9aa4b0"
             sx1 = x1 + bw / 2
             sx2 = x2 - bw / 2
             ax.add_patch(FancyArrowPatch((sx1, y1), (sx2, y2), arrowstyle="-|>", mutation_scale=10,
                                          color=color, lw=1.9 if crit else 0.9, shrinkA=0, shrinkB=0,
                                          connectionstyle="arc3,rad=0.0", zorder=1))
-            if kind == "SS" or lag:
-                ax.text(sx2 - 0.28, y2 + (y1 - y2) * 0.12 - 0.04, f"{kind}{'+' + str(lag) if lag else ''}", fontsize=6.4,
+            if kind != "FS" or lag:
+                ax.text(sx2 - 0.28, y2 + (y1 - y2) * 0.12 - 0.04, f"{kind}{'+' + str(lag) if lag > 0 else (str(lag) if lag < 0 else '')}", fontsize=6.4,
                         color=color, ha="center", va="bottom", zorder=3,
                         bbox=dict(boxstyle="round,pad=0.08", fc="white", ec="none", alpha=0.9))
     for a in m.ACTIVITIES:
@@ -140,7 +140,7 @@ def fig_network() -> None:
         ax.text(x + 0.05, y + 0.90 * bh, f"d = {a.dur}", fontsize=6.4, va="center", color=GREY, zorder=6)
         ax.text(x + bw - 0.05, y + 0.90 * bh, f"Slack {r.slack:.0f}", fontsize=6.6, va="center", ha="right",
                 color=RED if r.critical else LEAF, fontweight="bold", zorder=6)
-    ax.text(0, -0.05, "Sơ đồ mạng hoạt động (AON). Đỏ: đường găng; xám: ràng buộc có dự trữ. FS là mặc định; SS+n: bắt đầu sau n tuần kể từ lúc tiền nhiệm bắt đầu.",
+    ax.text(0, -0.05, "Sơ đồ mạng hoạt động (AON). Đỏ: đường găng; xám: ràng buộc có dự trữ. FS là mặc định; SS+n: bắt đầu sau n tuần kể từ lúc tiền nhiệm bắt đầu; FF+n: kết thúc sau n tuần kể từ lúc tiền nhiệm kết thúc; SF: kết thúc sau khi tiền nhiệm bắt đầu.",
             fontsize=8, color=GREY, va="bottom")
     save(fig, "network.png")
 
