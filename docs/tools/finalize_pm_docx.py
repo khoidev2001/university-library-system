@@ -31,7 +31,7 @@ def add_field(run, instr: str) -> None:
             run._r.append(it)
 
 
-def prepare(path: Path) -> None:
+def prepare(path: Path, footer: str = "pm") -> None:
     doc = Document(path)
     for para in doc.paragraphs:
         if para.text.strip() == "[[TOC]]":
@@ -40,14 +40,20 @@ def prepare(path: Path) -> None:
             add_field(para.add_run(), 'TOC \\o "1-2" \\h \\z \\u')
             break
     for section in doc.sections:
-        footer = section.footer
-        footer.is_linked_to_previous = False
-        p = footer.paragraphs[0] if footer.paragraphs else footer.add_paragraph()
+        ft = section.footer
+        ft.is_linked_to_previous = False
+        p = ft.paragraphs[0] if ft.paragraphs else ft.add_paragraph()
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         for r in list(p.runs):
             r._r.getparent().remove(r._r)
-        p.add_run("Kế hoạch quản lý dự án ULS   |   Trang ")
-        add_field(p.add_run(), "PAGE")
+        if footer == "xy":
+            p.add_run("Page ")
+            add_field(p.add_run(), "PAGE")
+            p.add_run(" / ")
+            add_field(p.add_run(), "NUMPAGES")
+        else:
+            p.add_run("Kế hoạch quản lý dự án ULS   |   Trang ")
+            add_field(p.add_run(), "PAGE")
     doc.save(path)
 
 

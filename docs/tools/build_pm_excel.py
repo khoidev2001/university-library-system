@@ -73,7 +73,7 @@ title(ws, "Kế hoạch quản lý dự án: Phần mềm Quản lý Thư viện
 rows = [
     ("GiaDinh", "Tham số dùng chung: đơn giá, năng lực, dự phòng, hệ số 3 điểm, giả định tài chính và EVA."),
     ("WBS", "WBS 3 cấp, ước lượng giờ công 3 điểm (PERT), chi phí kế hoạch (BAC)."),
-    ("CPM", "Bảng hoạt động, phụ thuộc FS/SS, ES/EF/LS/LF, độ dự trữ, đường găng."),
+    ("CPM", "Bảng hoạt động, phụ thuộc FS/SS/FF/SF, ES/EF/LS/LF, độ dự trữ, đường găng."),
     ("PERT", "Ước lượng 3 điểm cho hoạt động và xác suất hoàn thành đúng hạn."),
     ("Gantt", "Biểu đồ Gantt theo tuần; đỏ là hoạt động găng, xanh là hoạt động có độ dự trữ."),
     ("NguonLuc", "Giờ kế hoạch theo tuần và theo vai trò (nền của PV), so với năng lực."),
@@ -152,6 +152,8 @@ fin_rows = [
     ("ad1", "Mức áp dụng năm 1", m.FIN["adoption"][0], "70% do làm quen", "0%"),
     ("ad2", "Mức áp dụng năm 2", m.FIN["adoption"][1], "", "0%"),
     ("ad3", "Mức áp dụng năm 3", m.FIN["adoption"][2], "", "0%"),
+    ("ad4", "Mức áp dụng năm 4 (phương án 5 năm)", 1.0, "", "0%"),
+    ("ad5", "Mức áp dụng năm 5 (phương án 5 năm)", 1.0, "", "0%"),
     ("host", "Hạ tầng trả phí tối thiểu (đ/năm)", m.FIN["ops_hosting"], "Phương án thay free-tier khi vận hành thật", VND),
     ("mh", "Giờ bảo trì mỗi năm", m.FIN["ops_maintenance_hours"], "", None),
     ("train", "Đào tạo, hỗ trợ mỗi năm (đ)", m.FIN["ops_training"], "", VND),
@@ -159,17 +161,17 @@ fin_rows = [
 for i, (k, lab, v, note, fmt) in enumerate(fin_rows, start=20):
     param(i, k, lab, v, note, fmt)
 
-ws["A37"] = "Giả định EVA (số mô phỏng có kiểm soát)"
-ws["A37"].font = BOLD
-header(ws, 38, ["Giai đoạn", "Hiệu suất tiến độ (EV/PV trong tuần)", "Hệ số chi phí (giờ thực/giờ thu được)", "Lý do"])
+ws["A41"] = "Giả định EVA (số mô phỏng có kiểm soát)"
+ws["A41"].font = BOLD
+header(ws, 42, ["Giai đoạn", "Hiệu suất tiến độ (EV/PV trong tuần)", "Hệ số chi phí (giờ thực/giờ thu được)", "Lý do"])
 eva_phase = [("Tuần 1-4", 0.96, 1.04, m.EVA_NOTES["1-4"]), ("Tuần 5-8", 0.80, 1.12, m.EVA_NOTES["5-8"]),
              ("Tuần 9-12", 1.10, 1.10, m.EVA_NOTES["9-12"]), ("Tuần 13-16", 1.12, 1.05, m.EVA_NOTES["13-16"])]
-for i, (lab, p, c, why) in enumerate(eva_phase, start=39):
+for i, (lab, p, c, why) in enumerate(eva_phase, start=43):
     ws.cell(row=i, column=1, value=lab)
     ws.cell(row=i, column=2, value=p).fill = INPUT
     ws.cell(row=i, column=3, value=c).fill = INPUT
     ws.cell(row=i, column=4, value=why)
-EVA_PHASE_ROW = {1: 39, 2: 40, 3: 41, 4: 42}
+EVA_PHASE_ROW = {1: 43, 2: 44, 3: 45, 4: 46}
 widths(ws, [46, 22, 26, 90, 8, 18, 18])
 
 # ---------------------------------------------------------------- WBS
@@ -243,7 +245,7 @@ for a in m.ACTIVITIES:
 def pred_text(a: m.Activity) -> str:
     if not a.preds:
         return "-"
-    return ", ".join(f"{pc}({kind}{'+'+str(lag) if lag else ''})" for pc, kind, lag in a.preds)
+    return ", ".join(f"{pc}({kind}{'+' + str(lag) if lag > 0 else (str(lag) if lag < 0 else '')})" for pc, kind, lag in a.preds)
 
 
 end_cell = f"CPM!$F${5 + len(m.ACTIVITIES)}"
@@ -257,7 +259,14 @@ for a in m.ACTIVITIES:
     terms = ["0"]
     for pc, kind, lag in a.preds:
         pr = ACT_ROW[pc]
-        terms.append(f"{'F' if kind == 'FS' else 'E'}{pr}+{lag}")
+        if kind == "FS":
+            terms.append(f"F{pr}+({lag})")
+        elif kind == "SS":
+            terms.append(f"E{pr}+({lag})")
+        elif kind == "FF":
+            terms.append(f"F{pr}+({lag})-C{r}")
+        else:  # SF
+            terms.append(f"E{pr}+({lag})-C{r}")
     ws.cell(row=r, column=5, value="=MAX(" + ",".join(terms) + ")")
     ws.cell(row=r, column=6, value=f"=E{r}+C{r}")
     # LF
@@ -265,9 +274,13 @@ for a in m.ACTIVITIES:
     for sc, kind, lag in succ[a.code]:
         sr = ACT_ROW[sc]
         if kind == "FS":
-            bounds.append(f"G{sr}-{lag}")
-        else:
-            bounds.append(f"G{sr}-{lag}+C{r}")
+            bounds.append(f"G{sr}-({lag})")
+        elif kind == "SS":
+            bounds.append(f"G{sr}-({lag})+C{r}")
+        elif kind == "FF":
+            bounds.append(f"H{sr}-({lag})")
+        else:  # SF
+            bounds.append(f"H{sr}-({lag})+C{r}")
     ws.cell(row=r, column=8, value="=MIN(" + ",".join(bounds) + ")")
     ws.cell(row=r, column=7, value=f"=H{r}-C{r}")
     ws.cell(row=r, column=9, value=f"=G{r}-E{r}")
@@ -433,7 +446,7 @@ PV_TOTAL_ROW = r0
 ws = wb.create_sheet("RuiRo")
 title(ws, "Sổ rủi ro", "Điểm = Xác suất x Tác động (thang 1-5). Xác suất rời rạc: 1=10%, 2=30%, 3=50%, 4=70%, 5=90%. EMV = Tổn thất x Xác suất.")
 header(ws, 4, ["Mã", "Rủi ro", "Nguyên nhân", "Hậu quả", "Nhóm", "P (1-5)", "I (1-5)", "Điểm", "Mức", "% xác suất", "Tổn thất nếu xảy ra (đ)",
-               "EMV (đ)", "Chiến lược", "Kế hoạch ứng phó", "Dấu hiệu kích hoạt", "Chủ sở hữu", "Trạng thái"])
+               "EMV (đ)", "Chiến lược", "Kế hoạch ứng phó", "Dấu hiệu kích hoạt", "Chủ sở hữu", "Trạng thái", "Nhóm (4 nhóm của đề)"])
 for i, rk in enumerate(m.RISKS, start=5):
     vals = [rk.rid, rk.name, rk.cause, rk.effect, rk.cat, rk.p, rk.i]
     for c, v in enumerate(vals, start=1):
@@ -447,6 +460,7 @@ for i, rk in enumerate(m.RISKS, start=5):
     ws.cell(row=i, column=11, value=rk.cost_if).number_format = VND
     ws.cell(row=i, column=11).fill = INPUT
     ws.cell(row=i, column=12, value=f"=K{i}*J{i}").number_format = VND
+    ws.cell(row=i, column=18, value=rk.group)
     for c, v in zip(range(13, 18), [rk.strategy, rk.response, rk.trigger, rk.owner, rk.status]):
         ws.cell(row=i, column=c, value=v).alignment = Alignment(wrap_text=True, vertical="top")
     for c in (8, 9, 10, 12):
@@ -461,7 +475,7 @@ ws.cell(row=RK_LAST + 3, column=12, value=f"=L{RK_LAST+2}/L{RK_LAST+1}").number_
 ws.conditional_formatting.add(f"I5:I{RK_LAST}", FormulaRule(formula=['I5="Cao"'], fill=PatternFill("solid", bgColor="EA9999")))
 ws.conditional_formatting.add(f"I5:I{RK_LAST}", FormulaRule(formula=['I5="Trung bình"'], fill=PatternFill("solid", bgColor="FFE599")))
 ws.conditional_formatting.add(f"I5:I{RK_LAST}", FormulaRule(formula=['I5="Thấp"'], fill=PatternFill("solid", bgColor="B6D7A8")))
-box(ws, f"A4:Q{RK_LAST}")
+box(ws, f"A4:R{RK_LAST}")
 mr = RK_LAST + 6
 ws.cell(row=mr - 1, column=2, value="Ma trận rủi ro (số rủi ro trong ô). Hàng: Xác suất 5 xuống 1; cột: Tác động 1 đến 5").font = BOLD
 for j in range(1, 6):
@@ -476,7 +490,7 @@ for k, p in enumerate(range(5, 0, -1), start=1):
         cell.border = BORDER
         score = p * j
         cell.fill = BAD if score >= 15 else (WARN if score >= 8 else GOOD)
-widths(ws, [5, 30, 30, 32, 12, 7, 7, 7, 11, 9, 16, 14, 14, 54, 26, 16, 20])
+widths(ws, [5, 30, 30, 32, 12, 7, 7, 7, 11, 9, 16, 14, 14, 54, 26, 16, 20, 16])
 ws.freeze_panes = "C5"
 
 # ---------------------------------------------------------------- RACI
@@ -689,6 +703,305 @@ for i, row in enumerate(qa_rows, start=5):
         cell.alignment = Alignment(wrap_text=True, vertical="top")
 box(ws, f"A4:F{4+len(qa_rows)}")
 widths(ws, [26, 40, 28, 44, 52, 8])
+
+
+# ======================================================= Phần bổ sung cho báo cáo thực hành Quản lý dự án phần mềm
+import qldapm_model as q
+
+# ---- hàng trợ giúp trong NguonLuc cho EVA theo công việc
+HELP_PROG = PV_ROW + 3
+HELP_COST = PV_ROW + 4
+ws = wb["NguonLuc"]
+ws.cell(row=HELP_PROG, column=2, value="Hiệu suất tiến độ (từ sheet EVA)").font = BOLD
+ws.cell(row=HELP_COST, column=2, value="Hệ số chi phí (từ sheet EVA)").font = BOLD
+for w in range(1, m.WEEKS + 1):
+    ws.cell(row=HELP_PROG, column=7 + w, value=f"=EVA!$D${EV_FIRST + w - 1}").number_format = "0.00"
+    ws.cell(row=HELP_COST, column=7 + w, value=f"=EVA!$E${EV_FIRST + w - 1}").number_format = "0.00"
+
+# ---------------------------------------------------------------- NenTienDo
+plan = q.compress_plan()
+c_acts = plan["C"]["acts"]
+ws = wb.create_sheet("NenTienDo")
+title(ws, "Nén tiến độ 20% (Crashing và Fast-tracking)",
+      "Phương án kết hợp: fast-tracking đổi quan hệ phụ thuộc, crashing rút ngắn thêm một số hoạt động găng. Ô vàng là dữ liệu nhập.")
+header(ws, 4, ["Mã", "Hoạt động", "Thời lượng chuẩn", "Nén (tuần)", "Thời lượng mới", "Phụ thuộc mới", "ES", "EF", "LS", "LF", "Slack", "Găng?"])
+crash_total = {}
+for st in plan["C"]["steps"]:
+    crash_total[st.code] = crash_total.get(st.code, 0) + st.weeks
+NR = {a.code: 5 + i for i, a in enumerate(c_acts)}
+n_end = 5 + len(c_acts)
+succ2: dict[str, list[tuple[str, str, int]]] = {a.code: [] for a in c_acts}
+for a in c_acts:
+    for pc, kind, lag in a.preds:
+        succ2[pc].append((a.code, kind, lag))
+for a in c_acts:
+    r = NR[a.code]
+    ws.cell(row=r, column=1, value=a.code)
+    ws.cell(row=r, column=2, value=a.name)
+    ws.cell(row=r, column=3, value=f"=CPM!C{ACT_ROW[a.code]}")
+    ws.cell(row=r, column=4, value=crash_total.get(a.code, 0)).fill = INPUT
+    ws.cell(row=r, column=5, value=f"=C{r}-D{r}")
+    ws.cell(row=r, column=6, value=pred_text(a))
+    terms = ["0"]
+    for pc, kind, lag in a.preds:
+        pr = NR[pc]
+        if kind == "FS":
+            terms.append(f"H{pr}+({lag})")
+        elif kind == "SS":
+            terms.append(f"G{pr}+({lag})")
+        elif kind == "FF":
+            terms.append(f"H{pr}+({lag})-E{r}")
+        else:
+            terms.append(f"G{pr}+({lag})-E{r}")
+    ws.cell(row=r, column=7, value="=MAX(" + ",".join(terms) + ")")
+    ws.cell(row=r, column=8, value=f"=G{r}+E{r}")
+    bounds = [f"$H${n_end}"]
+    for sc, kind, lag in succ2[a.code]:
+        sr = NR[sc]
+        if kind == "FS":
+            bounds.append(f"I{sr}-({lag})")
+        elif kind == "SS":
+            bounds.append(f"I{sr}-({lag})+E{r}")
+        elif kind == "FF":
+            bounds.append(f"J{sr}-({lag})")
+        else:
+            bounds.append(f"J{sr}-({lag})+E{r}")
+    ws.cell(row=r, column=10, value="=MIN(" + ",".join(bounds) + ")")
+    ws.cell(row=r, column=9, value=f"=J{r}-E{r}")
+    ws.cell(row=r, column=11, value=f"=ROUND(I{r}-G{r},6)")
+    ws.cell(row=r, column=12, value=f'=IF(K{r}=0,"GĂNG","")')
+    for c in range(5, 13):
+        ws.cell(row=r, column=c).fill = CALC
+        ws.cell(row=r, column=c).alignment = Alignment(horizontal="center")
+ws.cell(row=n_end, column=2, value="Thời gian dự án sau nén (tuần)").font = BOLD
+ws.cell(row=n_end, column=8, value=f"=MAX(H5:H{n_end - 1})").font = BOLD
+ws.cell(row=n_end + 1, column=2, value="Thời gian ban đầu (tuần)")
+ws.cell(row=n_end + 1, column=8, value=f"={PROJECT_END}")
+ws.cell(row=n_end + 2, column=2, value="Mức rút ngắn")
+ws.cell(row=n_end + 2, column=8, value=f"=1-H{n_end}/H{n_end + 1}").number_format = "0.0%"
+ws.cell(row=n_end + 3, column=2, value="Mục tiêu rút ngắn")
+ws.cell(row=n_end + 3, column=8, value=q.TARGET_REDUCTION).number_format = "0%"
+ws.cell(row=n_end + 4, column=2, value="Đạt mục tiêu?").font = BOLD
+ws.cell(row=n_end + 4, column=8, value=f'=IF(H{n_end + 2}>=H{n_end + 3},"ĐẠT","CHƯA ĐẠT")').font = BOLD
+ws.conditional_formatting.add(f"A5:L{n_end - 1}", FormulaRule(formula=["$K5=0"], fill=PatternFill("solid", bgColor="F4CCCC")))
+box(ws, f"A4:L{n_end - 1}")
+NEN_END = f"NenTienDo!$H${n_end}"
+
+# chi phí
+cr = n_end + 7
+ws.cell(row=cr - 1, column=1, value="Chi phí nén tiến độ").font = BOLD
+header(ws, cr, ["Mã", "Hoạt động", "Chi phí chuẩn (đ)", "Phụ phí nén (hệ số)", "Nén (tuần)", "Thời lượng chuẩn (tuần)", "Chi phí crashing (đ)"])
+for i, a in enumerate(c_acts):
+    r = cr + 1 + i
+    ws.cell(row=r, column=1, value=a.code)
+    ws.cell(row=r, column=2, value=a.name)
+    ws.cell(row=r, column=3, value=f"=SUMIF(WBS!$E${WBS_FIRST}:$E${WBS_LAST},A{r},WBS!$L${WBS_FIRST}:$L${WBS_LAST})").number_format = VND
+    ws.cell(row=r, column=4, value=q.PREMIUM[a.code]).fill = INPUT
+    ws.cell(row=r, column=5, value=f"=D{NR[a.code]}")
+    ws.cell(row=r, column=6, value=f"=C{NR[a.code]}")
+    ws.cell(row=r, column=7, value=f"=C{r}/F{r}*D{r}*E{r}").number_format = VND
+    for c in (3, 7):
+        ws.cell(row=r, column=c).fill = CALC
+cr_last = cr + len(c_acts)
+box(ws, f"A{cr}:G{cr_last}")
+ws.cell(row=cr_last + 2, column=2, value="Tổng chi phí crashing (đ)").font = BOLD
+ws.cell(row=cr_last + 2, column=7, value=f"=SUM(G{cr + 1}:G{cr_last})").number_format = VND
+ft_r = cr_last + 4
+ws.cell(row=ft_r - 1, column=1, value="Fast-tracking: thay đổi quan hệ phụ thuộc và giờ làm lại dự phòng").font = BOLD
+header(ws, ft_r, ["Mã", "Thay đổi", "", "", "Giờ làm lại dự phòng", "", "Chi phí (đ)"])
+for i, (fid, code, rels, desc, hours) in enumerate(q.FAST_TRACK):
+    r = ft_r + 1 + i
+    ws.cell(row=r, column=1, value=fid)
+    ws.cell(row=r, column=2, value=desc)
+    ws.cell(row=r, column=5, value=hours).fill = INPUT
+    ws.cell(row=r, column=7, value=f"=E{r}*{G['rate']}").number_format = VND
+ft_last = ft_r + len(q.FAST_TRACK)
+ws.cell(row=ft_last + 1, column=2, value="Tổng chi phí làm lại dự phòng (đ)").font = BOLD
+ws.cell(row=ft_last + 1, column=7, value=f"=SUM(G{ft_r + 1}:G{ft_last})").number_format = VND
+tot_r = ft_last + 3
+ws.cell(row=tot_r, column=2, value="Tổng chi phí tăng thêm do nén (đ)").font = BOLD
+ws.cell(row=tot_r, column=7, value=f"=G{cr_last + 2}+G{ft_last + 1}").number_format = VND
+ws.cell(row=tot_r + 1, column=2, value="So với BAC")
+ws.cell(row=tot_r + 1, column=7, value=f"=G{tot_r}/{BAC_CELL}").number_format = "0.0%"
+ws.cell(row=tot_r + 2, column=2, value="So với dự phòng quản lý")
+ws.cell(row=tot_r + 2, column=7, value=f"=G{tot_r}/({RESERVE_TOTAL_CELL}-{BAC_CELL})").number_format = "0%"
+for rr in (cr_last + 2, ft_last + 1, tot_r, tot_r + 1, tot_r + 2):
+    ws.cell(row=rr, column=7).fill = CALC
+NEN_COST_ROW = tot_r
+
+cmp_r = tot_r + 5
+ws.cell(row=cmp_r - 1, column=1, value="So sánh ba phương án (kết quả thuật toán nén, giá trị tĩnh)").font = BOLD
+header(ws, cmp_r, ["Phương án", "Mô tả", "Thời gian (tuần)", "Rút ngắn", "Chi phí tăng thêm (đ)", "Đạt 20%?"])
+opts = [("A", "Chỉ crashing (mỗi hoạt động nén tối đa 30%)", plan["A"]), ("B", "Chỉ fast-tracking (4 thay đổi phụ thuộc)", plan["B"]), ("C", "Kết hợp (khuyến nghị)", plan["C"])]
+for i, (k, d, o) in enumerate(opts):
+    r = cmp_r + 1 + i
+    ws.cell(row=r, column=1, value=k)
+    ws.cell(row=r, column=2, value=d)
+    ws.cell(row=r, column=3, value=round(o["end"], 2))
+    ws.cell(row=r, column=4, value=1 - o["end"] / m.PROJECT_WEEKS).number_format = "0.0%"
+    ws.cell(row=r, column=5, value=round(o["cost"])).number_format = VND
+    ws.cell(row=r, column=6, value="Đạt" if o["end"] <= plan["target"] + 1e-9 else "Chưa đạt")
+box(ws, f"A{cmp_r}:F{cmp_r + 3}")
+widths(ws, [8, 52, 16, 16, 16, 40, 14, 8, 8, 8, 8, 9])
+
+# ---------------------------------------------------------------- EVA_CongViec
+ws = wb.create_sheet("EVA_CongViec")
+title(ws, "EVA theo từng công việc tại mốc 50% tiến độ (hết tuần 8)",
+      "Tên công việc khớp với WBS, sơ đồ mạng và Gantt. PV, EV, AC lấy từ giờ kế hoạch theo tuần (NguonLuc) x hiệu suất tiến độ và hệ số chi phí của từng tuần (EVA).")
+header(ws, 4, ["Mã mạng", "Mã WBS", "Gói công việc", "BAC (đ)", "PV (đ)", "EV (đ)", "AC (đ)", "SV (đ)", "CV (đ)", "SPI", "CPI", "% kế hoạch", "% hoàn thành"])
+ev_codes = [a.code for a in m.ACTIVITIES] + ["LOE"]
+EC_FIRST = 5
+last_week_col = col(7 + 8)  # tuần 8 là cột O
+for i, code in enumerate(ev_codes):
+    r = EC_FIRST + i
+    ws.cell(row=r, column=1, value=code)
+    ws.cell(row=r, column=2, value=q.WP_CODE[code])
+    ws.cell(row=r, column=3, value=q.wp_name(code))
+    ws.cell(row=r, column=4, value=f"=SUMIF(WBS!$E${WBS_FIRST}:$E${WBS_LAST},A{r},WBS!$L${WBS_FIRST}:$L${WBS_LAST})")
+    rng = f"NguonLuc!$H${NL_FIRST}:${last_week_col}${NL_LAST}"
+    cond = f"(NguonLuc!$D${NL_FIRST}:$D${NL_LAST}=$A{r})"
+    prog = f"NguonLuc!$H${HELP_PROG}:${last_week_col}${HELP_PROG}"
+    cost = f"NguonLuc!$H${HELP_COST}:${last_week_col}${HELP_COST}"
+    ws.cell(row=r, column=5, value=f"=SUMPRODUCT({cond}*{rng})*{G['rate']}")
+    ws.cell(row=r, column=6, value=f"=SUMPRODUCT({cond}*{rng}*{prog})*{G['rate']}")
+    ws.cell(row=r, column=7, value=f"=SUMPRODUCT({cond}*{rng}*{prog}*{cost})*{G['rate']}")
+    ws.cell(row=r, column=8, value=f"=F{r}-E{r}")
+    ws.cell(row=r, column=9, value=f"=F{r}-G{r}")
+    ws.cell(row=r, column=10, value=f'=IF(E{r}=0,"",F{r}/E{r})')
+    ws.cell(row=r, column=11, value=f'=IF(G{r}=0,"",F{r}/G{r})')
+    ws.cell(row=r, column=12, value=f"=E{r}/D{r}")
+    ws.cell(row=r, column=13, value=f"=F{r}/D{r}")
+    for c in range(4, 14):
+        ws.cell(row=r, column=c).fill = CALC
+    for c in (4, 5, 6, 7, 8, 9):
+        ws.cell(row=r, column=c).number_format = VND
+    for c in (10, 11):
+        ws.cell(row=r, column=c).number_format = "0.000"
+    for c in (12, 13):
+        ws.cell(row=r, column=c).number_format = "0.0%"
+EC_LAST = EC_FIRST + len(ev_codes) - 1
+tr = EC_LAST + 1
+ws.cell(row=tr, column=3, value="TỔNG DỰ ÁN").font = BOLD
+for c in (4, 5, 6, 7, 8, 9):
+    cell = ws.cell(row=tr, column=c, value=f"=SUM({col(c)}{EC_FIRST}:{col(c)}{EC_LAST})")
+    cell.number_format = VND
+    cell.font = BOLD
+    cell.fill = SUB
+ws.cell(row=tr, column=10, value=f"=F{tr}/E{tr}").number_format = "0.000"
+ws.cell(row=tr, column=11, value=f"=F{tr}/G{tr}").number_format = "0.000"
+ws.cell(row=tr, column=12, value=f"=E{tr}/D{tr}").number_format = "0.0%"
+ws.cell(row=tr, column=13, value=f"=F{tr}/D{tr}").number_format = "0.0%"
+ws.cell(row=tr + 2, column=3, value="Dự báo cấp dự án tại tuần 8").font = BOLD
+ws.cell(row=tr + 3, column=3, value="EAC = BAC / CPI (đ)")
+ws.cell(row=tr + 3, column=4, value=f"=D{tr}/K{tr}").number_format = VND
+ws.cell(row=tr + 4, column=3, value="EAC' = AC + (BAC - EV) / (CPI x SPI) (đ)")
+ws.cell(row=tr + 4, column=4, value=f"=G{tr}+(D{tr}-F{tr})/(K{tr}*J{tr})").number_format = VND
+ws.cell(row=tr + 5, column=3, value="ETC = EAC - AC (đ)")
+ws.cell(row=tr + 5, column=4, value=f"=D{tr + 3}-G{tr}").number_format = VND
+ws.cell(row=tr + 6, column=3, value="VAC = BAC - EAC (đ)")
+ws.cell(row=tr + 6, column=4, value=f"=D{tr}-D{tr + 3}").number_format = VND
+ws.cell(row=tr + 7, column=3, value="Khớp với sheet EVA tuần 8? (PV, EV, AC)")
+ws.cell(row=tr + 7, column=4, value=f'=IF(AND(ABS(E{tr}-EVA!H12)<1,ABS(F{tr}-EVA!I12)<1,ABS(G{tr}-EVA!J12)<1),"KHỚP","LỆCH")')
+ws.conditional_formatting.add(f"J{EC_FIRST}:K{tr}", CellIsRule(operator="lessThan", formula=["0.85"], fill=PatternFill("solid", bgColor="EA9999")))
+ws.conditional_formatting.add(f"J{EC_FIRST}:K{tr}", CellIsRule(operator="between", formula=["0.85", "0.9499"], fill=PatternFill("solid", bgColor="FFE599")))
+ws.conditional_formatting.add(f"J{EC_FIRST}:K{tr}", CellIsRule(operator="greaterThanOrEqual", formula=["0.95"], fill=PatternFill("solid", bgColor="B6D7A8")))
+box(ws, f"A4:M{tr}")
+widths(ws, [9, 9, 44, 15, 15, 15, 15, 14, 14, 8, 8, 12, 14])
+EVA_CV_TOTAL_ROW = tr
+
+# ---------------------------------------------------------------- TaiChinh5N
+ws = wb.create_sheet("TaiChinh5N")
+title(ws, "Phân tích tài chính: phương án 5 năm", "Cùng giả định với sheet TaiChinh; năm 4 và 5 áp dụng đầy đủ (ô vàng ở GiaDinh).")
+header(ws, 4, ["Năm", "Lợi ích (đ)", "Chi phí (đ)", "Dòng tiền ròng (đ)", "Hệ số chiết khấu", "Giá trị hiện tại (đ)", "Luỹ kế không chiết khấu (đ)"])
+ws.cell(row=5, column=1, value=0)
+ws.cell(row=5, column=2, value=0)
+ws.cell(row=5, column=3, value="=TaiChinh!B11")
+ws.cell(row=5, column=4, value="=B5-C5")
+ws.cell(row=5, column=5, value=f"=1/(1+{G['disc']})^A5")
+ws.cell(row=5, column=6, value="=D5*E5")
+ws.cell(row=5, column=7, value="=D5")
+for y, adkey in zip(range(1, 6), ("ad1", "ad2", "ad3", "ad4", "ad5")):
+    r = 5 + y
+    ws.cell(row=r, column=1, value=y)
+    ws.cell(row=r, column=2, value=f"=TaiChinh!$B$10*{G[adkey]}")
+    ws.cell(row=r, column=3, value="=TaiChinh!$B$12")
+    ws.cell(row=r, column=4, value=f"=B{r}-C{r}")
+    ws.cell(row=r, column=5, value=f"=1/(1+{G['disc']})^A{r}")
+    ws.cell(row=r, column=6, value=f"=D{r}*E{r}")
+    ws.cell(row=r, column=7, value=f"=G{r-1}+D{r}")
+for r in range(5, 11):
+    for c in (2, 3, 4, 6, 7):
+        ws.cell(row=r, column=c).number_format = VND
+        ws.cell(row=r, column=c).fill = CALC
+    ws.cell(row=r, column=5).number_format = "0.0000"
+    ws.cell(row=r, column=5).fill = CALC
+box(ws, "A4:G10")
+ws["A12"] = "NPV (5 năm)"
+ws["B12"] = "=SUM(F5:F10)"
+ws["A13"] = "ROI (5 năm) = (tổng dòng tiền ròng năm 1-5 - vốn) / vốn"
+ws["B13"] = "=(SUM(D6:D10)-C5)/C5"
+ws["A14"] = "Thời gian hoàn vốn (năm, không chiết khấu)"
+ws["B14"] = "=IF(D6>=C5,C5/D6,IF(D6+D7>=C5,1+(C5-D6)/D7,2+(C5-D6-D7)/D8))"
+for r, fmt in ((12, VND), (13, "0.0%"), (14, "0.00")):
+    ws.cell(row=r, column=2).number_format = fmt
+    ws.cell(row=r, column=2).fill = CALC
+    ws.cell(row=r, column=2).font = BOLD
+widths(ws, [58, 22, 22, 22, 18, 22, 28])
+
+# ---------------------------------------------------------------- Baseline
+ws = wb.create_sheet("Baseline")
+title(ws, "Đường cơ sở (Baseline) của phạm vi, lịch và chi phí", "Phiên bản 1.0, chốt sau khi khách hàng duyệt SOW và lịch (mốc M1, tuần 2). Mọi thay đổi sau đó qua Change Request.")
+header(ws, 4, ["Mã WBS", "Mã mạng", "Gói công việc (phạm vi)", "Bắt đầu (ES)", "Kết thúc (EF)", "Thời lượng (tuần)", "Giờ kỳ vọng", "Chi phí (BAC, đ)", "Vai trò chính"])
+for i, code in enumerate(ev_codes):
+    r = 5 + i
+    ws.cell(row=r, column=1, value=q.WP_CODE[code])
+    ws.cell(row=r, column=2, value=code)
+    ws.cell(row=r, column=3, value=q.wp_name(code))
+    if code == "LOE":
+        ws.cell(row=r, column=4, value=0)
+        ws.cell(row=r, column=5, value=m.WEEKS)
+        ws.cell(row=r, column=6, value=m.WEEKS)
+    else:
+        ws.cell(row=r, column=4, value=f"=CPM!E{ACT_ROW[code]}")
+        ws.cell(row=r, column=5, value=f"=CPM!F{ACT_ROW[code]}")
+        ws.cell(row=r, column=6, value=f"=CPM!C{ACT_ROW[code]}")
+    ws.cell(row=r, column=7, value=f"=SUMIF(WBS!$E${WBS_FIRST}:$E${WBS_LAST},B{r},WBS!$J${WBS_FIRST}:$J${WBS_LAST})").number_format = H1
+    ws.cell(row=r, column=8, value=f"=G{r}*{G['rate']}").number_format = VND
+    ws.cell(row=r, column=9, value=q.act_owner_roles(code))
+    for c in (4, 5, 6, 7, 8):
+        ws.cell(row=r, column=c).fill = CALC
+bl_last = 4 + len(ev_codes)
+ws.cell(row=bl_last + 1, column=3, value="TỔNG (BAC)").font = BOLD
+ws.cell(row=bl_last + 1, column=7, value=f"=SUM(G5:G{bl_last})").number_format = H1
+ws.cell(row=bl_last + 1, column=8, value=f"=SUM(H5:H{bl_last})").number_format = VND
+ws.cell(row=bl_last + 2, column=3, value="Kiểm tra: BAC khớp sheet WBS")
+ws.cell(row=bl_last + 2, column=8, value=f'=IF(ABS(H{bl_last + 1}-{BAC_CELL})<1,"KHỚP","LỆCH")')
+box(ws, f"A4:I{bl_last}")
+widths(ws, [9, 9, 46, 12, 12, 12, 12, 16, 16])
+cb = bl_last + 5
+ws.cell(row=cb - 1, column=1, value="Đường cơ sở chi phí theo thời gian (PV tích luỹ)").font = BOLD
+header(ws, cb, ["Tuần", "PV tuần (đ)", "PV tích luỹ (đ)", "% BAC"])
+for w in range(1, m.WEEKS + 1):
+    r = cb + w
+    pvcol = col(7 + w)
+    ws.cell(row=r, column=1, value=w)
+    ws.cell(row=r, column=2, value=f"=NguonLuc!{pvcol}{PV_ROW}").number_format = VND
+    ws.cell(row=r, column=3, value=f"=NguonLuc!{pvcol}{PV_ROW + 1}").number_format = VND
+    ws.cell(row=r, column=4, value=f"=C{r}/{BAC_CELL}").number_format = "0.0%"
+box(ws, f"A{cb}:D{cb + m.WEEKS}")
+
+# README: thêm sheet mới
+ws = wb["README"]
+ws["A27"] = "Sheet bổ sung cho báo cáo thực hành Quản lý dự án phần mềm"
+ws["A27"].font = BOLD
+for i, (a, b) in enumerate([
+    ("NenTienDo", "Nén tiến độ 20%: fast-tracking và crashing, CPM sau nén, chi phí tăng thêm."),
+    ("EVA_CongViec", "EVA theo từng công việc tại mốc 50% tiến độ, khớp tên với WBS và sơ đồ mạng."),
+    ("TaiChinh5N", "NPV, ROI, hoàn vốn trong 5 năm."),
+    ("Baseline", "Đường cơ sở phạm vi, lịch, chi phí."),
+], start=28):
+    ws.cell(row=i, column=1, value=a).font = BOLD
+    ws.cell(row=i, column=2, value=b)
 
 out = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("ULS_PM_Plan.xlsx")
 for sheet in wb.worksheets:
