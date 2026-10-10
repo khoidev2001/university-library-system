@@ -20,7 +20,7 @@ const NAV: NavItem[] = [
   { href: "/librarian/desk", label: "Quầy mượn trả", show: (can) => can("LIBRARIAN") },
   { href: "/librarian/readers", label: "Bạn đọc", show: (can) => can("LIBRARIAN") },
   { href: "/reports", label: "Thống kê", show: (can) => can("LIBRARIAN") },
-  { href: "/admin/policies", label: "Quản trị", show: (can) => can("ADMIN") },
+  { href: "/admin", label: "Quản trị", show: (can) => can("LIBRARIAN") },
 ];
 
 export function SiteHeader() {
