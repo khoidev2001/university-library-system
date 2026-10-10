@@ -1,0 +1,52 @@
+# Render Blueprint: backend (NestJS) và AI service (FastAPI) dưới dạng Docker web service.
+# Cơ sở dữ liệu là Neon (Postgres không hết hạn), frontend là Vercel; xem docs/deploy/DEPLOY.md.
+#
+# Dùng: Render Dashboard, New, Blueprint, chọn repo này. Biến có `sync: false` Render sẽ hỏi
+# giá trị khi tạo, không bao giờ nằm trong mã nguồn.
+services:
+  - type: web
+    name: uls-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    region: singapore
+    plan: free
+    healthCheckPath: /api/health
+    autoDeploy: false # CI gọi deploy hook sau khi test xanh, không để Render tự build mỗi lần push
+    envVars:
+      - key: DATABASE_URL
+        sync: false # chuỗi kết nối Neon, có ?sslmode=require
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 1d
+      - key: INTERNAL_API_KEY
+        generateValue: true # AI service phải dùng cùng giá trị này
+      - key: AI_SERVICE_URL
+        sync: false # địa chỉ công khai của uls-ai, ví dụ https://uls-ai.onrender.com
+      - key: CORS_ORIGINS
+        sync: false # địa chỉ Vercel, ví dụ https://uls-library.vercel.app
+      - key: GOOGLE_BOOKS_API_KEY
+        sync: false
+      - key: LIBRARY_UTC_OFFSET_MINUTES
+        value: "420"
+
+  - type: web
+    name: uls-ai
+    runtime: docker
+    dockerfilePath: ./ai-service/Dockerfile
+    dockerContext: ./ai-service
+    region: singapore
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: false
+    envVars:
+      - key: BACKEND_URL
+        sync: false # ví dụ https://uls-backend.onrender.com/api
+      - key: INTERNAL_API_KEY
+        sync: false # copy từ uls-backend
+      # Backend free ngủ sau 15 phút nên AI thường lên trước: thử lại tối đa 20 lần, cách 10 giây
+      - key: INITIAL_TRAINING_ATTEMPTS
+        value: "30"
+      - key: INITIAL_TRAINING_RETRY_SECONDS
+        value: "10"

@@ -21,3 +21,5 @@ date,person,wbs_id,hours,note
 2026-10-05,SV1,2.3,1,Dien muc giao dien LAB 3 vao bao cao; cap nhat README
 2026-10-05,SV1,2.1,2,Ra soat LAB 1 va LAB 2 theo checklist cham diem; bo gach ngang dai toan bo tai lieu
 2026-10-05,SV1,2.2,2,Viet brief slide LAB 2; ve lai so do; dung lai ba file docx
+2026-10-10,SV1,6.1,3,Rewrite proxy Next.js cho Vercel; render.yaml; AI doc PORT; kiem thu cuc bo bang frontend doc lap
+2026-10-10,SV1,6.2,2,CI: job compose-smoke va job deploy that; hdan DEPLOY.md

@@ -79,10 +79,70 @@ jobs:
       - run: pnpm lint
       - run: pnpm build
 
-  deploy:
-    # Sprint 4: gọi Render Deploy Hook cho backend + ai-service; Vercel tự deploy qua GitHub integration
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    needs: [backend, ai-service, frontend]
+  # Chứng minh tiêu chí "docker compose up chạy được tất cả service": dựng cả năm container
+  # trên runner sạch, chờ ba dịch vụ khỏe rồi gọi thử qua gateway như người dùng thật.
+  compose-smoke:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Deploy hooks sẽ được cấu hình ở Sprint 4 (RENDER_DEPLOY_HOOK_BACKEND, RENDER_DEPLOY_HOOK_AI)"
+      - uses: actions/checkout@v4
+      - name: Tạo .env mẫu
+        run: cp .env.example .env
+      - name: docker compose up
+        run: docker compose up -d --build
+      - name: Chờ backend, AI và frontend sẵn sàng qua gateway
+        run: |
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:8080/api/health >/dev/null &&             curl -sf http://localhost:8080/ai/health >/dev/null &&             curl -sf http://localhost:8080/health >/dev/null && ok=1 && break
+            sleep 3
+          done
+          test "${ok:-0}" = 1 || { docker compose logs --tail=60; exit 1; }
+      - name: Kiểm tra nội dung phản hồi
+        run: |
+          curl -sf http://localhost:8080/api/health | grep -q '"database":"ok"'
+          curl -sf http://localhost:8080/ai/health | grep -q '"service":"ai-service"'
+          curl -sf http://localhost:8080/ | grep -q "Thư viện"
+          curl -sf http://localhost:8080/api/docs-json | grep -q '"openapi"'
+      - name: Log khi thất bại
+        if: failure()
+        run: docker compose logs --tail=80
+      - name: Dọn dẹp
+        if: always()
+        run: docker compose down -v
+
+  # Chỉ chạy khi merge vào main và mọi kiểm thử xanh. Mỗi hook được cấu hình trong
+  # Settings, Secrets and variables, Actions; thiếu hook nào thì bỏ qua đúng dịch vụ đó,
+  # không làm hỏng pipeline. Frontend do Vercel tự triển khai qua tích hợp GitHub.
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [backend, ai-service, frontend, compose-smoke]
+    runs-on: ubuntu-latest
+    env:
+      RENDER_DEPLOY_HOOK_BACKEND: ${{ secrets.RENDER_DEPLOY_HOOK_BACKEND }}
+      RENDER_DEPLOY_HOOK_AI: ${{ secrets.RENDER_DEPLOY_HOOK_AI }}
+      LIVE_BACKEND_URL: ${{ vars.LIVE_BACKEND_URL }}
+      LIVE_AI_URL: ${{ vars.LIVE_AI_URL }}
+      LIVE_WEB_URL: ${{ vars.LIVE_WEB_URL }}
+    steps:
+      - name: Triển khai backend lên Render
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_BACKEND" ]; then echo "Chưa cấu hình RENDER_DEPLOY_HOOK_BACKEND, bỏ qua"; exit 0; fi
+          curl -fsS -X POST "$RENDER_DEPLOY_HOOK_BACKEND" && echo "Đã gửi lệnh deploy backend"
+      - name: Triển khai AI service lên Render
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_AI" ]; then echo "Chưa cấu hình RENDER_DEPLOY_HOOK_AI, bỏ qua"; exit 0; fi
+          curl -fsS -X POST "$RENDER_DEPLOY_HOOK_AI" && echo "Đã gửi lệnh deploy AI service"
+      # Render free ngủ khi nhàn rỗi, lần gọi đầu có thể mất khoảng 60 giây nên chờ tối đa 5 phút
+      - name: Kiểm tra bản live sau khi deploy
+        run: |
+          check() {
+            name="$1"; url="$2"
+            [ -z "$url" ] && { echo "Chưa đặt biến cho $name, bỏ qua"; return 0; }
+            for i in $(seq 1 30); do
+              if curl -fsS -m 20 "$url" >/dev/null; then echo "OK $name: $url"; return 0; fi
+              sleep 10
+            done
+            echo "KHÔNG PHẢN HỒI $name: $url"; return 1
+          }
+          check backend "${LIVE_BACKEND_URL:+$LIVE_BACKEND_URL/api/health}"
+          check ai "${LIVE_AI_URL:+$LIVE_AI_URL/health}"
+          check web "${LIVE_WEB_URL:+$LIVE_WEB_URL/health}"
