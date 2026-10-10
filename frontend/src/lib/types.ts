@@ -162,3 +162,38 @@ export interface InventoryRow {
   lost: number;
   maintenance: number;
 }
+
+export interface ImportReport {
+  created: BookSummary[];
+  skipped: { isbn: string; reason: "EXISTS" | "NOT_FOUND" }[];
+}
+
+export interface OverdueAccuracy {
+  sampled: number;
+  predictedHigh: number;
+  actuallyLate: number;
+  hitRate: number | null;
+}
+
+/** Số đo huấn luyện do dịch vụ gợi ý trả về qua /recommendations/metrics. */
+export interface ModelMetrics {
+  recommender: {
+    books: number;
+    users: number;
+    interactions: number;
+    precision_at_5: number | null;
+    recall_at_5: number | null;
+    evaluated_users: number;
+    trained_at: string | null;
+  } | null;
+  overdue: {
+    samples: number;
+    positive_rate: number;
+    chosen: string;
+    logistic_regression: Record<string, number>;
+    random_forest: Record<string, number>;
+    trained_at: string | null;
+  } | null;
+  lastTraining: { status: string; at: string | null; error: string | null } | null;
+  note?: string;
+}
