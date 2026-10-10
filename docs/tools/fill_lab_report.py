@@ -148,7 +148,7 @@ def fill_lab4(doc: Document, paragraphs) -> None:
     set_text(find_paragraph(paragraphs, "c) Cấu hình CI/CD Pipeline"), lab4.CI_DESCRIPTION)
     pipeline_slot = find_paragraph(paragraphs, "[Hình ảnh Pipeline")
     set_text(pipeline_slot, lab4.PIPELINE_CAPTION)
-    insert_after(pipeline_slot, "", SHOT_DIR / "10-ci-pipeline.png", 15)
+    insert_after(pipeline_slot, "", SHOT_DIR / "10-ci-pipeline.jpg", 15)
 
     set_text(find_paragraph(paragraphs, "d) Triển khai Cloud"), lab4.DEPLOY_INTRO)
     web_url_para = find_paragraph(paragraphs, "URL Web Application")

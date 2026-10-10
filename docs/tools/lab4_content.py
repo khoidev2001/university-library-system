@@ -1,7 +1,7 @@
 """Nội dung mục 2.4 (LAB 04) và phần III (kết luận) của báo cáo.
 
 Số liệu lấy từ lần chạy CI thành công gần nhất trên main (run #23) và từ pipeline của PR LAB 4
-(run #24), cập nhật lại khi bộ kiểm thử đổi. Riêng cấu hình docker-compose đọc thẳng từ file
+(run #25), cập nhật lại khi bộ kiểm thử đổi. Riêng cấu hình docker-compose đọc thẳng từ file
 thật để không bao giờ lệch.
 """
 from pathlib import Path
@@ -41,7 +41,7 @@ CI_DESCRIPTION = (
     "main và mọi job trước đó xanh, gọi Deploy Hook của Render rồi kiểm tra các địa chỉ trực tuyến."
 )
 
-PIPELINE_CAPTION = "Kết quả pipeline GitHub Actions (run #24, tất cả job đạt):"
+PIPELINE_CAPTION = "Kết quả pipeline GitHub Actions (run #25, 4 job đạt, job deploy chỉ chạy khi merge vào main):"
 
 DEPLOY_INTRO = (
     "d) Triển khai Cloud: kiến trúc triển khai gồm Vercel (frontend), Render (backend và AI Service, Docker) và "
