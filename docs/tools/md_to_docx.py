@@ -59,13 +59,26 @@ def is_separator(line: str) -> bool:
     return bool(re.match(r"^\s*\|?\s*:?-{2,}", line)) and set(line.strip()) <= set("|:- ")
 
 
-def add_table(doc: Document, rows: list[list[str]]) -> None:
+def add_table(doc: Document, rows: list[list[str]], font_override: float | None = None) -> None:
     if not rows:
         return
     ncols = max(len(r) for r in rows)
+    font_size = font_override or (8.5 if ncols >= 8 else (9.5 if ncols >= 5 else 10))
     table = doc.add_table(rows=len(rows), cols=ncols)
     table.style = "Table Grid"
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    section = doc.sections[-1]
+    usable = section.page_width - section.left_margin - section.right_margin
+    weights = []
+    for j in range(ncols):
+        longest = max(len(re.sub(r"[*`]", "", (r[j] if j < len(r) else ""))) for r in rows)
+        header = len(re.sub(r"[*`]", "", rows[0][j] if j < len(rows[0]) else ""))
+        weights.append(min(max(longest * 0.95, header * 0.95, 8), 34))
+    total = sum(weights)
+    table.autofit = False
+    for j in range(ncols):
+        for i in range(len(rows)):
+            table.cell(i, j).width = int(usable * weights[j] / total)
     for i, row in enumerate(rows):
         for j in range(ncols):
             text = row[j] if j < len(row) else ""
@@ -78,7 +91,10 @@ def add_table(doc: Document, rows: list[list[str]]) -> None:
                 for run in para.runs:
                     run.bold = True
                 shade_cell(cell, "D9E2F3")
-    doc.add_paragraph()
+    spacer = doc.add_paragraph()
+    spacer.paragraph_format.space_after = Pt(0)
+    spacer.paragraph_format.space_before = Pt(0)
+    spacer.paragraph_format.line_spacing = Pt(2)
 
 
 def add_code(doc: Document, lines: list[str]) -> None:
@@ -121,11 +137,14 @@ def convert(md_path: Path, out_path: Path) -> None:
     table_buf: list[list[str]] = []
     code_buf: list[str] | None = None
 
+    next_font: float | None = None
+
     def flush_table() -> None:
-        nonlocal table_buf
+        nonlocal table_buf, next_font
         if table_buf:
-            add_table(doc, table_buf)
+            add_table(doc, table_buf, next_font)
             table_buf = []
+            next_font = None
 
     while i < len(lines):
         line = lines[i]
@@ -154,6 +173,28 @@ def convert(md_path: Path, out_path: Path) -> None:
         stripped = line.strip()
         if not stripped:
             continue
+        font_mark = re.match(r"^<!--font:([\d.]+)-->$", stripped)
+        if font_mark:
+            next_font = float(font_mark.group(1))
+            continue
+        if stripped in (chr(92) + "landscape", chr(92) + "portrait"):
+            from docx.enum.section import WD_ORIENT, WD_SECTION
+            sec = doc.add_section(WD_SECTION.NEW_PAGE)
+            want_land = stripped.endswith("landscape")
+            is_land = sec.page_width > sec.page_height
+            if want_land != is_land:
+                sec.page_width, sec.page_height = sec.page_height, sec.page_width
+            sec.orientation = WD_ORIENT.LANDSCAPE if want_land else WD_ORIENT.PORTRAIT
+            if want_land:
+                sec.left_margin = sec.right_margin = Cm(1.6)
+                sec.top_margin = sec.bottom_margin = Cm(1.5)
+            else:
+                sec.left_margin, sec.right_margin = Cm(2.5), Cm(2)
+                sec.top_margin = sec.bottom_margin = Cm(2)
+            continue
+        if stripped == chr(92) + "pagebreak":
+            doc.add_page_break()
+            continue
         if stripped == "---":
             doc.add_paragraph().paragraph_format.space_after = Pt(0)
             continue
@@ -162,7 +203,7 @@ def convert(md_path: Path, out_path: Path) -> None:
         if image:
             img_path = (md_path.parent / image.group(2)).resolve()
             if img_path.exists():
-                doc.add_picture(str(img_path), width=Cm(16))
+                doc.add_picture(str(img_path), width=min(Cm(16) if doc.sections[-1].page_width < doc.sections[-1].page_height else Cm(24.5), doc.sections[-1].page_width - doc.sections[-1].left_margin - doc.sections[-1].right_margin))
                 doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
                 cap = doc.add_paragraph()
                 cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -191,10 +232,13 @@ def convert(md_path: Path, out_path: Path) -> None:
             add_inline(para, bullet.group(1))
             continue
 
-        numbered = re.match(r"^\d+\.\s+(.*)$", stripped)
+        numbered = re.match(r"^(\d+)\.\s+(.*)$", stripped)
         if numbered:
-            para = doc.add_paragraph(style="List Number")
-            add_inline(para, numbered.group(1))
+            para = doc.add_paragraph()
+            para.paragraph_format.left_indent = Cm(0.9)
+            para.paragraph_format.first_line_indent = Cm(-0.6)
+            para.paragraph_format.space_after = Pt(3)
+            add_inline(para, f"{numbered.group(1)}. {numbered.group(2)}")
             continue
 
         para = doc.add_paragraph()
