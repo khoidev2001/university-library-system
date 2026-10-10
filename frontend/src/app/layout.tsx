@@ -1,21 +1,16 @@
 import type { Metadata, Viewport } from "next";
-import { Libre_Baskerville, Public_Sans } from "next/font/google";
+import { Be_Vietnam_Pro } from "next/font/google";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Providers } from "@/components/providers";
 import { SITE } from "@/lib/site";
 import "./globals.css";
 
-const display = Libre_Baskerville({
-  weight: ["400", "700"],
-  subsets: ["latin", "latin-ext"],
-  variable: "--font-display",
-  display: "swap",
-});
-
-const body = Public_Sans({
-  subsets: ["latin", "latin-ext"],
-  variable: "--font-body",
+// Một họ chữ duy nhất cho toàn bộ giao diện; có bộ ký tự tiếng Việt
+const beVietnam = Be_Vietnam_Pro({
+  weight: ["300", "400", "500", "600", "700"],
+  subsets: ["latin", "latin-ext", "vietnamese"],
+  variable: "--font-be-vietnam",
   display: "swap",
 });
 
@@ -80,7 +75,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   };
 
   return (
-    <html lang="vi" className={`${display.variable} ${body.variable}`}>
+    <html lang="vi" className={beVietnam.variable}>
       <body className="flex min-h-screen flex-col">
         <script
           type="application/ld+json"
