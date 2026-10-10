@@ -105,6 +105,13 @@ python backend/test/smoke-sprint1.py https://uls-library.vercel.app/api
 - **Neon tạm dừng sau 5 phút nhàn rỗi**, kết nối đầu tiên chậm khoảng 1 đến 2 giây.
 - Không có SLA nên mục tiêu khả dụng 99,9% trong SRS chỉ đạt khi chuyển sang gói trả phí.
 
-## Chưa kiểm chứng
+## Đã kiểm chứng và các bẫy đã gặp
 
-Cơ chế rewrite của Next.js đã được thử cục bộ (frontend chạy độc lập, backend và AI trong Docker, chỉ nói chuyện qua rewrite). Ba dịch vụ cloud (Neon, Render, Vercel) **chưa được thử** vì cần tài khoản của nhóm; hai điểm dễ lỗi nhất là chuỗi kết nối Neon (SSL, kết nối trực tiếp) và `INTERNAL_API_KEY` phải giống nhau ở hai dịch vụ Render.
+Đã triển khai và chạy thật cả ba dịch vụ. Qua địa chỉ Vercel: đăng nhập, tra cứu sách, gợi ý sách (nguồn `MODEL`) và `/api/health` (`database: ok`) đều thành công.
+
+- **Địa chỉ Render có hậu tố ngẫu nhiên** (ví dụ `uls-backend-bo6w.onrender.com`) nếu tên đã bị chiếm. Điền biến sau khi tạo xong dịch vụ, đừng đoán địa chỉ trước.
+- **`INTERNAL_API_KEY` của `uls-ai` phải đúng bằng của `uls-backend`.** Khi sửa biến trên Render, ô giá trị đã có sẵn nội dung: chọn hết rồi gõ đè và kiểm tra độ dài, kẻo gõ nối thành khoá sai (lỗi 401 khi huấn luyện).
+- **Sửa biến môi trường xong phải "Deploy latest commit"**, "Restart service" không nạp biến mới.
+- **Dịch vụ gợi ý chỉ thử huấn luyện 30 lần lúc khởi động.** Nếu hết lần mà backend chưa sẵn sàng, gọi `POST https://<uls-ai>/train` để huấn luyện lại.
+- **Vercel chỉ liệt kê repo thuộc tài khoản GitHub đã kết nối.** Đăng nhập Vercel đúng tài khoản chủ repo, nếu không sẽ không thấy repo.
+- Vercel mặc định deploy nhánh `main`. Nếu `render.yaml` hoặc `next.config.ts` mới chỉ có ở nhánh khác, đổi nhánh production ở Settings, Environments, Production, Branch Tracking, rồi dùng Deploy Hook cho nhánh đó.

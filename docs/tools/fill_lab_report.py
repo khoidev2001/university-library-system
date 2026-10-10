@@ -156,6 +156,7 @@ def fill_lab4(doc: Document, paragraphs) -> None:
         web_url_para._p.remove(link)
     set_text(web_url_para, lab4.DEPLOY_URL_PLACEHOLDERS[0])
     set_text(find_paragraph(paragraphs, "URL API Swagger Docs"), lab4.DEPLOY_URL_PLACEHOLDERS[1])
+    insert_after(find_paragraph(paragraphs, "URL API Swagger Docs"), "", SHOT_DIR / "11-live-vercel.jpg", 15)
 
     set_text(find_paragraph(paragraphs, "Hoàn thiện đầy đủ 04 bài thực hành"), lab4.RESULTS[0])
     set_text(find_paragraph(paragraphs, "Đóng gói và phát triển ứng dụng"), lab4.RESULTS[1])
@@ -177,7 +178,7 @@ def fill(template: Path, output: Path) -> None:
         "1. Trần Đình Khôi - MSSV: 23Q74802012006 (Nhóm trưởng)\n2. Nguyễn Như Quỳnh - MSSV: 21DQ4802011003",
     )
     set_cell(cover.cell(3, 1), f"GitHub: {REPO_URL}")
-    set_cell(cover.cell(4, 1), "Demo Web: (cập nhật ở LAB 4)")
+    set_cell(cover.cell(4, 1), "Demo Web: https://uls-library.vercel.app")
 
     # Part I
     set_text(paragraphs[7], PROJECT_SUMMARY)

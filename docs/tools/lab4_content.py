@@ -47,12 +47,12 @@ DEPLOY_INTRO = (
     "d) Triển khai Cloud: kiến trúc triển khai gồm Vercel (frontend), Render (backend và AI Service, Docker) và "
     "Neon (PostgreSQL), đều dùng gói miễn phí. Cấu hình có sẵn trong repo: render.yaml, frontend/next.config.ts "
     "(rewrite /api và /ai sang Render để trình duyệt chỉ nói chuyện với một địa chỉ) và hướng dẫn từng bước "
-    "docs/deploy/DEPLOY.md. Cơ chế rewrite đã được kiểm chứng cục bộ. Địa chỉ truy cập ứng dụng trực tuyến:"
+    "docs/deploy/DEPLOY.md. Hệ thống đã chạy thật trên cloud: đăng nhập, tra cứu sách và gợi ý sách đều gọi thành công qua địa chỉ Vercel. Gói miễn phí tự ngủ khi không có truy cập nên lần mở đầu có thể mất khoảng một phút. Địa chỉ truy cập ứng dụng trực tuyến:"
 )
 
 DEPLOY_URL_PLACEHOLDERS = [
-    "URL Web Application: [điền sau khi triển khai Vercel]",
-    "URL API Swagger Docs: [điền địa chỉ Render]/api/docs",
+    "URL Web Application: https://uls-library.vercel.app",
+    "URL API Swagger Docs: https://uls-backend-bo6w.onrender.com/api/docs",
 ]
 
 RESULTS = [
