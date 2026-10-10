@@ -16,8 +16,8 @@
   --color-amber: #a9701a;
   --color-amber-soft: #fbf0dc;
 
-  --font-serif: var(--font-display), Georgia, "Times New Roman", serif;
-  --font-sans: var(--font-body), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: var(--font-be-vietnam), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: var(--font-be-vietnam), system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 html {
