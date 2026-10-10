@@ -11,9 +11,11 @@ import sys
 from pathlib import Path
 
 from docx import Document
+from docx.oxml.ns import qn
 from docx.shared import Cm
 
 from lab3_content import AI_SNIPPET, AI_SUMMARY, BACKEND_SUMMARY, FRONTEND_SUMMARY
+import lab4_content as lab4
 
 UML_DIR = Path(__file__).resolve().parents[1] / "uml"
 ERD_DIR = Path(__file__).resolve().parents[1] / "erd"
@@ -122,6 +124,47 @@ def clone_row(table, template_row):
     return table.rows[-1]
 
 
+def find_paragraph(paragraphs, prefix: str):
+    """Tìm đoạn theo phần đầu nội dung: chắc hơn dùng số thứ tự vì ảnh chèn thêm làm lệch chỉ số."""
+    for paragraph in paragraphs:
+        if paragraph.text.strip().startswith(prefix):
+            return paragraph
+    raise LookupError(f"không thấy đoạn bắt đầu bằng: {prefix}")
+
+
+def fill_lab4(doc: Document, paragraphs) -> None:
+    """Mục 2.4 (LAB 04) và phần III. Địa chỉ trực tuyến để trống có chủ đích tới khi triển khai thật."""
+    set_text(find_paragraph(paragraphs, "a) Đóng gói Container Docker"),
+             "a) Đóng gói Container Docker: " + lab4.COMPOSE_INTRO)
+    compose_cell = next(t for t in doc.tables if t.cell(0, 0).text.strip().startswith("Cấu hình docker-compose.yml")).cell(0, 0)
+    set_cell(compose_cell, lab4.compose_snippet())
+
+    first, second = lab4.UNIT_TEST_BULLETS
+    set_text(find_paragraph(paragraphs, "Tổng số Test Cases"), first)
+    coverage_bullet = find_paragraph(paragraphs, "Độ bao phủ mã nguồn")
+    set_text(coverage_bullet, second)
+    insert_after(coverage_bullet, "", SHOT_DIR / "09-coverage-backend.jpg", 15)
+
+    set_text(find_paragraph(paragraphs, "c) Cấu hình CI/CD Pipeline"), lab4.CI_DESCRIPTION)
+    pipeline_slot = find_paragraph(paragraphs, "[Hình ảnh Pipeline")
+    set_text(pipeline_slot, lab4.PIPELINE_CAPTION)
+    insert_after(pipeline_slot, "", SHOT_DIR / "10-ci-pipeline.jpg", 15)
+
+    set_text(find_paragraph(paragraphs, "d) Triển khai Cloud"), lab4.DEPLOY_INTRO)
+    web_url_para = find_paragraph(paragraphs, "URL Web Application")
+    for link in web_url_para._p.findall(qn("w:hyperlink")):  # bỏ liên kết mẫu của thầy
+        web_url_para._p.remove(link)
+    set_text(web_url_para, lab4.DEPLOY_URL_PLACEHOLDERS[0])
+    set_text(find_paragraph(paragraphs, "URL API Swagger Docs"), lab4.DEPLOY_URL_PLACEHOLDERS[1])
+    insert_after(find_paragraph(paragraphs, "URL API Swagger Docs"), "", SHOT_DIR / "11-live-vercel.jpg", 15)
+
+    set_text(find_paragraph(paragraphs, "Hoàn thiện đầy đủ 04 bài thực hành"), lab4.RESULTS[0])
+    set_text(find_paragraph(paragraphs, "Đóng gói và phát triển ứng dụng"), lab4.RESULTS[1])
+    set_text(find_paragraph(paragraphs, "Áp dụng thành công các công nghệ"), lab4.RESULTS[2])
+    set_text(find_paragraph(paragraphs, "Hạn chế:"), lab4.LIMITATIONS)
+    set_text(find_paragraph(paragraphs, "Hướng phát triển:"), lab4.FUTURE)
+
+
 def fill(template: Path, output: Path) -> None:
     doc = Document(template)
     paragraphs = doc.paragraphs
@@ -135,7 +178,7 @@ def fill(template: Path, output: Path) -> None:
         "1. Trần Đình Khôi - MSSV: 23Q74802012006 (Nhóm trưởng)\n2. Nguyễn Như Quỳnh - MSSV: 21DQ4802011003",
     )
     set_cell(cover.cell(3, 1), f"GitHub: {REPO_URL}")
-    set_cell(cover.cell(4, 1), "Demo Web: (cập nhật ở LAB 4)")
+    set_cell(cover.cell(4, 1), "Demo Web: https://uls-library.vercel.app")
 
     # Part I
     set_text(paragraphs[7], PROJECT_SUMMARY)
@@ -236,6 +279,8 @@ def fill(template: Path, output: Path) -> None:
 
     set_text(paragraphs[36], AI_SUMMARY)
     set_cell(doc.tables[3].cell(0, 0), AI_SNIPPET)
+
+    fill_lab4(doc, paragraphs)
 
     doc.save(output)
 
