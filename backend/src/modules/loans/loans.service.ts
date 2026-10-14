@@ -20,6 +20,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AiClient } from '../ai/ai.client';
 import { FinesService } from '../fines/fines.service';
 import { PoliciesService } from '../policies/policies.service';
+import { ReservationsService } from '../reservations/reservations.service';
 import { BorrowDto, QueryLoansDto } from './dto/loans.dto';
 
 const loanInclude = {
@@ -68,6 +69,7 @@ export class LoansService {
     private readonly policies: PoliciesService,
     private readonly fines: FinesService,
     private readonly ai: AiClient,
+    private readonly reservations: ReservationsService,
   ) {}
 
   /**
@@ -102,7 +104,11 @@ export class LoansService {
       throw new NotFoundException(
         `Không tìm thấy bản sao có mã vạch ${dto.barcode}`,
       );
-    if (copy.status !== CopyStatus.AVAILABLE) {
+    // HELD = đang giữ cho người đặt trước; chỉ đúng người đó mượn được (kiểm trong transaction).
+    if (
+      copy.status !== CopyStatus.AVAILABLE &&
+      copy.status !== CopyStatus.HELD
+    ) {
       throw new BusinessException(
         'COPY_NOT_AVAILABLE',
         `Bản sao đang ở trạng thái ${copy.status}`,
@@ -167,6 +173,9 @@ export class LoansService {
 
     // BR-10: hạn trả chụp theo chính sách tại thời điểm mượn.
     const loan = await this.prisma.$transaction(async (tx) => {
+      if (copy.status === CopyStatus.HELD) {
+        await this.reservations.fulfillHeldCopy(tx, copy.id, reader.id);
+      }
       const created = await tx.loan.create({
         data: {
           copyId: copy.id,
@@ -206,10 +215,13 @@ export class LoansService {
         data: { status: LoanStatus.RETURNED, returnedAt: at },
         include: loanInclude,
       });
-      await tx.bookCopy.update({
-        where: { id: loan.copyId },
-        data: { status: CopyStatus.AVAILABLE },
-      });
+      // Có người đặt trước thì bản sao chuyển sang HELD, không thì về AVAILABLE.
+      await this.reservations.handleCopyReturned(
+        tx,
+        loan.copyId,
+        loan.copy.bookId,
+        at,
+      );
       const fine =
         amount > 0
           ? await this.fines.createFine(tx, loanId, FineType.OVERDUE, amount)

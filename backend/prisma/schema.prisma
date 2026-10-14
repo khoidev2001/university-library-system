@@ -24,12 +24,21 @@ enum CopyStatus {
   BORROWED
   LOST
   MAINTENANCE
+  HELD // giữ cho bạn đọc đã đặt trước
 }
 
 enum LoanStatus {
   ACTIVE
   RETURNED
   LOST
+}
+
+enum ReservationStatus {
+  WAITING // đang xếp hàng
+  READY // đã có bản sao giữ cho bạn đọc
+  FULFILLED // đã mượn
+  CANCELLED
+  EXPIRED // quá hạn nhận sách
 }
 
 enum FineType {
@@ -48,10 +57,12 @@ model User {
   isActive     Boolean     @default(true) @map("is_active")
   createdAt    DateTime    @default(now()) @map("created_at")
 
-  loans        Loan[]   @relation("LoanReader")
-  createdLoans Loan[]   @relation("LoanCreator")
-  ratings      Rating[]
-  finesPaid    Fine[]   @relation("FinePaidTo")
+  loans         Loan[]         @relation("LoanReader")
+  createdLoans  Loan[]         @relation("LoanCreator")
+  ratings       Rating[]
+  finesPaid     Fine[]         @relation("FinePaidTo")
+  reservations  Reservation[]
+  notifications Notification[]
 
   @@map("users")
 }
@@ -99,10 +110,11 @@ model Book {
   categoryId    Int      @map("category_id")
   createdAt     DateTime @default(now()) @map("created_at")
 
-  category Category     @relation(fields: [categoryId], references: [id])
-  authors  BookAuthor[]
-  copies   BookCopy[]
-  ratings  Rating[]
+  category     Category      @relation(fields: [categoryId], references: [id])
+  authors      BookAuthor[]
+  copies       BookCopy[]
+  ratings      Rating[]
+  reservations Reservation[]
 
   @@index([title])
   @@map("books")
@@ -127,8 +139,9 @@ model BookCopy {
   status        CopyStatus @default(AVAILABLE)
   shelfLocation String?    @map("shelf_location")
 
-  book  Book   @relation(fields: [bookId], references: [id])
-  loans Loan[]
+  book         Book          @relation(fields: [bookId], references: [id])
+  loans        Loan[]
+  reservations Reservation[]
 
   @@map("book_copies")
 }
@@ -184,4 +197,42 @@ model Rating {
 
   @@unique([userId, bookId])
   @@map("ratings")
+}
+
+// Đặt trước sách đang hết bản (FR-RES). READY = bản sao ở trạng thái HELD cho đúng bạn đọc này.
+model Reservation {
+  id        Int               @id @default(autoincrement())
+  userId    Int               @map("user_id")
+  bookId    Int               @map("book_id")
+  copyId    Int?              @map("copy_id")
+  status    ReservationStatus @default(WAITING)
+  createdAt DateTime          @default(now()) @map("created_at")
+  readyAt   DateTime?         @map("ready_at")
+  expiresAt DateTime?         @map("expires_at")
+
+  user User      @relation(fields: [userId], references: [id])
+  book Book      @relation(fields: [bookId], references: [id])
+  copy BookCopy? @relation(fields: [copyId], references: [id])
+
+  @@index([bookId, status, createdAt])
+  @@index([userId, status])
+  @@map("reservations")
+}
+
+// Thông báo trong web. dedupeKey chống gửi trùng (vd "loan:12:due").
+model Notification {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  type      String
+  title     String
+  body      String
+  link      String?
+  dedupeKey String?   @unique @map("dedupe_key")
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+  @@map("notifications")
 }

@@ -13,6 +13,7 @@ import { createPrismaMock, PrismaMock } from '../../test-utils/prisma-mock';
 import { AiClient } from '../ai/ai.client';
 import { FinesService } from '../fines/fines.service';
 import { PoliciesService } from '../policies/policies.service';
+import { ReservationsService } from '../reservations/reservations.service';
 import { LoansService } from './loans.service';
 
 const NOW = new Date('2026-10-05T09:00:00.000Z');
@@ -64,6 +65,16 @@ describe('LoansService', () => {
   let prisma: PrismaMock;
   const ai = { predictOverdue: jest.fn(), recommend: jest.fn() };
   const policies = { getFor: jest.fn() };
+  // Hành vi thật của ReservationsService được kiểm ở test e2e trên DB thật.
+  const reservations = {
+    fulfillHeldCopy: jest.fn(),
+    handleCopyReturned: jest.fn(async (tx: PrismaMock, copyId: number) =>
+      tx.bookCopy.update({
+        where: { id: copyId },
+        data: { status: CopyStatus.AVAILABLE },
+      }),
+    ),
+  };
 
   beforeEach(async () => {
     prisma = createPrismaMock();
@@ -74,6 +85,7 @@ describe('LoansService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: PoliciesService, useValue: policies },
         { provide: AiClient, useValue: ai },
+        { provide: ReservationsService, useValue: reservations },
       ],
     }).compile();
     service = moduleRef.get(LoansService);
