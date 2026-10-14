@@ -83,7 +83,7 @@ describeWithDb('Sprint 2 — mượn, trả, phạt, đánh giá (e2e)', () => {
     await prisma.rating.deleteMany({ where: { userId: readerId } });
     await prisma.bookCopy.deleteMany({ where: { bookId } });
     await prisma.book.delete({ where: { id: bookId } });
-    await prisma.user.deleteMany({ where: { email: { endsWith: '@e2e.local' } } });
+    await prisma.user.deleteMany({ where: { email: { endsWith: `${RUN}@e2e.local` } } });
     await app.close();
   });
 

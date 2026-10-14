@@ -83,7 +83,7 @@ describeWithDb('Sprint 1 — auth, catalog, users, policies (e2e)', () => {
 
   afterAll(async () => {
     await prisma.user.deleteMany({
-      where: { email: { endsWith: '@e2e.local' } },
+      where: { email: { endsWith: `${RUN}@e2e.local` } },
     });
     await app.close();
   });
