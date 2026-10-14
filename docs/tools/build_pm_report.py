@@ -257,7 +257,7 @@ def sec3() -> str:
 
 ## 3.1. Danh sách hoạt động và quan hệ phụ thuộc
 
-Các gói công việc được gom thành **{len(m.ACTIVITIES)} hoạt động** để dựng mạng. Phụ thuộc gồm **FS** (kết thúc rồi mới bắt đầu) và **SS** (bắt đầu sau khi tiền nhiệm bắt đầu n tuần, ví dụ SS+1). Thời lượng tính bằng tuần theo năng lực của vai trò đảm nhiệm: số giờ của hoạt động chia cho {m.CAPACITY_PER_PERSON} giờ/tuần/người, làm tròn để mỗi vai trò không quá khoảng 110% năng lực.
+Các gói công việc được gom thành **{len(m.ACTIVITIES)} hoạt động** để dựng mạng. Phụ thuộc gồm **FS** (kết thúc rồi mới bắt đầu), **SS** (bắt đầu sau khi tiền nhiệm bắt đầu n tuần, ví dụ SS+1), **FF** (kết thúc sau khi tiền nhiệm kết thúc n tuần; Kiểm thử đơn vị, tích hợp theo Backend mượn trả, FF+2) và **SF** (kết thúc khi tiền nhiệm bắt đầu; Tài liệu, đào tạo theo Triển khai cloud). Thời lượng tính bằng tuần theo năng lực của vai trò đảm nhiệm: số giờ của hoạt động chia cho {m.CAPACITY_PER_PERSON} giờ/tuần/người, làm tròn để mỗi vai trò không quá khoảng 110% năng lực.
 
 {tbl(["Mã", "Hoạt động", "Gói công việc (WBS)", "Thời lượng (tuần)", "Phụ thuộc (tiền nhiệm)"], act_rows)}
 **Bảng 3.1.** Hoạt động, thời lượng và phụ thuộc.
@@ -275,7 +275,7 @@ Sơ đồ mạng nằm ở trang ngang kế tiếp để đọc rõ các thông 
 
 ## 3.3. Tính ES, EF, LS, LF và độ dự trữ
 
-**Lượt tính xuôi:** ES(hoạt động) = lớn nhất của [EF(tiền nhiệm FS) + lag] và [ES(tiền nhiệm SS) + lag]; EF = ES + thời lượng. **Lượt tính ngược:** LF(hoạt động) = nhỏ nhất của [LS(hậu nhiệm FS) − lag] và [LS(hậu nhiệm SS) − lag + thời lượng], bị chặn bởi thời hạn dự án; LS = LF − thời lượng. **Slack = LS − ES.** Hoạt động có Slack bằng 0 là hoạt động găng. Các bảng tính đầy đủ nằm ở sheet CPM của file Excel, dùng công thức nên đổi thời lượng thì kết quả tự cập nhật.
+**Lượt tính xuôi:** ES(hoạt động) = lớn nhất theo mọi tiền nhiệm của [FS: EF + lag], [SS: ES + lag], [FF: EF + lag − thời lượng], [SF: ES + lag − thời lượng]; EF = ES + thời lượng. **Lượt tính ngược:** LF(hoạt động) = nhỏ nhất theo mọi hậu nhiệm của [FS: LS − lag], [SS: LS − lag + thời lượng], [FF: LF − lag], [SF: LF − lag + thời lượng], bị chặn bởi thời hạn dự án; LS = LF − thời lượng. **Slack = LS − ES.** Hoạt động có Slack bằng 0 là hoạt động găng. Các bảng tính đầy đủ nằm ở sheet CPM của file Excel, dùng công thức nên đổi thời lượng thì kết quả tự cập nhật.
 
 {tbl(["Mã", "Hoạt động", "Thời lượng", "ES", "EF", "LS", "LF", "Slack", "Găng?"], cpm_rows)}
 **Bảng 3.2.** Kết quả CPM (đơn vị: tuần, mốc đếm từ cuối tuần 0).
@@ -340,7 +340,7 @@ Quản lý rủi ro gồm 5 bước, lặp lại mỗi sprint và rà soát chí
 
 ## 4.2. Sổ rủi ro
 
-Dự án nhận diện **{len(m.RISKS)} rủi ro** (yêu cầu của đề là 5 đến 7), chia thành nhóm kỹ thuật, phạm vi, lịch và chi phí, chất lượng và nghiệp vụ.
+Dự án nhận diện **{len(m.RISKS)} rủi ro** (yêu cầu của đề là 5 đến 7), chia thành bốn nhóm: Con người, Tiến trình, Sản phẩm, Công nghệ (sheet RuiRo của Excel có cột Nhóm).
 
 {tbl(["Mã", "Rủi ro", "Nhóm", "P", "I", "Điểm", "Mức", "Chiến lược"], rows)}
 **Bảng 4.1.** Đánh giá rủi ro.
@@ -366,7 +366,7 @@ Tổn thất nếu xảy ra tính bằng giờ công bổ sung x 50.000 đồng;
 {tbl(["Mã", "Rủi ro", "Xác suất", "Tổn thất nếu xảy ra (đồng)", "EMV (đồng)"], emv_rows)}
 **Bảng 4.3.** Giá trị tiền tệ kỳ vọng.
 
-Tổng EMV là **{fmt_vnd(EMV)} đồng**, bằng {pct(EMV / RESERVE, 0)} dự phòng quản lý {fmt_vnd(RESERVE)} đồng. Tức là dự phòng {pct(m.RESERVE_RATE, 0)} BAC vừa đủ che các rủi ro đã nhận diện; phần còn lại rất mỏng nên mọi thay đổi phạm vi phải đi qua kiểm soát thay đổi (mục 9).
+Tổng EMV là **{fmt_vnd(EMV)} đồng**, bằng {pct(EMV / RESERVE, 0)} dự phòng quản lý {fmt_vnd(RESERVE)} đồng. Tức là dự phòng {pct(m.RESERVE_RATE, 0)} BAC vừa đủ che EMV của các rủi ro đã nhận diện; phần còn lại rất mỏng nên mọi thay đổi phạm vi phải đi qua kiểm soát thay đổi (mục 9).
 
 ## 4.5. Bài học từ các rủi ro đã xảy ra trong dự án thật
 
@@ -662,11 +662,11 @@ def sec9() -> str:
 5. **Đóng:** kiểm tra kết quả, ghi giờ thực tế để cập nhật dự phòng.
 
 {tbl(["Mã", "Nội dung", "Lý do", "Tác động", "Quyết định", "Nguồn chi phí"], [
-    ["CR-01", "Tính phạt trả trễ theo số ngày lịch theo múi giờ thư viện thay vì theo mỗi 24 giờ", "Phát hiện khi kiểm thử luồng thật: mượn lúc 23:59 và trả 00:01 bị tính sai", "Khoảng 6 giờ (sửa, thêm test biên); không ảnh hưởng đường găng", "Quản lý dự án duyệt, làm ngay", "Dự phòng"],
-    ["CR-02", "Bổ sung trang quản trị đầy đủ (kho sách, tài khoản nhân viên, phiếu mượn, khoản phạt, theo dõi mô hình)", "Khách hàng cần một nơi quản trị tập trung", "Khoảng 30 giờ Frontend; chồng lấn thời gian nên không đẩy ngày kết thúc", "Khách hàng duyệt", "Dự phòng"],
-    ["CR-03", "Chuyển nguồn dữ liệu chính sang goodbooks-10k, Google Books chỉ bổ sung có khoá", "Google Books giới hạn tần suất (R2)", "Khoảng 8 giờ dựng lại seed", "Quản lý dự án duyệt, thông báo khách hàng", "Dự phòng"],
+    ["CR-01", "Tính phạt trả trễ theo số ngày lịch theo múi giờ thư viện thay vì theo mỗi 24 giờ", "Phát hiện khi kiểm thử luồng thật: mượn lúc 23:59 và trả 00:01 bị tính sai", "Khoảng 6 giờ (sửa, thêm test biên); không ảnh hưởng đường găng", "Quản lý dự án duyệt, làm ngay", "Nằm trong mức vượt chi phí của EVA"],
+    ["CR-02", "Bổ sung trang quản trị đầy đủ (kho sách, tài khoản nhân viên, phiếu mượn, khoản phạt, theo dõi mô hình)", "Khách hàng cần một nơi quản trị tập trung", "Khoảng 30 giờ Frontend; chồng lấn thời gian nên không đẩy ngày kết thúc", "Khách hàng duyệt", "Ngân sách riêng do khách hàng cấp, ghi vào đường cơ sở 1.1"],
+    ["CR-03", "Chuyển nguồn dữ liệu chính sang goodbooks-10k, Google Books chỉ bổ sung có khoá", "Google Books giới hạn tần suất (R2)", "Khoảng 8 giờ dựng lại seed", "Quản lý dự án duyệt, thông báo khách hàng", "Nằm trong mức vượt chi phí của EVA"],
 ])}
-**Bảng 9.1.** Nhật ký thay đổi (ba CR tiêu biểu của dự án). Tổng khoảng 44 giờ, tương đương {fmt_vnd(44 * m.RATE)} đồng, bằng {pct(44 * m.RATE / RESERVE, 0)} dự phòng quản lý.
+**Bảng 9.1.** Nhật ký thay đổi (ba CR tiêu biểu của dự án). CR-01 và CR-03 ({fmt_vnd(14 * m.RATE)} đồng, 14 giờ) đã nằm trong chi phí thực tế của mô phỏng EVA nên không cộng thêm vào dự phòng (tránh tính hai lần). CR-02 ({fmt_vnd(30 * m.RATE)} đồng, 30 giờ) được khách hàng cấp ngân sách riêng và ghi vào đường cơ sở phiên bản 1.1; EVA ở mục 8 đo trên đường cơ sở 1.0.
 
 ## 9.2. Quản lý bên liên quan và báo cáo
 

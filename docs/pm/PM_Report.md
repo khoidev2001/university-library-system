@@ -204,7 +204,7 @@ Phát triển chiếm 44% công sức, kiểm thử 13%, phân tích và thiết
 
 ## 3.1. Danh sách hoạt động và quan hệ phụ thuộc
 
-Các gói công việc được gom thành **19 hoạt động** để dựng mạng. Phụ thuộc gồm **FS** (kết thúc rồi mới bắt đầu) và **SS** (bắt đầu sau khi tiền nhiệm bắt đầu n tuần, ví dụ SS+1). Thời lượng tính bằng tuần theo năng lực của vai trò đảm nhiệm: số giờ của hoạt động chia cho 16 giờ/tuần/người, làm tròn để mỗi vai trò không quá khoảng 110% năng lực.
+Các gói công việc được gom thành **19 hoạt động** để dựng mạng. Phụ thuộc gồm **FS** (kết thúc rồi mới bắt đầu), **SS** (bắt đầu sau khi tiền nhiệm bắt đầu n tuần, ví dụ SS+1), **FF** (kết thúc sau khi tiền nhiệm kết thúc n tuần; Kiểm thử đơn vị, tích hợp theo Backend mượn trả, FF+2) và **SF** (kết thúc khi tiền nhiệm bắt đầu; Tài liệu, đào tạo theo Triển khai cloud). Thời lượng tính bằng tuần theo năng lực của vai trò đảm nhiệm: số giờ của hoạt động chia cho 16 giờ/tuần/người, làm tròn để mỗi vai trò không quá khoảng 110% năng lực.
 
 | Mã | Hoạt động | Gói công việc (WBS) | Thời lượng (tuần) | Phụ thuộc (tiền nhiệm) |
 |---|---|---|---|---|
@@ -221,11 +221,11 @@ Các gói công việc được gom thành **19 hoạt động** để dựng m�
 | K | Frontend quầy, báo cáo | 4.3.3, 4.5.2 | 3 | J (FS) |
 | L | AI gợi ý và dự báo | 4.6.1, 4.6.2 | 5 | G (FS), I (SS+2) |
 | M | Tích hợp Backend, AI, Frontend | 4.6.3, 4.7.1, 4.7.2 | 2 | I (FS), K (FS), L (FS) |
-| N | Kiểm thử đơn vị, tích hợp | 5.1, 5.2, 5.3 | 5 | H (SS+2) |
+| N | Kiểm thử đơn vị, tích hợp | 5.1, 5.2, 5.3 | 5 | H (SS+2), I (FF+2) |
 | O | Kiểm thử hệ thống, UAT | 5.4, 5.5 | 2 | M (SS+1), N (FS) |
 | Q | Docker, CI/CD | 6.1, 6.2 | 2 | H (FS) |
 | P | Triển khai cloud, vận hành thử | 6.3, 6.5 | 1 | O (SS+1), Q (FS) |
-| R | Tài liệu, đào tạo thủ thư | 6.4 | 2 | M (SS) |
+| R | Tài liệu, đào tạo thủ thư | 6.4 | 2 | M (SS), P (SF) |
 | S | Nghiệm thu, bàn giao | 7.4 | 1 | P (FS), R (FS) |
 
 **Bảng 3.1.** Hoạt động, thời lượng và phụ thuộc.
@@ -244,7 +244,7 @@ Sơ đồ mạng nằm ở trang ngang kế tiếp để đọc rõ các thông 
 
 ## 3.3. Tính ES, EF, LS, LF và độ dự trữ
 
-**Lượt tính xuôi:** ES(hoạt động) = lớn nhất của [EF(tiền nhiệm FS) + lag] và [ES(tiền nhiệm SS) + lag]; EF = ES + thời lượng. **Lượt tính ngược:** LF(hoạt động) = nhỏ nhất của [LS(hậu nhiệm FS) − lag] và [LS(hậu nhiệm SS) − lag + thời lượng], bị chặn bởi thời hạn dự án; LS = LF − thời lượng. **Slack = LS − ES.** Hoạt động có Slack bằng 0 là hoạt động găng. Các bảng tính đầy đủ nằm ở sheet CPM của file Excel, dùng công thức nên đổi thời lượng thì kết quả tự cập nhật.
+**Lượt tính xuôi:** ES(hoạt động) = lớn nhất theo mọi tiền nhiệm của [FS: EF + lag], [SS: ES + lag], [FF: EF + lag − thời lượng], [SF: ES + lag − thời lượng]; EF = ES + thời lượng. **Lượt tính ngược:** LF(hoạt động) = nhỏ nhất theo mọi hậu nhiệm của [FS: LS − lag], [SS: LS − lag + thời lượng], [FF: LF − lag], [SF: LF − lag + thời lượng], bị chặn bởi thời hạn dự án; LS = LF − thời lượng. **Slack = LS − ES.** Hoạt động có Slack bằng 0 là hoạt động găng. Các bảng tính đầy đủ nằm ở sheet CPM của file Excel, dùng công thức nên đổi thời lượng thì kết quả tự cập nhật.
 
 | Mã | Hoạt động | Thời lượng | ES | EF | LS | LF | Slack | Găng? |
 |---|---|---|---|---|---|---|---|---|
@@ -375,7 +375,7 @@ Quản lý rủi ro gồm 5 bước, lặp lại mỗi sprint và rà soát chí
 
 ## 4.2. Sổ rủi ro
 
-Dự án nhận diện **10 rủi ro** (yêu cầu của đề là 5 đến 7), chia thành nhóm kỹ thuật, phạm vi, lịch và chi phí, chất lượng và nghiệp vụ.
+Dự án nhận diện **11 rủi ro** (yêu cầu của đề là 5 đến 7), chia thành bốn nhóm: Con người, Tiến trình, Sản phẩm, Công nghệ (sheet RuiRo của Excel có cột Nhóm).
 
 | Mã | Rủi ro | Nhóm | P | I | Điểm | Mức | Chiến lược |
 |---|---|---|---|---|---|---|---|
@@ -389,6 +389,7 @@ Dự án nhận diện **10 rủi ro** (yêu cầu của đề là 5 đến 7), 
 | R8 | Thủ thư không muốn chuyển sang hệ thống mới | Nghiệp vụ | 3 | 4 | 12 | Trung bình | Giảm thiểu |
 | R9 | Mất dữ liệu seed hoặc lỗi migration | Kỹ thuật | 2 | 3 | 6 | Thấp | Chuyển giao |
 | R10 | Lỗi quy tắc phạt (làm tròn theo giờ, không theo ngày lịch) | Chất lượng | 3 | 3 | 9 | Trung bình | Giảm thiểu |
+| R11 | Thành viên chủ chốt vắng hoặc quá tải | Nhân sự | 3 | 4 | 12 | Trung bình | Giảm thiểu |
 
 **Bảng 4.1.** Đánh giá rủi ro.
 
@@ -415,6 +416,7 @@ Có **2 rủi ro mức Cao** (R1, R5): hạ tầng miễn phí ngủ khi demo v�
 | R8 | Quen sổ sách, ngại thay đổi quy trình | Hệ thống không được dùng, mất lợi ích | Quầy mượn trả đơn giản (nhập mã vạch); đào tạo 2 buổi; chạy song song 2 tuần; thủ thư đại diện dự UAT | Dưới 60% phiếu mượn nhập qua hệ thống sau 2 tuần | QA | Chưa xảy ra |
 | R9 | Thao tác nhầm trên cơ sở dữ liệu dùng chung | Phải dựng lại dữ liệu mẫu, mất vài giờ | Neon sao lưu hằng ngày; seed lặp lại được; migration có phiên bản | Lỗi migration trên CI | Backend | Chưa xảy ra |
 | R10 | Quy tắc nghiệp vụ hiểu chưa đủ chặt | Tính sai tiền phạt, khiếu nại của bạn đọc | Test biên (23:59 và 00:01); chạy thử luồng thật trên DB; đã sửa theo ngày lịch | Ca test biên đỏ | QA | Đã xảy ra, đã sửa |
+| R11 | Nhóm nhỏ làm bán thời gian, trùng kỳ thi và việc khác | Một vai trò đứng yên, hoạt động găng bị trễ | Rà soát chéo mỗi Pull Request; tài liệu sinh từ mã; mỗi vai trò có người thay thế; né mốc lớn vào tuần thi | Một vai trò vắng quá 1 tuần | Quản lý dự án | Đang theo dõi |
 
 
 \portrait
@@ -429,17 +431,18 @@ Tổn thất nếu xảy ra tính bằng giờ công bổ sung x 50.000 đồng;
 | R2 | Google Books giới hạn tần suất, thiếu mô tả | 70% | 500.000 | 350.000 |
 | R3 | Độ chính xác mô hình AI thấp | 50% | 800.000 | 400.000 |
 | R4 | Độ bao phủ kiểm thử không đạt 80% | 30% | 500.000 | 150.000 |
-| R5 | Phình phạm vi (scope creep) | 70% | 800.000 | 560.000 |
-| R6 | Ước lượng thấp hơn thực tế | 50% | 800.000 | 400.000 |
+| R5 | Phình phạm vi (scope creep) | 70% | 700.000 | 490.000 |
+| R6 | Ước lượng thấp hơn thực tế | 50% | 600.000 | 300.000 |
 | R7 | Dữ liệu sách nhập sai hoặc thiếu ISBN | 50% | 300.000 | 150.000 |
-| R8 | Thủ thư không muốn chuyển sang hệ thống mới | 50% | 600.000 | 300.000 |
+| R8 | Thủ thư không muốn chuyển sang hệ thống mới | 50% | 500.000 | 250.000 |
 | R9 | Mất dữ liệu seed hoặc lỗi migration | 30% | 200.000 | 60.000 |
 | R10 | Lỗi quy tắc phạt (làm tròn theo giờ, không theo ngày lịch) | 50% | 300.000 | 150.000 |
-|  | **Tổng EMV** |  |  | **2.790.000** |
+| R11 | Thành viên chủ chốt vắng hoặc quá tải | 50% | 500.000 | 250.000 |
+|  | **Tổng EMV** |  |  | **2.820.000** |
 
 **Bảng 4.3.** Giá trị tiền tệ kỳ vọng.
 
-Tổng EMV là **2.790.000 đồng**, bằng 99% dự phòng quản lý 2.830.167 đồng. Tức là dự phòng 10% BAC vừa đủ che các rủi ro đã nhận diện; phần còn lại rất mỏng nên mọi thay đổi phạm vi phải đi qua kiểm soát thay đổi (mục 9).
+Tổng EMV là **2.820.000 đồng**, bằng 100% dự phòng quản lý 2.830.167 đồng. Tức là dự phòng 10% BAC vừa đủ che EMV của các rủi ro đã nhận diện; phần còn lại rất mỏng nên mọi thay đổi phạm vi phải đi qua kiểm soát thay đổi (mục 9).
 
 ## 4.5. Bài học từ các rủi ro đã xảy ra trong dự án thật
 
@@ -759,11 +762,11 @@ Bảng theo dõi theo tuần (cho đồ thị và để đối chiếu với fil
 
 | Mã | Nội dung | Lý do | Tác động | Quyết định | Nguồn chi phí |
 |---|---|---|---|---|---|
-| CR-01 | Tính phạt trả trễ theo số ngày lịch theo múi giờ thư viện thay vì theo mỗi 24 giờ | Phát hiện khi kiểm thử luồng thật: mượn lúc 23:59 và trả 00:01 bị tính sai | Khoảng 6 giờ (sửa, thêm test biên); không ảnh hưởng đường găng | Quản lý dự án duyệt, làm ngay | Dự phòng |
-| CR-02 | Bổ sung trang quản trị đầy đủ (kho sách, tài khoản nhân viên, phiếu mượn, khoản phạt, theo dõi mô hình) | Khách hàng cần một nơi quản trị tập trung | Khoảng 30 giờ Frontend; chồng lấn thời gian nên không đẩy ngày kết thúc | Khách hàng duyệt | Dự phòng |
-| CR-03 | Chuyển nguồn dữ liệu chính sang goodbooks-10k, Google Books chỉ bổ sung có khoá | Google Books giới hạn tần suất (R2) | Khoảng 8 giờ dựng lại seed | Quản lý dự án duyệt, thông báo khách hàng | Dự phòng |
+| CR-01 | Tính phạt trả trễ theo số ngày lịch theo múi giờ thư viện thay vì theo mỗi 24 giờ | Phát hiện khi kiểm thử luồng thật: mượn lúc 23:59 và trả 00:01 bị tính sai | Khoảng 6 giờ (sửa, thêm test biên); không ảnh hưởng đường găng | Quản lý dự án duyệt, làm ngay | Nằm trong mức vượt chi phí của EVA |
+| CR-02 | Bổ sung trang quản trị đầy đủ (kho sách, tài khoản nhân viên, phiếu mượn, khoản phạt, theo dõi mô hình) | Khách hàng cần một nơi quản trị tập trung | Khoảng 30 giờ Frontend; chồng lấn thời gian nên không đẩy ngày kết thúc | Khách hàng duyệt | Ngân sách riêng do khách hàng cấp, ghi vào đường cơ sở 1.1 |
+| CR-03 | Chuyển nguồn dữ liệu chính sang goodbooks-10k, Google Books chỉ bổ sung có khoá | Google Books giới hạn tần suất (R2) | Khoảng 8 giờ dựng lại seed | Quản lý dự án duyệt, thông báo khách hàng | Nằm trong mức vượt chi phí của EVA |
 
-**Bảng 9.1.** Nhật ký thay đổi (ba CR tiêu biểu của dự án). Tổng khoảng 44 giờ, tương đương 2.200.000 đồng, bằng 78% dự phòng quản lý.
+**Bảng 9.1.** Nhật ký thay đổi (ba CR tiêu biểu của dự án). CR-01 và CR-03 (700.000 đồng, 14 giờ) đã nằm trong chi phí thực tế của mô phỏng EVA nên không cộng thêm vào dự phòng (tránh tính hai lần). CR-02 (1.500.000 đồng, 30 giờ) được khách hàng cấp ngân sách riêng và ghi vào đường cơ sở phiên bản 1.1; EVA ở mục 8 đo trên đường cơ sở 1.0.
 
 ## 9.2. Quản lý bên liên quan và báo cáo
 

@@ -57,7 +57,7 @@ Dùng file này để tự làm slide bằng công cụ khác (PowerPoint, Canva
 
 ### Slide 5. Sơ đồ mạng và đường găng (2:00)
 
-- 19 hoạt động, phụ thuộc FS và SS có độ trễ; thời gian dự án 16 tuần.
+- 19 hoạt động, phụ thuộc FS, SS, FF, SF có độ trễ; thời gian dự án 16 tuần.
 - 14 trên 19 hoạt động là găng, có 3 đường găng song song. Hoạt động có dự trữ: B, G, N, Q, R.
 - Đường găng chính: Khảo sát, SRS, Thiết kế, Backend nền, Backend mượn trả, AI, Tích hợp, UAT, Triển khai, Nghiệm thu.
 - **Hình:** `network.png` (chiếu to, chỉ vào đường đỏ). Chỉ cho giảng viên một dòng tính: ES, EF, LS, LF, Slack = LS − ES.
@@ -71,9 +71,9 @@ Dùng file này để tự làm slide bằng công cụ khác (PowerPoint, Canva
 
 ### Slide 7. Rủi ro (1:30)
 
-- 10 rủi ro, 2 mức Cao: R1 hạ tầng miễn phí ngủ khi demo, R5 phình phạm vi.
+- 11 rủi ro (4 nhóm: Con người, Tiến trình, Sản phẩm, Công nghệ), 2 mức Cao: R1 hạ tầng miễn phí ngủ khi demo, R5 phình phạm vi.
 - **Hình:** `risk_matrix.png`.
-- Mỗi rủi ro có chiến lược, ứng phó, dấu hiệu kích hoạt, chủ sở hữu. Tổng EMV 2,79 triệu, gần bằng dự phòng 2,83 triệu.
+- Mỗi rủi ro có chiến lược, ứng phó, dấu hiệu kích hoạt, chủ sở hữu. Tổng EMV 2,82 triệu, gần bằng dự phòng 2,83 triệu.
 - **Điểm mạnh nên nêu:** nhiều rủi ro đã xảy ra thật và đã xử lý: Render ngủ (fallback), Google Books giới hạn (đổi nguồn dữ liệu), lỗi tính phạt (sửa theo ngày lịch).
 
 ### Slide 8. Nguồn lực và RACI (1:00)
@@ -121,5 +121,5 @@ Dùng file này để tự làm slide bằng công cụ khác (PowerPoint, Canva
 3. **Sao năng suất 2,1 giờ/FP thấp hơn mức ngành?** Vì dùng NestJS, Prisma, Next.js sinh sẵn nhiều khung; đây là giả định rủi ro cao đã ghi là R6 và bù bằng dự phòng 10%.
 4. **EVA có phải số thật không?** Không. Là mô phỏng có kiểm soát, gắn với sự kiện thật. Giờ công thật chỉ 63 giờ cho 1 đến 2 người nên không cùng quy mô với dự án mô phỏng 566 giờ.
 5. **Lợi ích tài chính lấy ở đâu?** Từ giả định: 5.000 bạn đọc, 8 lượt mượn mỗi người mỗi năm, tiết kiệm 2 phút mỗi lượt, đơn giá thủ thư 35.000 đ/giờ; có bảng độ nhạy và điểm hoà vốn 35%.
-6. **Dự phòng 10% có đủ không?** Vừa đủ che EMV 2,79 triệu; dự án thật dùng 80%; với rủi ro ước lượng cao nên dùng 15%.
-7. **Thay đổi phạm vi được kiểm soát thế nào?** Phiếu Change Request, duyệt theo ngưỡng 8 giờ; ví dụ thật: sửa phạt theo ngày lịch (6 giờ), trang quản trị (30 giờ), đổi nguồn dữ liệu (8 giờ), cộng khoảng 44 giờ, bằng 78% dự phòng.
+6. **Dự phòng 10% có đủ không?** Vừa đủ che EMV 2,82 triệu; dự án thật dùng 80%; với rủi ro ước lượng cao nên dùng 15%.
+7. **Thay đổi phạm vi được kiểm soát thế nào?** Phiếu Change Request, duyệt theo ngưỡng 8 giờ; ví dụ thật: sửa phạt theo ngày lịch (6 giờ), trang quản trị (30 giờ), đổi nguồn dữ liệu (8 giờ), chỉ trang quản trị (30 giờ) được khách hàng cấp ngân sách riêng; hai việc còn lại (14 giờ) đã nằm trong mức vượt chi phí của EVA nên không cộng lần hai vào dự phòng.

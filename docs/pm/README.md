@@ -2,7 +2,7 @@
 
 | Tệp | Nội dung |
 |---|---|
-| `PM_Report.docx`, `PM_Report.pdf` | Báo cáo Project Management Plan (34 trang) |
+| `PM_Report.docx`, `PM_Report.pdf` | Báo cáo Project Management Plan (35 trang) |
 | `ULS_PM_Plan.xlsx` | WBS, CPM, PERT, Gantt, nguồn lực, rủi ro, RACI, tài chính, EVA (công thức sống) |
 | `PM_slides_brief.md` | Hướng dẫn làm slide 15 phút và câu hỏi dự kiến |
 | `timelog.csv` | Giờ công thật của nhóm |
