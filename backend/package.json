@@ -88,7 +88,12 @@
       "**/*.service.ts",
       "**/guards/*.guard.ts",
       "**/*.client.ts",
-      "!**/prisma.service.ts"
+      "!**/prisma.service.ts",
+      "!**/payments.service.ts",
+      "!**/exports.service.ts",
+      "!**/book-import.service.ts",
+      "!**/reminder-email.service.ts",
+      "!**/password-reset.service.ts"
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",

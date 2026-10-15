@@ -97,3 +97,10 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+## Ngưỡng coverage của unit test
+
+`pnpm test:cov` đo `*.service.ts` với ngưỡng 80% dòng. Năm service sau bị loại khỏi phép đo vì logic của chúng nằm ở SQL và giao dịch trên Postgres,
+nơi mock không phải bằng chứng; chúng được kiểm bằng e2e trên DB thật (`pnpm test:e2e`, CI chạy cả hai):
+`payments.service.ts` (payments*.e2e-spec), `exports.service.ts` (exports.e2e-spec), `book-import.service.ts` (book-import.e2e-spec),
+`reminder-email.service.ts` (reminders.e2e-spec) và `password-reset.service.ts` (auth e2e). Danh sách loại trừ nằm ở `collectCoverageFrom` trong `package.json`.
