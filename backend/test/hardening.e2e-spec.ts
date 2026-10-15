@@ -353,23 +353,26 @@ describeWithDb('Củng cố đầu vào, xác thực và xung đột (e2e)', () 
         `${TITLE} 50% off`,
       ]);
 
-      const all = await http.get('/api/books?limit=1').expect(200);
-      for (const q of ['%', '_', '-', '   ']) {
+      // Mọi kết quả của "%", "_", "-" phải chứa đúng ký tự đó (không phải ký tự đại diện / khớp mọi sách có ISBN)
+      for (const q of ['%', '_', '-']) {
         const res = await http
-          .get(`/api/books?limit=1&q=${encodeURIComponent(q)}`)
+          .get(`/api/books?limit=100&q=${encodeURIComponent(q)}`)
           .expect(200);
-        if (q.trim() === '' || q === '-') {
-          // bỏ điều kiện lọc hoặc không khớp ISBN trống: không được khớp "mọi sách có ISBN"
-          expect(res.body.total).toBeLessThanOrEqual(all.body.total);
-        } else {
-          expect(res.body.total).toBeLessThan(all.body.total);
+        for (const b of res.body.items as {
+          title: string;
+          isbn: string | null;
+          authors: { name: string }[];
+        }[]) {
+          const haystack = [
+            b.title,
+            b.isbn ?? '',
+            ...b.authors.map((a) => a.name),
+          ];
+          expect(haystack.some((t) => t.includes(q))).toBe(true);
         }
       }
-      const dash = await http.get('/api/books?q=-').expect(200);
-      const withIsbn = await prisma.book.count({
-        where: { isbn: { not: null } },
-      });
-      if (withIsbn > 0) expect(dash.body.total).toBeLessThan(withIsbn);
+      // chuỗi toàn khoảng trắng = không lọc chữ, không phải lỗi
+      await http.get('/api/books?limit=1&q=%20%20%20').expect(200);
     });
 
     it('sets Cache-Control on the public catalogue', async () => {
