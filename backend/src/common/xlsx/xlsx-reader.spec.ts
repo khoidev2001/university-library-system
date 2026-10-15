@@ -113,7 +113,7 @@ describe('readXlsx', () => {
     // 60MB khoảng trắng nén còn ~60KB
     const bomb = zipSync({
       ...MIN_PARTS,
-      'xl/worksheets/sheet1.xml': new Uint8Array(60 * 1024 * 1024).fill(0x20),
+      'xl/worksheets/sheet1.xml': new Uint8Array(30 * 1024 * 1024).fill(0x20),
     });
     expect(bomb.length).toBeLessThan(200 * 1024);
     expect(() => readXlsx(bomb)).toThrow(
@@ -124,7 +124,7 @@ describe('readXlsx', () => {
   it('zip bomb khai dối kích thước trong tiêu đề vẫn bị chặn vì đếm byte thật', () => {
     const bomb = zipSync({
       ...MIN_PARTS,
-      'xl/worksheets/sheet1.xml': new Uint8Array(60 * 1024 * 1024).fill(0x20),
+      'xl/worksheets/sheet1.xml': new Uint8Array(30 * 1024 * 1024).fill(0x20),
     });
     // Sửa uncompressedSize trong central directory thành 100
     const view = new DataView(bomb.buffer, bomb.byteOffset, bomb.byteLength);
