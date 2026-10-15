@@ -64,6 +64,16 @@ export class PaymentsController {
     return this.payments.create(user.id, dto, ip);
   }
 
+  @Get('config')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary:
+      'Thanh toán trực tuyến có đang bật không (đủ cấu hình VNPay), cùng hạn mức một giao dịch',
+  })
+  config() {
+    return this.payments.publicConfig();
+  }
+
   @Get('me')
   @Roles(Role.READER)
   @ApiBearerAuth()

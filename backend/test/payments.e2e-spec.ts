@@ -215,10 +215,26 @@ describeWithDb('Thanh toán phạt VNPay (e2e)', () => {
           .send({ fineIds: [f.id] })
           .expect(503);
         expect(res.body.error).toBe('PAYMENT_NOT_CONFIGURED');
+        const off = await http
+          .get('/api/payments/config')
+          .set(auth(tokens.a))
+          .expect(200);
+        expect(off.body).toMatchObject({ online: false });
       } finally {
         restore();
       }
       expect(await prisma.payment.count({ where: { userId: ids.a } })).toBe(0);
+      const on = await http
+        .get('/api/payments/config')
+        .set(auth(tokens.a))
+        .expect(200);
+      expect(on.body).toEqual({
+        online: true,
+        minAmount: 5000,
+        maxAmount: 999_999_999,
+        ttlMinutes: 15,
+      });
+      await http.get('/api/payments/config').expect(401);
     });
 
     it('honours VNPAY_URL and VNPAY_RETURN_URL overrides', async () => {

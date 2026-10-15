@@ -261,6 +261,21 @@ export class PaymentsService {
 
   // ---------------------------------------------------------------- truy vấn
 
+  /** Cho giao diện biết có hiện nút thanh toán trực tuyến không; không lộ mã đơn vị hay khoá. */
+  publicConfig(): {
+    online: boolean;
+    minAmount: number;
+    maxAmount: number;
+    ttlMinutes: number;
+  } {
+    return {
+      online: readVnpayConfig() !== null,
+      minAmount: MIN_PAYMENT_AMOUNT,
+      maxAmount: MAX_PAYMENT_AMOUNT,
+      ttlMinutes: PAYMENT_TTL_MINUTES,
+    };
+  }
+
   async findMine(
     userId: number,
     query: PaginationDto,
