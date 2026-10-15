@@ -42,9 +42,11 @@ describe('BooksService', () => {
   });
 
   describe('search', () => {
-    it('builds an OR over title / isbn / author and adds copy counts', async () => {
-      prisma.book.findMany.mockResolvedValue([row]);
-      prisma.book.count.mockResolvedValue(1);
+    it('text search: matching ids come from the SQL union, rows keep that order, copy counts are added', async () => {
+      prisma.$queryRaw
+        .mockResolvedValueOnce([{ id: 2 }, { id: 1 }]) // trang id
+        .mockResolvedValueOnce([{ n: 7 }]); // tổng
+      prisma.book.findMany.mockResolvedValue([row, { ...row, id: 2 }]);
       prisma.bookCopy.groupBy.mockResolvedValue([
         { bookId: 1, status: CopyStatus.AVAILABLE, _count: { _all: 2 } },
         { bookId: 1, status: CopyStatus.BORROWED, _count: { _all: 1 } },
@@ -57,16 +59,48 @@ describe('BooksService', () => {
 
       const page = await service.search(query);
 
-      const where = prisma.book.findMany.mock.calls[0][0].where;
-      expect(where.OR).toHaveLength(3);
-      expect(where.categoryId).toBe(2);
-      expect(where.copies).toEqual({ some: { status: CopyStatus.AVAILABLE } });
-      expect(page.items[0]).toMatchObject({
+      expect(prisma.$queryRaw).toHaveBeenCalledTimes(2);
+      expect(prisma.book.findMany.mock.calls[0][0].where).toEqual({
+        id: { in: [2, 1] },
+      });
+      expect(page.total).toBe(7);
+      expect(page.items.map((b) => b.id)).toEqual([2, 1]);
+      expect(page.items[1]).toMatchObject({
         title: 'Clean Code',
         copiesTotal: 3,
         copiesAvailable: 2,
         authors: [{ name: 'Robert Martin' }],
       });
+    });
+
+    it('filter-only search keeps using the ORM; a blank q counts as no text filter', async () => {
+      prisma.book.findMany.mockResolvedValue([row]);
+      prisma.book.count.mockResolvedValue(1);
+      prisma.bookCopy.groupBy.mockResolvedValue([]);
+      const query = Object.assign(new QueryBooksDto(), {
+        q: '   ',
+        available: true,
+        categoryId: 2,
+      });
+
+      await service.search(query);
+
+      expect(prisma.$queryRaw).not.toHaveBeenCalled();
+      const where = prisma.book.findMany.mock.calls[0][0].where;
+      expect(where.OR).toBeUndefined();
+      expect(where.categoryId).toBe(2);
+      expect(where.copies).toEqual({ some: { status: CopyStatus.AVAILABLE } });
+    });
+
+    it('text search with no hit returns an empty page without loading rows', async () => {
+      prisma.$queryRaw
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ n: 0 }]);
+      const page = await service.search(
+        Object.assign(new QueryBooksDto(), { q: 'zzz' }),
+      );
+      expect(page).toMatchObject({ items: [], total: 0 });
+      expect(prisma.book.findMany).not.toHaveBeenCalled();
     });
 
     it('returns an empty page without querying copy counts', async () => {

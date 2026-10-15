@@ -1,11 +1,14 @@
 // ERD — docs/PLAN.md mục 4. Chuẩn 3NF.
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  // pg_trgm: chỉ mục GIN cho tìm kiếm ILIKE '%…%' (Neon / Render Postgres đều hỗ trợ)
+  extensions = [pg_trgm]
 }
 
 enum Role {
@@ -64,6 +67,10 @@ model User {
   reservations  Reservation[]
   notifications Notification[]
 
+  // Tìm bạn đọc (GET /users?q=) khớp tên, email, mã bằng ILIKE '%…%'
+  @@index([fullName(ops: raw("gin_trgm_ops"))], type: Gin, map: "users_full_name_trgm_idx")
+  @@index([email(ops: raw("gin_trgm_ops"))], type: Gin, map: "users_email_trgm_idx")
+  @@index([memberCode(ops: raw("gin_trgm_ops"))], type: Gin, map: "users_member_code_trgm_idx")
   @@map("users")
 }
 
@@ -85,6 +92,7 @@ model Author {
   name  String
   books BookAuthor[]
 
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "authors_name_trgm_idx")
   @@map("authors")
 }
 
@@ -116,7 +124,10 @@ model Book {
   ratings      Rating[]
   reservations Reservation[]
 
-  @@index([title])
+  // Tìm sách theo tiêu đề / ISBN dạng chứa chuỗi (ILIKE '%…%'); btree trên title không giúp được và chưa từng được dùng
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin, map: "books_title_trgm_idx")
+  @@index([isbn(ops: raw("gin_trgm_ops"))], type: Gin, map: "books_isbn_trgm_idx")
+  @@index([categoryId])
   @@map("books")
 }
 
@@ -129,6 +140,7 @@ model BookAuthor {
   author Author @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@id([bookId, authorId])
+  @@index([authorId])
   @@map("book_authors")
 }
 
@@ -143,6 +155,7 @@ model BookCopy {
   loans        Loan[]
   reservations Reservation[]
 
+  @@index([bookId, status])
   @@map("book_copies")
 }
 
@@ -165,7 +178,11 @@ model Loan {
 
   // "Quá hạn" suy ra: returnedAt IS NULL AND dueAt < now() (BR-09)
   @@index([userId, status])
-  @@index([dueAt])
+  @@index([copyId])
+  // Quá hạn / nhắc hạn luôn lọc status = ACTIVE rồi so dueAt; thay cho chỉ mục dueAt đơn
+  @@index([status, dueAt])
+  // Báo cáo theo khoảng ngày mượn (top-books, loans-by-month)
+  @@index([borrowedAt])
   @@map("loans")
 }
 
@@ -182,6 +199,7 @@ model Fine {
   paidTo User? @relation("FinePaidTo", fields: [paidToId], references: [id])
 
   @@index([paidAt])
+  @@index([loanId])
   @@map("fines")
 }
 
@@ -196,6 +214,7 @@ model Rating {
   book Book @relation(fields: [bookId], references: [id])
 
   @@unique([userId, bookId])
+  @@index([bookId])
   @@map("ratings")
 }
 

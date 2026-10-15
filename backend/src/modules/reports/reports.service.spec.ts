@@ -99,6 +99,21 @@ describe('ReportsService', () => {
     });
   });
 
+  it('overdueReaders caps the number of rows and countOverdue ignores the cap', async () => {
+    prisma.loan.findMany.mockResolvedValue([]);
+    await service.overdueReaders(NOW, 50);
+    expect(prisma.loan.findMany.mock.calls[0][0].take).toBe(50);
+    await service.overdueReaders(NOW);
+    expect(prisma.loan.findMany.mock.calls[1][0].take).toBe(5000);
+
+    prisma.loan.count.mockResolvedValue(24000);
+    expect(await service.countOverdue(NOW)).toBe(24000);
+    expect(prisma.loan.count.mock.calls[0][0].where).toMatchObject({
+      status: LoanStatus.ACTIVE,
+      dueAt: { lt: overdueCutoff(NOW) },
+    });
+  });
+
   it('loansByMonth keeps empty months at 0 and fills the SQL counts', async () => {
     prisma.$queryRaw.mockResolvedValue([
       { month: '2026-10', count: 2 },

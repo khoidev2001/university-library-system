@@ -234,6 +234,48 @@ describeWithDb('Báo cáo gộp bằng SQL (e2e)', () => {
     });
   });
 
+  describe('overdue', () => {
+    it('caps the rows with ?limit and reports the true total in X-Total-Count', async () => {
+      const bk = await makeBook(2, 'L');
+      for (const copyId of bk.copyIds) {
+        const loan = await loanAt(
+          copyId,
+          new Date(Date.now() - 40 * 24 * HOUR),
+          'ACTIVE',
+        );
+        await prisma.loan.update({
+          where: { id: loan.id },
+          data: { dueAt: new Date(Date.now() - 20 * 24 * HOUR) },
+        });
+      }
+      const dbTotal = await prisma.loan.count({
+        where: {
+          status: LoanStatus.ACTIVE,
+          dueAt: { lt: overdueCutoff(new Date()) },
+        },
+      });
+      const capped = await http
+        .get('/api/reports/overdue?limit=1')
+        .set(auth(lib))
+        .expect(200);
+      expect(capped.body).toHaveLength(1);
+      expect(Number(capped.headers['x-total-count'])).toBeGreaterThanOrEqual(2);
+      expect(
+        Math.abs(Number(capped.headers['x-total-count']) - dbTotal),
+      ).toBeLessThan(5);
+      // trả lại để không làm lệch ca đếm quá hạn của bạn đọc dùng chung bên dưới
+      await prisma.loan.updateMany({
+        where: { copyId: { in: bk.copyIds } },
+        data: { status: LoanStatus.RETURNED, returnedAt: new Date() },
+      });
+      await http
+        .get('/api/reports/overdue?limit=5001')
+        .set(auth(lib))
+        .expect(400);
+      await http.get('/api/reports/overdue?limit=0').set(auth(lib)).expect(400);
+    });
+  });
+
   describe('quá hạn nhất quán giữa các màn hình (BR-09 theo ngày lịch)', () => {
     it('a loan due earlier TODAY is not overdue in the user profile, the loan list or the overdue report', async () => {
       const bk = await makeBook(2, 'O');

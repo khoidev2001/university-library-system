@@ -9,7 +9,7 @@ import {
 } from '../../common/date.util';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PoliciesService } from '../policies/policies.service';
-import { TopBooksQueryDto } from './dto/reports.dto';
+import { MAX_OVERDUE_ROWS, TopBooksQueryDto } from './dto/reports.dto';
 
 export interface TopBookRow {
   book: { id: number; title: string; coverUrl: string | null };
@@ -83,9 +83,13 @@ export class ReportsService {
   }
 
   /** FR-REPORT-02: bạn đọc đang quá hạn + tiền phạt ước tính đến hôm nay (BR-09). */
-  async overdueReaders(at: Date = new Date()): Promise<OverdueRow[]> {
+  async overdueReaders(
+    at: Date = new Date(),
+    limit: number = MAX_OVERDUE_ROWS,
+  ): Promise<OverdueRow[]> {
     const loans = await this.prisma.loan.findMany({
       where: { status: LoanStatus.ACTIVE, dueAt: { lt: overdueCutoff(at) } },
+      take: limit,
       include: {
         user: {
           select: {
@@ -119,6 +123,13 @@ export class ReportsService {
         overdueDays: days,
         estimatedFine: days * finePerDay,
       };
+    });
+  }
+
+  /** Tổng số phiếu quá hạn (không bị cắt bởi `limit`) cho header X-Total-Count. */
+  countOverdue(at: Date = new Date()): Promise<number> {
+    return this.prisma.loan.count({
+      where: { status: LoanStatus.ACTIVE, dueAt: { lt: overdueCutoff(at) } },
     });
   }
 
