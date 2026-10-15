@@ -13,6 +13,7 @@ import { createPrismaMock, PrismaMock } from '../../test-utils/prisma-mock';
 import { AiClient } from '../ai/ai.client';
 import { FinesService } from '../fines/fines.service';
 import { PoliciesService } from '../policies/policies.service';
+import { ReservationsService } from '../reservations/reservations.service';
 import { LoansService } from './loans.service';
 
 const NOW = new Date('2026-10-05T09:00:00.000Z');
@@ -64,6 +65,17 @@ describe('LoansService', () => {
   let prisma: PrismaMock;
   const ai = { predictOverdue: jest.fn(), recommend: jest.fn() };
   const policies = { getFor: jest.fn() };
+  // Hành vi thật của ReservationsService được kiểm ở test e2e trên DB thật.
+  const reservations = {
+    fulfillHeldCopy: jest.fn(),
+    expireStale: jest.fn(),
+    handleCopyReturned: jest.fn(async (tx: PrismaMock, copyId: number) =>
+      tx.bookCopy.update({
+        where: { id: copyId },
+        data: { status: CopyStatus.AVAILABLE },
+      }),
+    ),
+  };
 
   beforeEach(async () => {
     prisma = createPrismaMock();
@@ -74,6 +86,7 @@ describe('LoansService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: PoliciesService, useValue: policies },
         { provide: AiClient, useValue: ai },
+        { provide: ReservationsService, useValue: reservations },
       ],
     }).compile();
     service = moduleRef.get(LoansService);
@@ -91,10 +104,22 @@ describe('LoansService', () => {
     prisma.loan.create.mockImplementation(async ({ data }) =>
       loanRow({ ...data, id: 101 }),
     );
+    prisma.bookCopy.updateMany.mockResolvedValue({ count: 1 });
     prisma.bookCopy.update.mockResolvedValue({
       ...copy,
       status: CopyStatus.BORROWED,
     });
+  }
+
+  /** Mô phỏng trả / báo mất: lần chốt trạng thái thắng, rồi đọc lại phiếu đã đóng. */
+  function closeLoan(status: LoanStatus): void {
+    prisma.loan.updateMany.mockResolvedValue({ count: 1 });
+    prisma.loan.findUniqueOrThrow.mockImplementation(async () => ({
+      ...(await (prisma.loan.findUnique.mock.results[0]
+        .value as Promise<object>)),
+      status,
+      returnedAt: NOW,
+    }));
   }
 
   describe('borrow', () => {
@@ -114,12 +139,56 @@ describe('LoansService', () => {
         predictedOverdueRisk: 0.42,
       });
       expect(data.dueAt).toEqual(new Date('2026-10-19T09:00:00.000Z')); // +14 ngày
-      expect(prisma.bookCopy.update).toHaveBeenCalledWith({
-        where: { id: copy.id },
+      expect(prisma.bookCopy.updateMany).toHaveBeenCalledWith({
+        where: { id: copy.id, status: CopyStatus.AVAILABLE },
         data: { status: CopyStatus.BORROWED },
       });
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(result.overdueRisk).toBe(0.42);
+    });
+
+    it('race: loses the copy to a concurrent borrow → COPY_NOT_AVAILABLE, no loan written', async () => {
+      allowBorrow();
+      prisma.bookCopy.updateMany.mockResolvedValue({ count: 0 });
+      await expect(
+        service.borrow({ barcode: 'LIB-1', memberCode: 'SV001' }, 2, NOW),
+      ).rejects.toMatchObject({ code: 'COPY_NOT_AVAILABLE' });
+      expect(prisma.loan.create).not.toHaveBeenCalled();
+    });
+
+    it('race: re-counts active loans under the reader lock → LOAN_LIMIT_REACHED', async () => {
+      allowBorrow();
+      // 4 lần đếm đầu (ngoài transaction) thấy 0; lần đếm trong transaction đã thấy đủ 3 cuốn
+      prisma.loan.count
+        .mockResolvedValueOnce(0)
+        .mockResolvedValueOnce(0)
+        .mockResolvedValueOnce(0)
+        .mockResolvedValueOnce(0)
+        .mockResolvedValueOnce(3);
+      await expect(
+        service.borrow({ barcode: 'LIB-1', memberCode: 'SV001' }, 2, NOW),
+      ).rejects.toMatchObject({ code: 'LOAN_LIMIT_REACHED' });
+      expect(prisma.$queryRaw).toHaveBeenCalled(); // SELECT … FOR UPDATE trên hàng bạn đọc
+      expect(prisma.loan.create).not.toHaveBeenCalled();
+    });
+
+    it('borrowing a HELD copy fulfils the reservation first, then claims the copy by its HELD status', async () => {
+      allowBorrow();
+      prisma.bookCopy.findUnique.mockResolvedValue({
+        ...copy,
+        status: CopyStatus.HELD,
+      });
+      await service.borrow({ barcode: 'LIB-1', memberCode: 'SV001' }, 2, NOW);
+      expect(reservations.expireStale).toHaveBeenCalledWith(NOW); // hạn giữ đã qua thì giải phóng trước
+      expect(reservations.fulfillHeldCopy).toHaveBeenCalledWith(
+        prisma,
+        copy.id,
+        reader.id,
+      );
+      expect(prisma.bookCopy.updateMany).toHaveBeenCalledWith({
+        where: { id: copy.id, status: CopyStatus.HELD },
+        data: { status: CopyStatus.BORROWED },
+      });
     });
 
     it('uses the LECTURER policy for a lecturer (30 ngày)', async () => {
@@ -229,9 +298,7 @@ describe('LoansService', () => {
       prisma.loan.findUnique.mockResolvedValue(
         loanRow({ dueAt: new Date('2026-10-10T09:00:00.000Z') }),
       );
-      prisma.loan.update.mockImplementation(async ({ data }) =>
-        loanRow({ ...data }),
-      );
+      closeLoan(LoanStatus.RETURNED);
 
       const result = await service.returnCopy(100, NOW);
 
@@ -242,19 +309,29 @@ describe('LoansService', () => {
         where: { id: copy.id },
         data: { status: CopyStatus.AVAILABLE },
       });
-      expect(prisma.loan.update.mock.calls[0][0].data).toMatchObject({
-        status: LoanStatus.RETURNED,
-        returnedAt: NOW,
+      expect(prisma.loan.updateMany.mock.calls[0][0]).toMatchObject({
+        where: { id: 100, status: LoanStatus.ACTIVE },
+        data: { status: LoanStatus.RETURNED, returnedAt: NOW },
       });
+    });
+
+    it('race: a concurrent return already closed the loan → LOAN_NOT_ACTIVE, no fine, no second hold', async () => {
+      prisma.loan.findUnique.mockResolvedValue(
+        loanRow({ dueAt: new Date('2026-10-02T09:00:00.000Z') }),
+      );
+      prisma.loan.updateMany.mockResolvedValue({ count: 0 });
+      await expect(service.returnCopy(100, NOW)).rejects.toMatchObject({
+        code: 'LOAN_NOT_ACTIVE',
+      });
+      expect(prisma.fine.create).not.toHaveBeenCalled();
+      expect(reservations.handleCopyReturned).not.toHaveBeenCalled();
     });
 
     it('BR-07: 3 ngày trễ → phạt 15.000đ trong cùng transaction', async () => {
       prisma.loan.findUnique.mockResolvedValue(
         loanRow({ dueAt: new Date('2026-10-02T09:00:00.000Z') }),
       );
-      prisma.loan.update.mockImplementation(async ({ data }) =>
-        loanRow({ ...data }),
-      );
+      closeLoan(LoanStatus.RETURNED);
       prisma.fine.create.mockImplementation(async ({ data }) => ({
         id: 1,
         ...data,
@@ -275,9 +352,7 @@ describe('LoansService', () => {
       prisma.loan.findUnique.mockResolvedValue(
         loanRow({ dueAt: new Date('2026-10-05T07:00:00.000Z') }),
       );
-      prisma.loan.update.mockImplementation(async ({ data }) =>
-        loanRow({ ...data }),
-      );
+      closeLoan(LoanStatus.RETURNED);
 
       const result = await service.returnCopy(100, NOW);
       expect(result.overdueDays).toBe(0);
@@ -289,9 +364,7 @@ describe('LoansService', () => {
       prisma.loan.findUnique.mockResolvedValue(
         loanRow({ dueAt: new Date('2026-10-04T16:00:00.000Z') }),
       );
-      prisma.loan.update.mockImplementation(async ({ data }) =>
-        loanRow({ ...data }),
-      );
+      closeLoan(LoanStatus.RETURNED);
       prisma.fine.create.mockImplementation(async ({ data }) => ({
         id: 1,
         ...data,
@@ -314,19 +387,45 @@ describe('LoansService', () => {
 
   describe('renew', () => {
     it('BR-06: extends dueAt by renewExtraDays and counts the renewal', async () => {
-      prisma.loan.findUnique.mockResolvedValue(
-        loanRow({ dueAt: new Date('2026-10-10T09:00:00.000Z') }),
-      );
+      const active = loanRow({ dueAt: new Date('2026-10-10T09:00:00.000Z') });
+      prisma.loan.findUnique
+        .mockResolvedValueOnce(active)
+        .mockResolvedValueOnce(
+          loanRow({
+            dueAt: new Date('2026-10-17T09:00:00.000Z'),
+            renewedCount: 1,
+          }),
+        );
       prisma.fine.aggregate.mockResolvedValue({ _sum: { amount: null } });
-      prisma.loan.update.mockImplementation(async ({ data }) =>
-        loanRow({ ...data, dueAt: new Date('2026-10-17T09:00:00.000Z') }),
-      );
+      prisma.loan.updateMany.mockResolvedValue({ count: 1 });
 
-      await service.renew(100, reader.id, NOW);
+      const view = await service.renew(100, reader.id, NOW);
 
-      expect(prisma.loan.update.mock.calls[0][0].data).toMatchObject({
-        dueAt: new Date('2026-10-17T09:00:00.000Z'),
-        renewedCount: { increment: 1 },
+      expect(prisma.loan.updateMany.mock.calls[0][0]).toMatchObject({
+        where: { id: 100, status: LoanStatus.ACTIVE, renewedCount: 0 },
+        data: {
+          dueAt: new Date('2026-10-17T09:00:00.000Z'),
+          renewedCount: { increment: 1 },
+        },
+      });
+      expect(view.renewedCount).toBe(1);
+    });
+
+    it('race: a concurrent renew used the last renewal → RENEW_LIMIT_REACHED', async () => {
+      prisma.loan.findUnique
+        .mockResolvedValueOnce(
+          loanRow({ dueAt: new Date('2026-10-10T09:00:00.000Z') }),
+        )
+        .mockResolvedValueOnce(
+          loanRow({
+            dueAt: new Date('2026-10-17T09:00:00.000Z'),
+            renewedCount: 1,
+          }),
+        );
+      prisma.fine.aggregate.mockResolvedValue({ _sum: { amount: null } });
+      prisma.loan.updateMany.mockResolvedValue({ count: 0 });
+      await expect(service.renew(100, reader.id, NOW)).rejects.toMatchObject({
+        code: 'RENEW_LIMIT_REACHED',
       });
     });
 
@@ -357,7 +456,7 @@ describe('LoansService', () => {
       await expect(service.renew(100, reader.id, NOW)).rejects.toMatchObject({
         code: 'UNPAID_FINE',
       });
-      expect(prisma.loan.update).not.toHaveBeenCalled();
+      expect(prisma.loan.updateMany).not.toHaveBeenCalled();
     });
 
     it("refuses to renew someone else's loan", async () => {
@@ -375,9 +474,7 @@ describe('LoansService', () => {
       prisma.loan.findUnique.mockResolvedValue(
         loanRow({ dueAt: new Date('2026-10-03T09:00:00.000Z') }),
       );
-      prisma.loan.update.mockImplementation(async ({ data }) =>
-        loanRow({ ...data }),
-      );
+      closeLoan(LoanStatus.LOST);
       prisma.fine.create.mockImplementation(async ({ data }) => ({
         id: 2,
         ...data,
@@ -389,9 +486,10 @@ describe('LoansService', () => {
         type: FineType.LOST,
         amount: 120000 + 2 * 5000,
       });
-      expect(prisma.loan.update.mock.calls[0][0].data.status).toBe(
-        LoanStatus.LOST,
-      );
+      expect(prisma.loan.updateMany.mock.calls[0][0]).toMatchObject({
+        where: { id: 100, status: LoanStatus.ACTIVE },
+        data: { status: LoanStatus.LOST },
+      });
       expect(prisma.bookCopy.update).toHaveBeenCalledWith({
         where: { id: copy.id },
         data: { status: CopyStatus.LOST },

@@ -101,7 +101,7 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
         <SearchForm defaultValue={query} size="compact" />
       </div>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[250px_1fr]">
+      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[250px_minmax(0,1fr)]">
         <aside aria-label="Bộ lọc" className="space-y-6">
           <section>
             <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-faint">Tình trạng</h2>

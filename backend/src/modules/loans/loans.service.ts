@@ -20,6 +20,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AiClient } from '../ai/ai.client';
 import { FinesService } from '../fines/fines.service';
 import { PoliciesService } from '../policies/policies.service';
+import { ReservationsService } from '../reservations/reservations.service';
 import { BorrowDto, QueryLoansDto } from './dto/loans.dto';
 
 const loanInclude = {
@@ -68,6 +69,7 @@ export class LoansService {
     private readonly policies: PoliciesService,
     private readonly fines: FinesService,
     private readonly ai: AiClient,
+    private readonly reservations: ReservationsService,
   ) {}
 
   /**
@@ -94,15 +96,27 @@ export class LoansService {
     if (!reader.isActive)
       throw new BusinessException('ACCOUNT_LOCKED', 'Thẻ bạn đọc đang bị khoá');
 
-    const copy = await this.prisma.bookCopy.findUnique({
-      where: { barcode: dto.barcode },
-      include: { book: true },
-    });
+    const findCopy = () =>
+      this.prisma.bookCopy.findUnique({
+        where: { barcode: dto.barcode },
+        include: { book: true },
+      });
+    let copy = await findCopy();
     if (!copy)
       throw new NotFoundException(
         `Không tìm thấy bản sao có mã vạch ${dto.barcode}`,
       );
-    if (copy.status !== CopyStatus.AVAILABLE) {
+    // Bản sao HELD đã quá hạn nhận sách thì giải phóng ngay (cho người kế tiếp hoặc về kệ),
+    // không đợi lượt quét định kỳ — instance miễn phí có thể đang ngủ nên lượt quét không chạy.
+    if (copy.status === CopyStatus.HELD) {
+      await this.reservations.expireStale(at);
+      copy = (await findCopy()) ?? copy;
+    }
+    // HELD = đang giữ cho người đặt trước; chỉ đúng người đó mượn được (kiểm trong transaction).
+    if (
+      copy.status !== CopyStatus.AVAILABLE &&
+      copy.status !== CopyStatus.HELD
+    ) {
       throw new BusinessException(
         'COPY_NOT_AVAILABLE',
         `Bản sao đang ở trạng thái ${copy.status}`,
@@ -167,7 +181,35 @@ export class LoansService {
 
     // BR-10: hạn trả chụp theo chính sách tại thời điểm mượn.
     const loan = await this.prisma.$transaction(async (tx) => {
-      const created = await tx.loan.create({
+      // Các kiểm tra ở trên đọc ngoài transaction nên hai yêu cầu đồng thời cùng qua được.
+      // Khoá hàng bạn đọc để các lần mượn của cùng một người xếp hàng, rồi đếm lại hạn mức.
+      await tx.$queryRaw`SELECT id FROM users WHERE id = ${reader.id} FOR UPDATE`;
+      const activeNow = await tx.loan.count({
+        where: { userId: reader.id, status: LoanStatus.ACTIVE },
+      });
+      if (activeNow >= policy.maxBooks) {
+        throw new BusinessException(
+          'LOAN_LIMIT_REACHED',
+          `Bạn đọc đã mượn tối đa ${policy.maxBooks} cuốn`,
+        );
+      }
+      // Bản sao HELD: đánh dấu đặt trước đã nhận (khoá hàng đặt trước TRƯỚC hàng bản sao,
+      // cùng thứ tự với huỷ / hết hạn để không bế tắc).
+      if (copy.status === CopyStatus.HELD) {
+        await this.reservations.fulfillHeldCopy(tx, copy.id, reader.id);
+      }
+      // Chiếm bản sao nguyên tử: chỉ một yêu cầu đổi được trạng thái từ giá trị đã đọc.
+      const claimed = await tx.bookCopy.updateMany({
+        where: { id: copy.id, status: copy.status },
+        data: { status: CopyStatus.BORROWED },
+      });
+      if (claimed.count === 0) {
+        throw new BusinessException(
+          'COPY_NOT_AVAILABLE',
+          'Bản sao vừa được người khác mượn',
+        );
+      }
+      return tx.loan.create({
         data: {
           copyId: copy.id,
           userId: reader.id,
@@ -178,11 +220,6 @@ export class LoansService {
         },
         include: loanInclude,
       });
-      await tx.bookCopy.update({
-        where: { id: copy.id },
-        data: { status: CopyStatus.BORROWED },
-      });
-      return created;
     });
 
     return { loan: this.toView(loan, at), overdueRisk };
@@ -201,15 +238,19 @@ export class LoansService {
     const amount = days * policy.finePerDay;
 
     const result = await this.prisma.$transaction(async (tx) => {
-      const updated = await tx.loan.update({
+      // Chốt trạng thái nguyên tử: trả đồng thời chỉ một yêu cầu thắng, không tạo phạt / giữ sách hai lần.
+      await this.claimActive(tx, loanId, LoanStatus.RETURNED, at);
+      const updated = await tx.loan.findUniqueOrThrow({
         where: { id: loanId },
-        data: { status: LoanStatus.RETURNED, returnedAt: at },
         include: loanInclude,
       });
-      await tx.bookCopy.update({
-        where: { id: loan.copyId },
-        data: { status: CopyStatus.AVAILABLE },
-      });
+      // Có người đặt trước thì bản sao chuyển sang HELD, không thì về AVAILABLE.
+      await this.reservations.handleCopyReturned(
+        tx,
+        loan.copyId,
+        loan.copy.bookId,
+        at,
+      );
       const fine =
         amount > 0
           ? await this.fines.createFine(tx, loanId, FineType.OVERDUE, amount)
@@ -257,15 +298,33 @@ export class LoansService {
       );
     }
 
-    const updated = await this.prisma.loan.update({
-      where: { id: loanId },
+    // Gia hạn đồng thời: chỉ thành công nếu phiếu còn nguyên như vừa đọc (số lần gia hạn không đổi).
+    const renewed = await this.prisma.loan.updateMany({
+      where: {
+        id: loanId,
+        status: LoanStatus.ACTIVE,
+        renewedCount: loan.renewedCount,
+      },
       data: {
         dueAt: addDays(loan.dueAt, policy.renewExtraDays),
         renewedCount: { increment: 1 },
       },
-      include: loanInclude,
     });
-    return this.toView(updated, at);
+    if (renewed.count === 0) {
+      // Có yêu cầu khác vừa đổi phiếu: đọc lại để báo đúng lý do.
+      const fresh = await this.getActiveOrThrow(loanId);
+      if (fresh.renewedCount >= policy.renewLimit) {
+        throw new BusinessException(
+          'RENEW_LIMIT_REACHED',
+          `Mỗi phiếu chỉ được gia hạn ${policy.renewLimit} lần`,
+        );
+      }
+      throw new BusinessException(
+        'LOAN_CHANGED',
+        'Phiếu mượn vừa thay đổi, vui lòng thử lại',
+      );
+    }
+    return this.findOne(loanId, at);
   }
 
   /** FR-LOAN-06, BR-08: báo mất — phạt = giá bìa + phạt trễ tính đến ngày báo. */
@@ -281,9 +340,9 @@ export class LoansService {
       loan.copy.book.price + overdueDays(loan.dueAt, at) * policy.finePerDay;
 
     const result = await this.prisma.$transaction(async (tx) => {
-      const updated = await tx.loan.update({
+      await this.claimActive(tx, loanId, LoanStatus.LOST, at);
+      const updated = await tx.loan.findUniqueOrThrow({
         where: { id: loanId },
-        data: { status: LoanStatus.LOST, returnedAt: at },
         include: loanInclude,
       });
       await tx.bookCopy.update({
@@ -324,6 +383,7 @@ export class LoansService {
     const where: Prisma.LoanWhereInput = {
       userId: query.userId,
       status: query.status,
+      ...(query.barcode && { copy: { barcode: query.barcode } }),
       ...(query.overdue && {
         status: LoanStatus.ACTIVE,
         dueAt: { lt: overdueCutoff(at) },
@@ -353,6 +413,25 @@ export class LoansService {
     });
     if (!loan) throw new NotFoundException('Không tìm thấy phiếu mượn');
     return this.toView(loan, at);
+  }
+
+  /** Đóng phiếu ACTIVE → RETURNED / LOST; không còn ACTIVE (đã xử lý trước đó) thì ném LOAN_NOT_ACTIVE. */
+  private async claimActive(
+    tx: Prisma.TransactionClient,
+    loanId: number,
+    status: 'RETURNED' | 'LOST',
+    at: Date,
+  ): Promise<void> {
+    const claimed = await tx.loan.updateMany({
+      where: { id: loanId, status: LoanStatus.ACTIVE },
+      data: { status, returnedAt: at },
+    });
+    if (claimed.count === 0) {
+      throw new BusinessException(
+        'LOAN_NOT_ACTIVE',
+        'Phiếu mượn đã được xử lý (trả / báo mất) trước đó',
+      );
+    }
   }
 
   private async getActiveOrThrow(loanId: number): Promise<LoanRow> {

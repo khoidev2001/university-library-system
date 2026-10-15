@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Star } from "lucide-react";
 import { AvailabilityTag, BookCover } from "@/components/book-card";
 import { RateBookPanel } from "@/components/rate-book-panel";
+import { ReserveBookPanel } from "@/components/reserve-book-panel";
 import { apiFetch } from "@/lib/api";
 import { SITE } from "@/lib/site";
 import type { BookDetail } from "@/lib/types";
@@ -110,7 +111,7 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
         </ol>
       </nav>
 
-      <article className="mt-6 grid gap-10 md:grid-cols-[260px_1fr]">
+      <article className="mt-6 grid grid-cols-1 gap-10 md:grid-cols-[260px_minmax(0,1fr)]">
         <div>
           <div className="aspect-[2/3] overflow-hidden rounded-xl border border-line bg-paper-2 shadow-sm">
             <BookCover title={book.title} coverUrl={book.coverUrl} />
@@ -123,6 +124,7 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
                 : "Tất cả bản sao đang được mượn. Vui lòng quay lại sau."}
             </p>
           </div>
+          <ReserveBookPanel bookId={book.id} available={book.copiesAvailable} />
         </div>
 
         <div>

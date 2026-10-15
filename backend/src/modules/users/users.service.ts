@@ -1,10 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { LoanStatus, Prisma } from '@prisma/client';
+import { HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import { LoanStatus, Prisma, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { overdueCutoff } from '../../common/date.util';
+import { JwtUser } from '../../common/decorators/current-user.decorator';
 import { Page, toPage } from '../../common/dto/pagination.dto';
 import { BusinessException } from '../../common/exceptions/business.exception';
+import { likePattern } from '../../common/sql.util';
 import { PrismaService } from '../../prisma/prisma.service';
-import { BCRYPT_ROUNDS } from '../auth/auth.service';
+import { BCRYPT_ROUNDS, normalizeEmail } from '../auth/auth.service';
 import { UserResponseDto } from './dto/user-response.dto';
 import { CreateStaffDto, QueryUsersDto, UpdateUserDto } from './dto/users.dto';
 
@@ -20,14 +23,15 @@ export class UsersService {
 
   /** FR-USER-01 */
   async findAll(query: QueryUsersDto): Promise<Page<UserResponseDto>> {
+    const q = likePattern(query.q);
     const where: Prisma.UserWhereInput = {
       role: query.role,
       isActive: query.isActive,
-      ...(query.q && {
+      ...(q && {
         OR: [
-          { fullName: { contains: query.q, mode: 'insensitive' } },
-          { email: { contains: query.q, mode: 'insensitive' } },
-          { memberCode: { contains: query.q, mode: 'insensitive' } },
+          { fullName: { contains: q, mode: 'insensitive' } },
+          { email: { contains: q, mode: 'insensitive' } },
+          { memberCode: { contains: q, mode: 'insensitive' } },
         ],
       }),
     };
@@ -53,7 +57,11 @@ export class UsersService {
         where: { userId: id, status: LoanStatus.ACTIVE },
       }),
       this.prisma.loan.count({
-        where: { userId: id, status: LoanStatus.ACTIVE, dueAt: { lt: now } },
+        where: {
+          userId: id,
+          status: LoanStatus.ACTIVE,
+          dueAt: { lt: overdueCutoff(now) },
+        },
       }),
       this.prisma.fine.aggregate({
         _sum: { amount: true },
@@ -68,10 +76,31 @@ export class UsersService {
     };
   }
 
-  /** FR-USER-03, FR-USER-04 */
-  async update(id: number, dto: UpdateUserDto): Promise<UserResponseDto> {
+  /**
+   * FR-USER-03, FR-USER-04. Thủ thư chỉ khoá/mở thẻ bạn đọc: tài khoản nhân sự do Admin quản lý,
+   * và không ai tự khoá chính mình (sẽ mất quyền mà không còn ai mở lại nếu là Admin duy nhất).
+   * Khoá thẻ không chặn trả sách: phiếu đang mượn vẫn nhận trả bình thường.
+   */
+  async update(
+    id: number,
+    dto: UpdateUserDto,
+    actor: Pick<JwtUser, 'id' | 'role'>,
+  ): Promise<UserResponseDto> {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('Không tìm thấy người dùng');
+    if (user.role !== Role.READER && actor.role !== Role.ADMIN) {
+      throw new BusinessException(
+        'STAFF_ACCOUNT_PROTECTED',
+        'Chỉ quản trị viên được sửa tài khoản nhân sự',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+    if (dto.isActive === false && actor.id === id) {
+      throw new BusinessException(
+        'CANNOT_LOCK_SELF',
+        'Không thể tự khoá tài khoản của chính mình',
+      );
+    }
     if (dto.memberType !== undefined && user.role !== 'READER') {
       throw new BusinessException(
         'NOT_A_READER',
@@ -84,14 +113,15 @@ export class UsersService {
 
   /** FR-USER-05: Admin tạo thủ thư / admin. */
   async createStaff(dto: CreateStaffDto): Promise<UserResponseDto> {
-    const exists = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+    const email = normalizeEmail(dto.email);
+    const exists = await this.prisma.user.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' } },
     });
     if (exists)
       throw new BusinessException('EMAIL_EXISTS', 'Email đã được đăng ký');
     const user = await this.prisma.user.create({
       data: {
-        email: dto.email,
+        email,
         passwordHash: await bcrypt.hash(dto.password, BCRYPT_ROUNDS),
         fullName: dto.fullName,
         role: dto.role,

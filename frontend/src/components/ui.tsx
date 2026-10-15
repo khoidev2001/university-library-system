@@ -162,3 +162,8 @@ export function RiskMeter({ risk }: { risk: number | null }) {
     </span>
   );
 }
+
+/** Khung giữ chỗ cho biểu đồ tải lười: đúng chiều cao nên không nhảy bố cục khi biểu đồ hiện ra. */
+export function ChartSkeleton() {
+  return <div className="h-full w-full animate-pulse rounded-lg bg-paper-2" aria-hidden="true" />;
+}

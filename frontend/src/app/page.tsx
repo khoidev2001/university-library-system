@@ -31,7 +31,7 @@ export default async function HomePage() {
   return (
     <>
       <section className="border-b border-line bg-gradient-to-b from-paper-2 to-paper">
-        <div className="mx-auto grid max-w-6xl gap-12 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[1fr_300px] lg:items-center">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-12 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-center">
           <div className="max-w-3xl">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand">
               {SITE.university}

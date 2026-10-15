@@ -2,12 +2,14 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   Param,
   ParseEnumPipe,
   Patch,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { MemberType, Role } from '@prisma/client';
+import { STATIC_CACHE } from '../../common/cache-control';
 import { Public } from '../../common/decorators/public.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UpdatePolicyDto } from './dto/policies.dto';
@@ -20,6 +22,7 @@ export class PoliciesController {
 
   @Public()
   @Get()
+  @Header('Cache-Control', STATIC_CACHE)
   @ApiOperation({ summary: 'Chính sách mượn theo loại bạn đọc' })
   findAll() {
     return this.policies.findAll();

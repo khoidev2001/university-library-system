@@ -78,8 +78,8 @@ export function ReadersView() {
         <Button type="submit">Tìm</Button>
       </form>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_340px]">
-        <div className="overflow-x-auto rounded-xl border border-line bg-white">
+      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="relative overflow-x-auto rounded-xl border border-line bg-white">
           {readers.isLoading ? (
             <Spinner />
           ) : (

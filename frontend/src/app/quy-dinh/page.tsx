@@ -67,7 +67,7 @@ export default async function RulesPage() {
         <h2 id="muc-han-muc" className="font-serif text-xl font-bold">
           Hạn mức theo đối tượng
         </h2>
-        <div className="mt-4 overflow-x-auto rounded-xl border border-line bg-white">
+        <div className="relative mt-4 overflow-x-auto rounded-xl border border-line bg-white">
           <table className="w-full min-w-[520px] text-sm">
             <caption className="sr-only">Hạn mức mượn sách theo đối tượng bạn đọc</caption>
             <thead className="border-b border-line bg-paper-2 text-left">

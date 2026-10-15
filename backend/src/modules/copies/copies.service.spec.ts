@@ -63,6 +63,26 @@ describe('CopiesService', () => {
     ).rejects.toMatchObject({ code: 'COPY_HAS_ACTIVE_LOAN' });
   });
 
+  it('update: never sets HELD by hand and never overrides a held copy', async () => {
+    prisma.bookCopy.findUnique.mockResolvedValue({
+      id: 10,
+      status: CopyStatus.AVAILABLE,
+    });
+    prisma.loan.count.mockResolvedValue(0);
+    await expect(
+      service.update(10, { status: CopyStatus.HELD }),
+    ).rejects.toMatchObject({ code: 'COPY_HELD' });
+
+    prisma.bookCopy.findUnique.mockResolvedValue({
+      id: 10,
+      status: CopyStatus.HELD,
+    });
+    await expect(
+      service.update(10, { status: CopyStatus.AVAILABLE }),
+    ).rejects.toMatchObject({ code: 'COPY_HELD' });
+    expect(prisma.bookCopy.update).not.toHaveBeenCalled();
+  });
+
   it('update: allows MAINTENANCE on a free copy and shelf changes without status', async () => {
     prisma.bookCopy.findUnique.mockResolvedValue({
       id: 10,

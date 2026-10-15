@@ -15,6 +15,7 @@ const COPY_STATUS: Record<CopyStatus, { label: string; tone: "good" | "info" | "
   BORROWED: { label: "Đang mượn", tone: "info" },
   LOST: { label: "Mất", tone: "bad" },
   MAINTENANCE: { label: "Bảo trì", tone: "warn" },
+  HELD: { label: "Đang giữ cho bạn đọc", tone: "info" },
 };
 
 export function BooksAdminView() {
@@ -162,10 +163,15 @@ export function BooksAdminView() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-2">
-                      <RowButton onClick={() => setCopiesOf(book)}>Bản sao</RowButton>
-                      <RowButton onClick={() => setEditing(book)}>Sửa</RowButton>
+                      <RowButton aria-label={`Bản sao của ${book.title}`} onClick={() => setCopiesOf(book)}>
+                        Bản sao
+                      </RowButton>
+                      <RowButton aria-label={`Sửa ${book.title}`} onClick={() => setEditing(book)}>
+                        Sửa
+                      </RowButton>
                       <RowButton
                         danger
+                        aria-label={`Xoá ${book.title}`}
                         disabled={remove.isPending}
                         onClick={() => {
                           if (window.confirm(`Xoá sách "${book.title}" cùng toàn bộ bản sao và đánh giá?`)) {

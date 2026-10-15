@@ -18,6 +18,9 @@ export interface ApiErrorBody {
   timestamp?: string;
 }
 
+/** Sự kiện phát ra khi máy chủ từ chối token đang dùng (401). */
+export const UNAUTHORIZED_EVENT = "uls:unauthorized";
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -52,6 +55,21 @@ const BUSINESS_MESSAGES: Record<string, string> = {
   BARCODE_EXISTS: "Mã vạch này đã tồn tại.",
   ISBN_EXISTS: "ISBN này đã có trong kho.",
   CATEGORY_IN_USE: "Thể loại đang có sách nên không xoá được.",
+  NO_COPIES: "Sách này hiện không có bản sao nào để đặt.",
+  BOOK_AVAILABLE: "Sách đang còn trên kệ, bạn đến quầy mượn trực tiếp.",
+  ALREADY_BORROWING: "Bạn đang mượn cuốn sách này.",
+  ALREADY_RESERVED: "Bạn đã đặt trước cuốn sách này.",
+  RESERVATION_LIMIT: "Bạn đã đặt trước đủ số cuốn tối đa cùng lúc.",
+  RESERVATION_NOT_ACTIVE: "Lượt đặt trước này không còn hiệu lực.",
+  COPY_HELD: "Bản sao này đang được giữ cho bạn đọc đã đặt trước.",
+  BOOK_HAS_LOAN_HISTORY: "Sách đã có lịch sử mượn nên không xoá được, hãy chuyển các bản sao sang trạng thái Bảo trì.",
+  BOOK_HAS_ACTIVE_LOANS: "Sách đang có phiếu mượn mở nên chưa xoá được.",
+  STAFF_ACCOUNT_PROTECTED: "Chỉ quản trị viên mới sửa được tài khoản nhân viên.",
+  CANNOT_LOCK_SELF: "Bạn không thể tự khoá tài khoản của mình.",
+  LOAN_CHANGED: "Phiếu mượn vừa được người khác cập nhật, hãy tải lại rồi thử lại.",
+  TOO_MANY_REQUESTS: "Thao tác quá nhanh, vui lòng thử lại sau ít phút.",
+  PAYLOAD_TOO_LARGE: "Dữ liệu gửi lên quá lớn.",
+  REFERENCE_CONFLICT: "Dữ liệu đang được nơi khác sử dụng nên chưa thay đổi được.",
   AI_UNAVAILABLE: "Dịch vụ gợi ý tạm thời không phản hồi.",
 };
 
@@ -79,6 +97,11 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
 
   const text = await response.text();
   const payload = text ? (JSON.parse(text) as unknown) : null;
+
+  if (response.status === 401 && token && typeof window !== "undefined") {
+    // Token hết hạn hoặc tài khoản bị khoá giữa phiên: để AuthProvider đăng xuất và đưa về trang đăng nhập
+    window.dispatchEvent(new Event(UNAUTHORIZED_EVENT));
+  }
 
   if (!response.ok) {
     const error = payload as ApiErrorBody | null;

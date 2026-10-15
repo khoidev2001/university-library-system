@@ -20,6 +20,25 @@ export class TopBooksQueryDto {
   limit = 10;
 }
 
+/** Trần số dòng của báo cáo quá hạn (phản hồi từng lên tới 6MB / 1,3 giây với 24k phiếu quá hạn). */
+export const MAX_OVERDUE_ROWS = 5000;
+
+export class OverdueQueryDto {
+  @ApiPropertyOptional({
+    default: MAX_OVERDUE_ROWS,
+    minimum: 1,
+    maximum: MAX_OVERDUE_ROWS,
+    description:
+      'Số dòng tối đa, quá hạn lâu nhất xếp trước; tổng số ở header X-Total-Count',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(MAX_OVERDUE_ROWS)
+  limit = MAX_OVERDUE_ROWS;
+}
+
 export class LoansByMonthQueryDto {
   @ApiPropertyOptional({ default: 12, minimum: 1, maximum: 36 })
   @IsOptional()

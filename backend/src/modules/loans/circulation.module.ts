@@ -3,7 +3,12 @@ import { ConfigService } from '@nestjs/config';
 import { AiClient } from '../ai/ai.client';
 import { FinesController } from '../fines/fines.controller';
 import { FinesService } from '../fines/fines.service';
+import { CirculationScheduler } from '../notifications/circulation.scheduler';
+import { NotificationsController } from '../notifications/notifications.controller';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PoliciesModule } from '../policies/policies.module';
+import { ReservationsController } from '../reservations/reservations.controller';
+import { ReservationsService } from '../reservations/reservations.service';
 import { RatingsController } from '../ratings/ratings.controller';
 import { RatingsService } from '../ratings/ratings.service';
 import { ReportsController } from '../reports/reports.controller';
@@ -19,12 +24,17 @@ import { LoansService } from './loans.service';
     FinesController,
     RatingsController,
     ReportsController,
+    ReservationsController,
+    NotificationsController,
   ],
   providers: [
     LoansService,
     FinesService,
     RatingsService,
     ReportsService,
+    ReservationsService,
+    NotificationsService,
+    CirculationScheduler,
     {
       provide: AiClient,
       useFactory: (config: ConfigService) => new AiClient(config),
@@ -36,6 +46,8 @@ import { LoansService } from './loans.service';
     FinesService,
     RatingsService,
     ReportsService,
+    ReservationsService,
+    NotificationsService,
     AiClient,
   ],
 })

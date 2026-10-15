@@ -8,6 +8,7 @@ import {
   FolderTree,
   HandCoins,
   LayoutDashboard,
+  Bookmark,
   Library,
   ScrollText,
   Settings2,
@@ -46,6 +47,7 @@ const GROUPS: { title: string; items: NavItem[] }[] = [
     items: [
       { href: "/librarian/desk", label: "Quầy mượn trả", icon: Library, role: "LIBRARIAN" },
       { href: "/admin/loans", label: "Phiếu mượn", icon: ScrollText, role: "LIBRARIAN" },
+      { href: "/admin/reservations", label: "Đặt trước", icon: Bookmark, role: "LIBRARIAN" },
       { href: "/admin/fines", label: "Khoản phạt", icon: HandCoins, role: "LIBRARIAN" },
       { href: "/librarian/readers", label: "Bạn đọc", icon: Users, role: "LIBRARIAN" },
     ],
@@ -73,8 +75,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     href === "/admin" ? pathname === "/admin" : pathname === href || pathname.startsWith(`${href}/`);
 
   return (
-    <div className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[230px_1fr]">
-      <aside aria-label="Menu quản trị" className="lg:sticky lg:top-24 lg:self-start">
+    <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[230px_minmax(0,1fr)]">
+      <aside aria-label="Menu quản trị" className="min-w-0 lg:sticky lg:top-24 lg:self-start">
         <div className="mb-4 hidden items-center gap-2 lg:flex">
           <BookMarked size={18} aria-hidden="true" className="text-brand" />
           <span className="font-serif text-lg font-bold">Quản trị thư viện</span>

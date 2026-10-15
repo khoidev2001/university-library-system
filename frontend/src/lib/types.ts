@@ -2,7 +2,7 @@
 
 export type Role = "READER" | "LIBRARIAN" | "ADMIN";
 export type MemberType = "STUDENT" | "LECTURER";
-export type CopyStatus = "AVAILABLE" | "BORROWED" | "LOST" | "MAINTENANCE";
+export type CopyStatus = "AVAILABLE" | "BORROWED" | "LOST" | "MAINTENANCE" | "HELD";
 export type LoanStatus = "ACTIVE" | "RETURNED" | "LOST";
 export type FineType = "OVERDUE" | "LOST";
 
@@ -161,6 +161,7 @@ export interface InventoryRow {
   borrowed: number;
   lost: number;
   maintenance: number;
+  held: number;
 }
 
 export interface ImportReport {
@@ -196,4 +197,32 @@ export interface ModelMetrics {
   } | null;
   lastTraining: { status: string; at: string | null; error: string | null } | null;
   note?: string;
+}
+
+export type ReservationStatus = "WAITING" | "READY" | "FULFILLED" | "CANCELLED" | "EXPIRED";
+
+export interface Reservation {
+  id: number;
+  userId: number;
+  bookId: number;
+  copyId: number | null;
+  status: ReservationStatus;
+  createdAt: string;
+  readyAt: string | null;
+  expiresAt: string | null;
+  book: { id: number; title: string; coverUrl: string | null };
+  copy: { id: number; barcode: string; shelfLocation: string | null } | null;
+  user: { id: number; fullName: string; memberCode: string | null };
+  /** Chỉ có ở "đặt trước của tôi": thứ tự trong hàng đợi (0 nếu đã có sách giữ). */
+  queuePosition?: number;
+}
+
+export interface AppNotification {
+  id: number;
+  type: string;
+  title: string;
+  body: string;
+  link: string | null;
+  readAt: string | null;
+  createdAt: string;
 }

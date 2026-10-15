@@ -26,9 +26,14 @@ export class UpdatePolicyDto {
   @Min(1)
   @Max(365)
   renewExtraDays?: number;
-  @ApiPropertyOptional({ minimum: 0, description: 'VND/ngày' })
+  @ApiPropertyOptional({
+    minimum: 0,
+    maximum: 1_000_000,
+    description: 'VND/ngày',
+  })
   @IsOptional()
   @IsInt()
   @Min(0)
+  @Max(1_000_000)
   finePerDay?: number;
 }

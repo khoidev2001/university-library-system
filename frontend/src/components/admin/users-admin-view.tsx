@@ -127,11 +127,12 @@ export function UsersAdminView() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-2">
-                        <button type="button" onClick={() => setEditing(row)} className="rounded-md border border-line px-3 py-1.5 text-xs font-medium hover:bg-paper-2">
+                        <button type="button" aria-label={`Đổi tên ${row.fullName}`} onClick={() => setEditing(row)} className="rounded-md border border-line px-3 py-1.5 text-xs font-medium hover:bg-paper-2">
                           Đổi tên
                         </button>
                         <button
                           type="button"
+                          aria-label={`${row.isActive ? "Khoá" : "Mở khoá"} tài khoản ${row.fullName}`}
                           disabled={isMe || toggle.isPending}
                           title={isMe ? "Không tự khoá tài khoản của mình" : undefined}
                           onClick={() => toggle.mutate(row)}

@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
-import { Transform, Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import {
   ArrayMaxSize,
   ArrayMinSize,
@@ -15,7 +15,11 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
+import { IsEntityId } from '../../../common/dto/entity-id.decorator';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
+
+/** Giá bìa tối đa (VND); phạt mất sách = giá bìa + phạt trễ phải còn nằm trong INT4. */
+export const MAX_BOOK_PRICE = 100_000_000;
 
 export class QueryBooksDto extends PaginationDto {
   @ApiPropertyOptional({ description: 'Khớp tiêu đề, tên tác giả hoặc ISBN' })
@@ -26,13 +30,11 @@ export class QueryBooksDto extends PaginationDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @Type(() => Number)
-  @IsInt()
+  @IsEntityId()
   categoryId?: number;
   @ApiPropertyOptional()
   @IsOptional()
-  @Type(() => Number)
-  @IsInt()
+  @IsEntityId()
   authorId?: number;
 
   @ApiPropertyOptional({
@@ -78,15 +80,17 @@ export class CreateBookDto {
   })
   @IsInt()
   @Min(0)
+  @Max(MAX_BOOK_PRICE)
   price: number;
 
   @ApiPropertyOptional() @IsOptional() @IsUrl() coverUrl?: string;
-  @ApiProperty() @IsInt() categoryId: number;
+  @ApiProperty() @IsEntityId() categoryId: number;
 
   @ApiProperty({ type: [Number], description: 'Ít nhất 1 tác giả' })
   @IsArray()
   @ArrayMinSize(1)
-  @IsInt({ each: true })
+  @ArrayMaxSize(50)
+  @IsEntityId({ each: true })
   authorIds: number[];
 }
 

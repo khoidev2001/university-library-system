@@ -7,13 +7,13 @@
   --color-paper-2: #f1ece1;
   --color-ink: #16243c;
   --color-ink-soft: #4a5568;
-  --color-ink-faint: #76818f;
+  --color-ink-faint: #5a6573;
   --color-line: #e2dcd0;
   --color-brand: #8c3b24;
   --color-brand-soft: #f6e9e4;
   --color-leaf: #2f6b52;
   --color-leaf-soft: #e6f0ea;
-  --color-amber: #a9701a;
+  --color-amber: #855710;
   --color-amber-soft: #fbf0dc;
 
   --font-serif: var(--font-be-vietnam), system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -34,6 +34,47 @@ body {
 h1, h2, h3 {
   font-family: var(--font-serif);
   letter-spacing: -0.01em;
+  text-wrap: balance;
+  scroll-margin-top: 5rem;
+}
+
+:root {
+  color-scheme: light;
+}
+
+/* Bấm nhanh trên cảm ứng: bỏ độ trễ chạm đúp để phóng to, đặt màu highlight có chủ đích */
+a, button, summary, [role="tab"], label {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgb(140 59 36 / 0.12);
+}
+
+/* Số trong bảng thẳng cột, không nhảy khi dữ liệu đổi */
+table, .tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Chuyển động chỉ dùng transform và opacity (chạy trên compositor, giữ được 120 fps).
+   Mọi animation đều tắt khi người dùng chọn giảm chuyển động (khối ở cuối tệp). */
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes sheet-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+.anim-pop { animation: pop-in 140ms cubic-bezier(0.2, 0.8, 0.2, 1) both; transform-origin: top right; }
+.anim-fade { animation: fade-in 160ms ease-out both; }
+.anim-sheet { animation: sheet-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+/* Danh sách dài: trình duyệt bỏ qua việc vẽ phần nằm ngoài màn hình */
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 320px;
 }
 
 /* Viền focus rõ ràng cho người dùng bàn phím (tiêu chí khả dụng) */

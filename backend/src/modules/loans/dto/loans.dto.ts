@@ -1,14 +1,14 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { LoanStatus } from '@prisma/client';
-import { Transform, Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import {
   IsBoolean,
   IsEnum,
-  IsInt,
   IsOptional,
   IsString,
   Matches,
 } from 'class-validator';
+import { IsEntityId } from '../../../common/dto/entity-id.decorator';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
 
 export class BorrowDto {
@@ -46,7 +46,16 @@ export class QueryLoansDto extends PaginationDto {
 
   @ApiPropertyOptional({ description: 'Lọc theo bạn đọc (thủ thư)' })
   @IsOptional()
-  @Type(() => Number)
-  @IsInt()
+  @IsEntityId()
   userId?: number;
+
+  @ApiPropertyOptional({
+    description: 'Lọc theo mã vạch bản sao (quầy nhận trả tìm phiếu đang mở)',
+  })
+  @IsOptional()
+  @IsString()
+  @Matches(/^[A-Za-z0-9-]{3,40}$/, {
+    message: 'Mã vạch chỉ gồm chữ, số, dấu gạch ngang',
+  })
+  barcode?: string;
 }

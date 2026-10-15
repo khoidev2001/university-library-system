@@ -1,11 +1,14 @@
 // ERD — docs/PLAN.md mục 4. Chuẩn 3NF.
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  // pg_trgm: chỉ mục GIN cho tìm kiếm ILIKE '%…%' (Neon / Render Postgres đều hỗ trợ)
+  extensions = [pg_trgm]
 }
 
 enum Role {
@@ -24,12 +27,21 @@ enum CopyStatus {
   BORROWED
   LOST
   MAINTENANCE
+  HELD // giữ cho bạn đọc đã đặt trước
 }
 
 enum LoanStatus {
   ACTIVE
   RETURNED
   LOST
+}
+
+enum ReservationStatus {
+  WAITING // đang xếp hàng
+  READY // đã có bản sao giữ cho bạn đọc
+  FULFILLED // đã mượn
+  CANCELLED
+  EXPIRED // quá hạn nhận sách
 }
 
 enum FineType {
@@ -48,11 +60,17 @@ model User {
   isActive     Boolean     @default(true) @map("is_active")
   createdAt    DateTime    @default(now()) @map("created_at")
 
-  loans        Loan[]   @relation("LoanReader")
-  createdLoans Loan[]   @relation("LoanCreator")
-  ratings      Rating[]
-  finesPaid    Fine[]   @relation("FinePaidTo")
+  loans         Loan[]         @relation("LoanReader")
+  createdLoans  Loan[]         @relation("LoanCreator")
+  ratings       Rating[]
+  finesPaid     Fine[]         @relation("FinePaidTo")
+  reservations  Reservation[]
+  notifications Notification[]
 
+  // Tìm bạn đọc (GET /users?q=) khớp tên, email, mã bằng ILIKE '%…%'
+  @@index([fullName(ops: raw("gin_trgm_ops"))], type: Gin, map: "users_full_name_trgm_idx")
+  @@index([email(ops: raw("gin_trgm_ops"))], type: Gin, map: "users_email_trgm_idx")
+  @@index([memberCode(ops: raw("gin_trgm_ops"))], type: Gin, map: "users_member_code_trgm_idx")
   @@map("users")
 }
 
@@ -74,6 +92,7 @@ model Author {
   name  String
   books BookAuthor[]
 
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "authors_name_trgm_idx")
   @@map("authors")
 }
 
@@ -99,12 +118,16 @@ model Book {
   categoryId    Int      @map("category_id")
   createdAt     DateTime @default(now()) @map("created_at")
 
-  category Category     @relation(fields: [categoryId], references: [id])
-  authors  BookAuthor[]
-  copies   BookCopy[]
-  ratings  Rating[]
+  category     Category      @relation(fields: [categoryId], references: [id])
+  authors      BookAuthor[]
+  copies       BookCopy[]
+  ratings      Rating[]
+  reservations Reservation[]
 
-  @@index([title])
+  // Tìm sách theo tiêu đề / ISBN dạng chứa chuỗi (ILIKE '%…%'); btree trên title không giúp được và chưa từng được dùng
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin, map: "books_title_trgm_idx")
+  @@index([isbn(ops: raw("gin_trgm_ops"))], type: Gin, map: "books_isbn_trgm_idx")
+  @@index([categoryId])
   @@map("books")
 }
 
@@ -117,6 +140,7 @@ model BookAuthor {
   author Author @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@id([bookId, authorId])
+  @@index([authorId])
   @@map("book_authors")
 }
 
@@ -127,9 +151,11 @@ model BookCopy {
   status        CopyStatus @default(AVAILABLE)
   shelfLocation String?    @map("shelf_location")
 
-  book  Book   @relation(fields: [bookId], references: [id])
-  loans Loan[]
+  book         Book          @relation(fields: [bookId], references: [id])
+  loans        Loan[]
+  reservations Reservation[]
 
+  @@index([bookId, status])
   @@map("book_copies")
 }
 
@@ -152,7 +178,11 @@ model Loan {
 
   // "Quá hạn" suy ra: returnedAt IS NULL AND dueAt < now() (BR-09)
   @@index([userId, status])
-  @@index([dueAt])
+  @@index([copyId])
+  // Quá hạn / nhắc hạn luôn lọc status = ACTIVE rồi so dueAt; thay cho chỉ mục dueAt đơn
+  @@index([status, dueAt])
+  // Báo cáo theo khoảng ngày mượn (top-books, loans-by-month)
+  @@index([borrowedAt])
   @@map("loans")
 }
 
@@ -169,6 +199,7 @@ model Fine {
   paidTo User? @relation("FinePaidTo", fields: [paidToId], references: [id])
 
   @@index([paidAt])
+  @@index([loanId])
   @@map("fines")
 }
 
@@ -183,5 +214,44 @@ model Rating {
   book Book @relation(fields: [bookId], references: [id])
 
   @@unique([userId, bookId])
+  @@index([bookId])
   @@map("ratings")
+}
+
+// Đặt trước sách đang hết bản (FR-RES). READY = bản sao ở trạng thái HELD cho đúng bạn đọc này.
+model Reservation {
+  id        Int               @id @default(autoincrement())
+  userId    Int               @map("user_id")
+  bookId    Int               @map("book_id")
+  copyId    Int?              @map("copy_id")
+  status    ReservationStatus @default(WAITING)
+  createdAt DateTime          @default(now()) @map("created_at")
+  readyAt   DateTime?         @map("ready_at")
+  expiresAt DateTime?         @map("expires_at")
+
+  user User      @relation(fields: [userId], references: [id])
+  book Book      @relation(fields: [bookId], references: [id])
+  copy BookCopy? @relation(fields: [copyId], references: [id])
+
+  @@index([bookId, status, createdAt])
+  @@index([userId, status])
+  @@map("reservations")
+}
+
+// Thông báo trong web. dedupeKey chống gửi trùng (vd "loan:12:due").
+model Notification {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  type      String
+  title     String
+  body      String
+  link      String?
+  dedupeKey String?   @unique @map("dedupe_key")
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+  @@map("notifications")
 }

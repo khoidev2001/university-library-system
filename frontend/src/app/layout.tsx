@@ -8,7 +8,7 @@ import "./globals.css";
 
 // Một họ chữ duy nhất cho toàn bộ giao diện; có bộ ký tự tiếng Việt
 const beVietnam = Be_Vietnam_Pro({
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
   subsets: ["latin", "latin-ext", "vietnamese"],
   variable: "--font-be-vietnam",
   display: "swap",
@@ -76,6 +76,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html lang="vi" className={beVietnam.variable}>
+      <head>
+        {/* Ảnh bìa nằm ở máy chủ ngoài: mở sẵn kết nối để ảnh đầu tiên về nhanh hơn */}
+        <link rel="preconnect" href="https://images.gr-assets.com" />
+        <link rel="preconnect" href="https://s.gr-assets.com" />
+      </head>
       <body className="flex min-h-screen flex-col">
         <script
           type="application/ld+json"

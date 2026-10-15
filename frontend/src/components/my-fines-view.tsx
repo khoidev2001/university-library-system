@@ -43,7 +43,7 @@ export function MyFinesView() {
           <EmptyState title="Chưa có khoản phạt nào" hint="Trả sách đúng hạn để giữ nguyên tình trạng này." />
         </div>
       ) : (
-        <div className="mt-8 overflow-x-auto rounded-xl border border-line bg-white">
+        <div className="relative mt-8 overflow-x-auto rounded-xl border border-line bg-white">
           <table className="w-full min-w-[640px] text-sm">
             <caption className="sr-only">Danh sách khoản phạt của tôi</caption>
             <thead className="border-b border-line bg-paper-2 text-left">

@@ -3,9 +3,9 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   HttpCode,
   Param,
-  ParseIntPipe,
   Patch,
   Post,
   Query,
@@ -17,6 +17,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
+import { CATALOG_CACHE } from '../../common/cache-control';
+import { ParseIdPipe } from '../../common/pipes/parse-id.pipe';
 import { Public } from '../../common/decorators/public.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CopiesService } from '../copies/copies.service';
@@ -39,6 +41,7 @@ export class BooksController {
 
   @Public()
   @Get()
+  @Header('Cache-Control', CATALOG_CACHE)
   @ApiOperation({
     summary:
       'Tìm kiếm sách theo tiêu đề / tác giả / ISBN, lọc thể loại, tác giả, còn sách',
@@ -60,10 +63,11 @@ export class BooksController {
 
   @Public()
   @Get(':id')
+  @Header('Cache-Control', CATALOG_CACHE)
   @ApiOperation({
     summary: 'Chi tiết sách: tác giả, thể loại, số bản còn, điểm đánh giá',
   })
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  findOne(@Param('id', ParseIdPipe) id: number) {
     return this.books.findOne(id);
   }
 
@@ -80,7 +84,7 @@ export class BooksController {
   @ApiBearerAuth()
   @Roles(Role.LIBRARIAN)
   @ApiOperation({ summary: 'Sửa đầu sách' })
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateBookDto) {
+  update(@Param('id', ParseIdPipe) id: number, @Body() dto: UpdateBookDto) {
     return this.books.update(id, dto);
   }
 
@@ -89,8 +93,11 @@ export class BooksController {
   @Roles(Role.LIBRARIAN)
   @HttpCode(204)
   @ApiOperation({ summary: 'Xoá đầu sách (không còn bản đang mượn)' })
-  @ApiResponse({ status: 409, description: 'BOOK_HAS_ACTIVE_LOANS' })
-  remove(@Param('id', ParseIntPipe) id: number) {
+  @ApiResponse({
+    status: 409,
+    description: 'BOOK_HAS_ACTIVE_LOANS | BOOK_HAS_LOAN_HISTORY',
+  })
+  remove(@Param('id', ParseIdPipe) id: number) {
     return this.books.remove(id);
   }
 
@@ -98,7 +105,7 @@ export class BooksController {
   @ApiBearerAuth()
   @Roles(Role.LIBRARIAN)
   @ApiOperation({ summary: 'Danh sách bản sao của đầu sách' })
-  listCopies(@Param('id', ParseIntPipe) id: number) {
+  listCopies(@Param('id', ParseIdPipe) id: number) {
     return this.copies.findByBook(id);
   }
 
@@ -109,10 +116,7 @@ export class BooksController {
     summary: 'Thêm bản sao (barcode duy nhất, trạng thái AVAILABLE)',
   })
   @ApiResponse({ status: 409, description: 'BARCODE_EXISTS' })
-  createCopy(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: CreateCopyDto,
-  ) {
+  createCopy(@Param('id', ParseIdPipe) id: number, @Body() dto: CreateCopyDto) {
     return this.copies.create(id, dto);
   }
 }

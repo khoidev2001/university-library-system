@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CopyStatus, LoanStatus, Prisma } from '@prisma/client';
 import { Page, toPage } from '../../common/dto/pagination.dto';
 import { BusinessException } from '../../common/exceptions/business.exception';
+import { likePattern } from '../../common/sql.util';
 import { PrismaService } from '../../prisma/prisma.service';
 import { slugify } from '../categories/categories.service';
 import {
@@ -58,6 +59,9 @@ export class BooksService {
 
   /** FR-SEARCH-01..03 */
   async search(query: QueryBooksDto): Promise<Page<BookSummary>> {
+    const q = likePattern(query.q);
+    if (q) return this.searchByText(query, q);
+
     const where: Prisma.BookWhereInput = {
       categoryId: query.categoryId,
       ...(query.authorId && {
@@ -65,19 +69,6 @@ export class BooksService {
       }),
       ...(query.available && {
         copies: { some: { status: CopyStatus.AVAILABLE } },
-      }),
-      ...(query.q && {
-        OR: [
-          { title: { contains: query.q, mode: 'insensitive' } },
-          { isbn: { contains: query.q.replace(/-/g, '') } },
-          {
-            authors: {
-              some: {
-                author: { name: { contains: query.q, mode: 'insensitive' } },
-              },
-            },
-          },
-        ],
       }),
     };
     const [rows, total] = await this.prisma.$transaction([
@@ -94,6 +85,69 @@ export class BooksService {
     return toPage(
       rows.map((r) => this.toSummary(r, counts)),
       total,
+      query,
+    );
+  }
+
+  /**
+   * Tìm theo chuỗi: tiêu đề, ISBN hoặc tên tác giả. Viết bằng SQL thô vì điều kiện
+   * `title ILIKE … OR isbn LIKE … OR id IN (tác giả)` mà Prisma sinh ra buộc Postgres quét tuần tự
+   * cả bảng sách (không dùng được chỉ mục trigram). Tách thành UNION của ba truy vấn, mỗi cái
+   * dùng một chỉ mục GIN (books_title_trgm_idx, books_isbn_trgm_idx, authors_name_trgm_idx):
+   * 50k sách, từ khoá hiếm: 40ms → 0.5ms.
+   */
+  private async searchByText(
+    query: QueryBooksDto,
+    q: string,
+  ): Promise<Page<BookSummary>> {
+    const pattern = `%${q}%`;
+    const isbnQ = likePattern(query.q?.replace(/-/g, ''));
+    const filters = Prisma.sql`
+      WHERE b.id IN (
+        SELECT id FROM books WHERE title ILIKE ${pattern}
+        ${isbnQ ? Prisma.sql`UNION SELECT id FROM books WHERE isbn LIKE ${`%${isbnQ}%`}` : Prisma.empty}
+        UNION
+        SELECT ba.book_id FROM book_authors ba
+        JOIN authors a ON a.id = ba.author_id
+        WHERE a.name ILIKE ${pattern}
+      )
+      ${query.categoryId ? Prisma.sql`AND b.category_id = ${query.categoryId}` : Prisma.empty}
+      ${
+        query.authorId
+          ? Prisma.sql`AND EXISTS (
+              SELECT 1 FROM book_authors x
+              WHERE x.book_id = b.id AND x.author_id = ${query.authorId})`
+          : Prisma.empty
+      }
+      ${
+        query.available
+          ? Prisma.sql`AND EXISTS (
+              SELECT 1 FROM book_copies c
+              WHERE c.book_id = b.id AND c.status = 'AVAILABLE'::"CopyStatus")`
+          : Prisma.empty
+      }`;
+    const [idRows, countRows] = await this.prisma.$transaction([
+      this.prisma.$queryRaw<{ id: number }[]>`
+        SELECT b.id FROM books b ${filters}
+        ORDER BY b.id ASC LIMIT ${query.limit} OFFSET ${query.skip}`,
+      this.prisma.$queryRaw<{ n: number }[]>`
+        SELECT COUNT(*)::int AS n FROM books b ${filters}`,
+    ]);
+    const ids = idRows.map((r) => r.id);
+    const rows = ids.length
+      ? await this.prisma.book.findMany({
+          where: { id: { in: ids } },
+          include: bookInclude,
+        })
+      : [];
+    const byId = new Map(rows.map((r) => [r.id, r]));
+    const counts = await this.copyCounts(ids);
+    return toPage(
+      ids
+        .map((id) => byId.get(id))
+        .filter((r): r is BookRow => !!r)
+        .map((r) => this.toSummary(r, counts)),
+      countRows[0]?.n ?? 0,
       query,
     );
   }
@@ -123,7 +177,8 @@ export class BooksService {
 
   /** FR-BOOK-01 */
   async create(dto: CreateBookDto): Promise<BookSummary> {
-    await this.assertReferences(dto.categoryId, dto.authorIds);
+    const authorIds = [...new Set(dto.authorIds)];
+    await this.assertReferences(dto.categoryId, authorIds);
     if (dto.isbn) await this.assertIsbnFree(dto.isbn);
     const row = await this.prisma.book.create({
       data: {
@@ -135,7 +190,7 @@ export class BooksService {
         price: dto.price,
         coverUrl: dto.coverUrl,
         categoryId: dto.categoryId,
-        authors: { create: dto.authorIds.map((authorId) => ({ authorId })) },
+        authors: { create: authorIds.map((authorId) => ({ authorId })) },
       },
       include: bookInclude,
     });
@@ -146,24 +201,27 @@ export class BooksService {
   async update(id: number, dto: UpdateBookDto): Promise<BookSummary> {
     const existing = await this.prisma.book.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Không tìm thấy sách');
-    await this.assertReferences(dto.categoryId, dto.authorIds);
-    if (dto.isbn && dto.isbn !== existing.isbn)
-      await this.assertIsbnFree(dto.isbn);
+    const authorIds = dto.authorIds && [...new Set(dto.authorIds)];
+    await this.assertReferences(dto.categoryId ?? undefined, authorIds);
+    // So sánh sau khi bỏ gạch ngang: gửi lại đúng ISBN cũ dạng "978-…" không phải là trùng
+    const isbn = dto.isbn?.replace(/-/g, '');
+    if (isbn && isbn !== existing.isbn) await this.assertIsbnFree(isbn);
     const row = await this.prisma.book.update({
       where: { id },
       data: {
-        title: dto.title,
-        isbn: dto.isbn?.replace(/-/g, ''),
+        // null từ JSON không hợp lệ với cột bắt buộc → coi như không đổi
+        title: dto.title ?? undefined,
+        isbn,
         description: dto.description,
         publisher: dto.publisher,
         publishedYear: dto.publishedYear,
-        price: dto.price,
+        price: dto.price ?? undefined,
         coverUrl: dto.coverUrl,
-        categoryId: dto.categoryId,
-        ...(dto.authorIds && {
+        categoryId: dto.categoryId ?? undefined,
+        ...(authorIds && {
           authors: {
             deleteMany: {},
-            create: dto.authorIds.map((authorId) => ({ authorId })),
+            create: authorIds.map((authorId) => ({ authorId })),
           },
         }),
       },
@@ -172,7 +230,10 @@ export class BooksService {
     return this.toSummary(row, await this.copyCounts([id]));
   }
 
-  /** FR-BOOK-03, BR-12 */
+  /**
+   * FR-BOOK-03, BR-12. Sách đã từng có phiếu mượn (kể cả đã trả) phải giữ lại để không mất
+   * lịch sử mượn và phiếu phạt; chỉ sách chưa từng được mượn mới xoá được.
+   */
   async remove(id: number): Promise<void> {
     const existing = await this.prisma.book.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Không tìm thấy sách');
@@ -185,11 +246,19 @@ export class BooksService {
         'Sách còn bản sao đang được mượn, không thể xoá',
       );
     }
+    const history = await this.prisma.loan.count({
+      where: { copy: { bookId: id } },
+    });
+    if (history > 0) {
+      throw new BusinessException(
+        'BOOK_HAS_LOAN_HISTORY',
+        'Sách đã có lịch sử mượn, không thể xoá',
+      );
+    }
     await this.prisma.$transaction([
+      this.prisma.reservation.deleteMany({ where: { bookId: id } }),
       this.prisma.rating.deleteMany({ where: { bookId: id } }),
-      this.prisma.bookCopy.deleteMany({
-        where: { bookId: id, loans: { none: {} } },
-      }),
+      this.prisma.bookCopy.deleteMany({ where: { bookId: id } }),
       this.prisma.book.delete({ where: { id } }),
     ]);
   }
@@ -197,8 +266,16 @@ export class BooksService {
   /** FR-BOOK-05: nhập hàng loạt theo ISBN qua Google Books; lỗi từng ISBN không dừng cả lô. */
   async importByIsbn(dto: ImportBooksDto): Promise<ImportReport> {
     const report: ImportReport = { created: [], skipped: [] };
+    const seen = new Set<string>();
     for (const raw of dto.isbns) {
       const isbn = raw.replace(/[^0-9Xx]/g, '');
+      if (seen.has(isbn)) continue; // trùng trong cùng lô: bỏ qua, không gọi Google lần nữa
+      seen.add(isbn);
+      // ISBN phải 10 hoặc 13 ký tự; sai thì không tốn một lượt gọi Google Books
+      if (isbn.length !== 10 && isbn.length !== 13) {
+        report.skipped.push({ isbn, reason: 'NOT_FOUND' });
+        continue;
+      }
       if (await this.prisma.book.findUnique({ where: { isbn } })) {
         report.skipped.push({ isbn, reason: 'EXISTS' });
         continue;

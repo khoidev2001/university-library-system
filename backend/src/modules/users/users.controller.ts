@@ -3,7 +3,6 @@ import {
   Controller,
   Get,
   Param,
-  ParseIntPipe,
   Patch,
   Post,
   Query,
@@ -15,6 +14,11 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
+import { ParseIdPipe } from '../../common/pipes/parse-id.pipe';
+import {
+  CurrentUser,
+  JwtUser,
+} from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserResponseDto } from './dto/user-response.dto';
 import { CreateStaffDto, QueryUsersDto, UpdateUserDto } from './dto/users.dto';
@@ -38,7 +42,7 @@ export class UsersController {
   @ApiOperation({
     summary: 'Hồ sơ bạn đọc: sách đang mượn, quá hạn, phạt chưa trả',
   })
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  findOne(@Param('id', ParseIdPipe) id: number) {
     return this.users.findOne(id);
   }
 
@@ -46,8 +50,17 @@ export class UsersController {
   @Roles(Role.LIBRARIAN)
   @ApiOperation({ summary: 'Khoá/mở thẻ, đổi loại bạn đọc, sửa tên' })
   @ApiResponse({ status: 200, type: UserResponseDto })
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateUserDto) {
-    return this.users.update(id, dto);
+  @ApiResponse({
+    status: 403,
+    description: 'STAFF_ACCOUNT_PROTECTED (thủ thư sửa tài khoản nhân sự)',
+  })
+  @ApiResponse({ status: 409, description: 'NOT_A_READER | CANNOT_LOCK_SELF' })
+  update(
+    @Param('id', ParseIdPipe) id: number,
+    @Body() dto: UpdateUserDto,
+    @CurrentUser() actor: JwtUser,
+  ) {
+    return this.users.update(id, dto, actor);
   }
 
   @Post()
