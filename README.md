@@ -111,6 +111,67 @@ Qua Backend: `GET /api/recommendations/me` (bạn đọc), `GET /api/recommendat
 
 Số đo gần nhất trên dữ liệu seed (05/10/2026): Precision@5 = 0,309 · Recall@5 = 0,110; dự báo trả trễ ROC-AUC 0,762 (Logistic Regression) so với 0,756 (Random Forest). Lịch sử mượn/trả là **dữ liệu mô phỏng**, nên các số này phản ánh quy luật mô phỏng.
 
+## Thanh toán phạt trực tuyến (VNPay)
+
+Bạn đọc trả tiền phạt tại `/my/fines` qua cổng VNPay (v2.1.0, ký HMAC-SHA512), kết quả hiện ở `/my/payments/result`. Số tiền luôn do backend tính lại từ các khoản phạt trong DB; client chỉ gửi danh sách `fineIds` (bỏ trống = tất cả khoản chưa trả). Nộp tiền mặt tại quầy vẫn dùng như cũ.
+
+| Endpoint | Việc |
+|---|---|
+| `GET /api/payments/config` | Cổng đã bật chưa (`online`), hạn mức, thời hạn giữ chỗ |
+| `POST /api/payments` (READER) | Tạo giao dịch PENDING, trả `{paymentUrl, paymentId, txnRef, amount}`; 503 `PAYMENT_NOT_CONFIGURED` nếu thiếu cấu hình |
+| `GET /api/payments/me`, `GET /api/payments/:id` | Lịch sử của tôi; chi tiết (chủ giao dịch hoặc thủ thư) |
+| `POST /api/payments/:id/cancel` | Huỷ giao dịch đang chờ (chủ giao dịch hoặc thủ thư) |
+| `GET /api/payments/vnpay/ipn` | IPN, VNPay gọi máy chủ: nguồn xác nhận chính thức, trả `{RspCode, Message}` (00, 01, 02, 04, 97, 99) |
+| `GET /api/payments/vnpay/return` | Trình duyệt quay về; xác minh chữ ký rồi chuyển hướng tới `${APP_PUBLIC_URL}/my/payments/result` |
+
+Quy tắc nghiệp vụ:
+
+- **Một khoản phạt chỉ thuộc tối đa một giao dịch đang chờ hoặc đã trả**: chỉ mục duy nhất từng phần `payment_fines_active_fine_key`, cộng khoá dòng `FOR UPDATE` khi tạo giao dịch, thu tiền mặt và xử lý IPN.
+- Giao dịch hết hạn sau **15 phút** (cũng là `vnp_ExpireDate`); khoản phạt được nhả khi có ai đụng tới, và bộ lập lịch quét mỗi 15 phút.
+- **Thu tiền mặt bị chặn** (`409 FINE_PAYMENT_PENDING`) khi khoản phạt đang nằm trong giao dịch chờ còn hạn, vì bạn đọc có thể đang nhập OTP. Thủ thư bấm "Huỷ giao dịch chờ" (hoặc đợi hết hạn) rồi mới thu tiền mặt.
+- IPN thành công đặt `fines.paid_at` (với `paid_to = NULL`, phân biệt với thu tiền mặt có `paid_to` = thủ thư) và giao dịch `PAID` trong **một** transaction. IPN lặp trả `02`. Số tiền (`vnp_Amount / 100`) phải khớp số đã lưu, sai trả `04`.
+- Tiền về muộn (giao dịch đã hết hạn, bị huỷ hoặc ghi hỏng): nếu khoản phạt còn trống thì nhận tiền; nếu khoản phạt đã được thu cách khác thì **không** thu hai lần, giao dịch giữ nguyên trạng thái và gắn `needsRefund = true` (thủ thư hoàn tiền thủ công trên cổng VNPay), IPN vẫn trả `00` để VNPay ngừng gọi lại.
+- `vnp_ReturnUrl` cũng chốt giao dịch (qua cùng hàm idempotent với IPN, chỉ khi chữ ký đúng và số tiền khớp) vì sandbox thường không gọi được IPN. Chuyển hướng chỉ tới `APP_PUBLIC_URL`, không bao giờ theo tham số do người dùng gửi.
+- Mỗi giao dịch tối thiểu 5.000đ (yêu cầu của VNPay), tối đa 999.999.999đ.
+
+### Cấu hình
+
+| Biến | Bắt buộc | Ý nghĩa |
+|---|---|---|
+| `VNPAY_TMN_CODE` | có | Mã website (Terminal ID) VNPay gửi qua email |
+| `VNPAY_HASH_SECRET` | có | Khoá bí mật ký HMAC. Không ghi vào log hay commit |
+| `VNPAY_URL` | không | Mặc định `https://sandbox.vnpayment.vn/paymentv2/vpcpay.html`; môi trường thật dùng địa chỉ VNPay cấp |
+| `APP_PUBLIC_URL` | có | Địa chỉ web công khai (Vercel), không có `/` cuối |
+| `VNPAY_RETURN_URL` | không | Mặc định `${APP_PUBLIC_URL}/api/payments/vnpay/return` |
+
+Thiếu `VNPAY_TMN_CODE` hoặc `VNPAY_HASH_SECRET` thì tính năng tắt: giao diện ẩn nút và báo "chưa được bật", thu tiền mặt không bị ảnh hưởng.
+
+### Đăng ký sandbox và triển khai
+
+1. Đăng ký tại <http://sandbox.vnpayment.vn/devreg/>. VNPay gửi email gồm `TmnCode`, `HashSecret` và địa chỉ trang quản trị merchant sandbox.
+2. **Render** (`uls-backend`): thêm `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET` (secret), `APP_PUBLIC_URL` = địa chỉ Vercel. Sửa biến xong phải "Deploy latest commit". **Vercel** không cần biến mới: `/api/*` đã được rewrite sang Render nên return URL mặc định là `https://<vercel>/api/payments/vnpay/return`.
+3. Trong trang quản trị merchant sandbox, khai báo **IPN URL** là địa chỉ backend công khai `https://<render>/api/payments/vnpay/ipn` (nên trỏ thẳng Render, không qua Vercel). Không có IPN thì return URL vẫn chốt giao dịch khi bạn đọc quay về; nếu họ đóng tab trước khi quay về, giao dịch chỉ được chốt khi IPN tới.
+4. Chạy thử bằng thẻ test của VNPay (ngân hàng **NCB**, theo tài liệu sandbox; môi trường test chỉ nhận các thẻ trong danh sách):
+
+| Tình huống | Số thẻ | Tên chủ thẻ | Ngày phát hành | OTP |
+|---|---|---|---|---|
+| Thành công | `9704198526191432198` | NGUYEN VAN A | 07/15 | `123456` |
+| Không đủ số dư | `9704195798459170488` | | | |
+| Thẻ chưa kích hoạt | `9704192181368742` | | | |
+| Thẻ bị khoá | `9704193370791314` | | | |
+| Thẻ hết hạn | `9704194841945513` | | | |
+
+### Thử cục bộ không cần VNPay
+
+Chạy backend với `VNPAY_TMN_CODE=DEMO`, `VNPAY_HASH_SECRET=bi-mat-cuc-bo`, `APP_PUBLIC_URL=http://localhost:8080`. Bấm thanh toán sẽ chuyển sang VNPay sandbox và báo lỗi mã website (đúng như mong đợi vì `DEMO` không tồn tại). Để mô phỏng việc VNPay gọi về, dùng script tự ký:
+
+```bash
+VNPAY_HASH_SECRET=bi-mat-cuc-bo pnpm --dir backend vnpay:callback <txnRef> <số-tiền-VND> 00 return http://localhost:8080
+# 00 = thành công, 24 = bạn đọc huỷ, 51 = không đủ số dư; đổi `return` thành `ipn` để gọi IPN bằng curl
+```
+
+**Chưa kiểm chứng với VNPay thật:** chữ ký tạo URL đã được đối chiếu với HMAC-SHA512 tính độc lập bằng Python (`vnpay.util.spec.ts`), nhưng tài liệu VNPay không công bố bộ vector kiểm thử, nên cần một lần chạy thật trên sandbox bằng `TmnCode` thật trước khi dùng.
+
 ## Công cụ tài liệu
 
 ```bash

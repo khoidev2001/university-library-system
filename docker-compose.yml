@@ -31,6 +31,11 @@ services:
       AI_SERVICE_URL: http://ai-service:8000
       INTERNAL_API_KEY: ${INTERNAL_API_KEY:-dev-internal}
       GOOGLE_BOOKS_API_KEY: ${GOOGLE_BOOKS_API_KEY:-}
+      # Thanh toán phạt VNPay: bỏ trống thì tắt tính năng (xem README)
+      VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-}
+      VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-}
+      VNPAY_URL: ${VNPAY_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+      APP_PUBLIC_URL: ${PUBLIC_SITE_URL:-http://localhost:8080}
     depends_on:
       postgres:
         condition: service_healthy

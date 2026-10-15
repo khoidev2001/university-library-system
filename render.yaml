@@ -30,6 +30,13 @@ services:
         sync: false
       - key: LIBRARY_UTC_OFFSET_MINUTES
         value: "420"
+      # Thanh toán phạt VNPay (bỏ trống VNPAY_TMN_CODE hoặc VNPAY_HASH_SECRET = tắt tính năng); xem README
+      - key: VNPAY_TMN_CODE
+        sync: false
+      - key: VNPAY_HASH_SECRET
+        sync: false
+      - key: APP_PUBLIC_URL
+        sync: false # địa chỉ Vercel, không có / cuối
 
   - type: web
     name: uls-ai
