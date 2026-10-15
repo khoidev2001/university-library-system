@@ -76,6 +76,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html lang="vi" className={beVietnam.variable}>
+      <head>
+        {/* Ảnh bìa nằm ở máy chủ ngoài: mở sẵn kết nối để ảnh đầu tiên về nhanh hơn */}
+        <link rel="preconnect" href="https://images.gr-assets.com" />
+        <link rel="preconnect" href="https://s.gr-assets.com" />
+      </head>
       <body className="flex min-h-screen flex-col">
         <script
           type="application/ld+json"
