@@ -8,6 +8,7 @@ import { RejectNullBytePipe } from './common/pipes/reject-null-byte.pipe';
 import { AuthModule } from './modules/auth/auth.module';
 import { CatalogModule } from './modules/books/catalog.module';
 import { HealthModule } from './modules/health/health.module';
+import { MailModule } from './modules/mail/mail.module';
 import { CirculationModule } from './modules/loans/circulation.module';
 import { PoliciesModule } from './modules/policies/policies.module';
 import { RecommendationsModule } from './modules/recommendations/recommendations.module';
@@ -21,6 +22,7 @@ import { PrismaModule } from './prisma/prisma.module';
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
     PrismaModule,
     HealthModule,
+    MailModule,
     AuthModule,
     UsersModule,
     PoliciesModule,

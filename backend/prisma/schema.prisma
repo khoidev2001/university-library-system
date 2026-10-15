@@ -60,6 +60,18 @@ model User {
   isActive     Boolean     @default(true) @map("is_active")
   createdAt    DateTime    @default(now()) @map("created_at")
 
+  // Tài khoản và email (nhóm tính năng tài khoản): xem khối cuối tệp
+  emailReminders     Boolean   @default(true) @map("email_reminders")
+  mustChangePassword Boolean   @default(false) @map("must_change_password")
+  passwordChangedAt  DateTime? @map("password_changed_at")
+  // Phiên (JWT) cấp trước mốc này bị từ chối: đặt khi đặt lại mật khẩu quên / thủ thư cấp lại
+  sessionsRevokedAt  DateTime? @map("sessions_revoked_at")
+  lastLoginAt        DateTime? @map("last_login_at")
+  previousLoginAt    DateTime? @map("previous_login_at")
+
+  passwordResetTokens PasswordResetToken[]
+  reminderEmails      ReminderEmail[]
+
   loans         Loan[]         @relation("LoanReader")
   createdLoans  Loan[]         @relation("LoanCreator")
   ratings       Rating[]
@@ -254,4 +266,48 @@ model Notification {
 
   @@index([userId, readAt, createdAt])
   @@map("notifications")
+}
+
+// ---- Tài khoản và email ----
+
+// Token đặt lại mật khẩu. Chỉ lưu SHA-256 của token (32 byte ngẫu nhiên), dùng một lần, hạn 1 giờ.
+model PasswordResetToken {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("password_reset_tokens")
+}
+
+enum ReminderEmailStatus {
+  PENDING // chưa gửi được (lần đầu hoặc đang chờ gửi lại)
+  SENT
+  FAILED // quá số lần thử, bỏ cuộc
+}
+
+// Trạng thái email nhắc hạn theo từng phiếu + loại ("due" | "overdue"); duy nhất (loanId, kind)
+// nên không bao giờ gửi hai lần cho cùng một phiếu và loại, nhưng gửi lỗi vẫn thử lại được.
+model ReminderEmail {
+  id        Int                 @id @default(autoincrement())
+  loanId    Int                 @map("loan_id")
+  userId    Int                 @map("user_id")
+  kind      String
+  status    ReminderEmailStatus @default(PENDING)
+  attempts  Int                 @default(0)
+  claimedAt DateTime?           @map("claimed_at") // đang được một tiến trình gửi
+  sentAt    DateTime?           @map("sent_at")
+  lastError String?             @map("last_error")
+  createdAt DateTime            @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([loanId, kind])
+  @@index([status, id])
+  @@map("reminder_emails")
 }
