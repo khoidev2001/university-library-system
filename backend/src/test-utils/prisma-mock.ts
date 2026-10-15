@@ -21,9 +21,27 @@ export interface PrismaMock {
     Fn
   >;
   bookCopy: Record<
-    'findUnique' | 'findMany' | 'create' | 'update' | 'groupBy' | 'deleteMany',
+    | 'findUnique'
+    | 'findMany'
+    | 'create'
+    | 'update'
+    | 'updateMany'
+    | 'groupBy'
+    | 'deleteMany',
     Fn
   >;
+  reservation: Record<
+    | 'findUnique'
+    | 'findFirst'
+    | 'findMany'
+    | 'count'
+    | 'create'
+    | 'update'
+    | 'updateMany'
+    | 'deleteMany',
+    Fn
+  >;
+  notification: Record<'findUnique' | 'create' | 'createMany', Fn>;
   author: Record<
     | 'findUnique'
     | 'findFirst'
@@ -48,20 +66,30 @@ export interface PrismaMock {
   loan: Record<
     | 'count'
     | 'findUnique'
+    | 'findUniqueOrThrow'
     | 'findMany'
     | 'groupBy'
     | 'create'
     | 'createMany'
-    | 'update',
+    | 'update'
+    | 'updateMany',
     Fn
   >;
   fine: Record<
-    'aggregate' | 'count' | 'create' | 'findUnique' | 'findMany' | 'update',
+    | 'aggregate'
+    | 'count'
+    | 'create'
+    | 'findUnique'
+    | 'findUniqueOrThrow'
+    | 'findMany'
+    | 'update'
+    | 'updateMany',
     Fn
   >;
   rating: Record<'aggregate' | 'findMany' | 'deleteMany' | 'upsert', Fn>;
   $transaction: Fn;
   $queryRaw: Fn;
+  $executeRaw: Fn;
 }
 
 function model<K extends string>(...keys: K[]): Record<K, Fn> {
@@ -92,9 +120,21 @@ export function createPrismaMock(): PrismaMock {
       'findMany',
       'create',
       'update',
+      'updateMany',
       'groupBy',
       'deleteMany',
     ),
+    reservation: model(
+      'findUnique',
+      'findFirst',
+      'findMany',
+      'count',
+      'create',
+      'update',
+      'updateMany',
+      'deleteMany',
+    ),
+    notification: model('findUnique', 'create', 'createMany'),
     author: model(
       'findUnique',
       'findFirst',
@@ -117,23 +157,28 @@ export function createPrismaMock(): PrismaMock {
     loan: model(
       'count',
       'findUnique',
+      'findUniqueOrThrow',
       'findMany',
       'groupBy',
       'create',
       'createMany',
       'update',
+      'updateMany',
     ),
     fine: model(
       'aggregate',
       'count',
       'create',
       'findUnique',
+      'findUniqueOrThrow',
       'findMany',
       'update',
+      'updateMany',
     ),
     rating: model('aggregate', 'findMany', 'deleteMany', 'upsert'),
     $transaction: jest.fn(),
     $queryRaw: jest.fn(),
+    $executeRaw: jest.fn(),
   };
   mock.$transaction.mockImplementation(async (arg: unknown) => {
     if (typeof arg === 'function')

@@ -11,6 +11,9 @@ import { JwtPayload } from './jwt.strategy';
 
 export const BCRYPT_ROUNDS = 10;
 
+/** Băm giả để email không tồn tại cũng tốn thời gian như sai mật khẩu (chống dò email qua độ trễ). */
+const DUMMY_HASH = bcrypt.hashSync('uls-timing-equalizer', BCRYPT_ROUNDS);
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -52,10 +55,11 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
-    const valid = user
-      ? await bcrypt.compare(dto.password, user.passwordHash)
-      : false;
-    if (!user || !valid) {
+    const matches = await bcrypt.compare(
+      dto.password,
+      user?.passwordHash ?? DUMMY_HASH,
+    );
+    if (!user || !matches) {
       throw new BusinessException(
         'INVALID_CREDENTIALS',
         'Email hoặc mật khẩu không đúng',

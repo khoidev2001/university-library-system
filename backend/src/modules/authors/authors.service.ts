@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Author, Prisma } from '@prisma/client';
 import { Page, toPage } from '../../common/dto/pagination.dto';
 import { BusinessException } from '../../common/exceptions/business.exception';
+import { likePattern } from '../../common/sql.util';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthorDto, QueryAuthorsDto } from './dto/authors.dto';
 
@@ -12,8 +13,9 @@ export class AuthorsService {
   async findAll(
     query: QueryAuthorsDto,
   ): Promise<Page<Author & { bookCount: number }>> {
-    const where: Prisma.AuthorWhereInput = query.q
-      ? { name: { contains: query.q, mode: 'insensitive' } }
+    const q = likePattern(query.q);
+    const where: Prisma.AuthorWhereInput = q
+      ? { name: { contains: q, mode: 'insensitive' } }
       : {};
     const [rows, total] = await this.prisma.$transaction([
       this.prisma.author.findMany({

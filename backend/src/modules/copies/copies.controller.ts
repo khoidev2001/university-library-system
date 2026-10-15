@@ -1,4 +1,4 @@
-import { Body, Controller, Param, ParseIntPipe, Patch } from '@nestjs/common';
+import { Body, Controller, Param, Patch } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -6,6 +6,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
+import { ParseIdPipe } from '../../common/pipes/parse-id.pipe';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CopiesService } from './copies.service';
 import { UpdateCopyDto } from './dto/copies.dto';
@@ -20,7 +21,7 @@ export class CopiesController {
   @Roles(Role.LIBRARIAN)
   @ApiOperation({ summary: 'Cập nhật trạng thái / vị trí kệ bản sao' })
   @ApiResponse({ status: 409, description: 'COPY_HAS_ACTIVE_LOAN' })
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateCopyDto) {
+  update(@Param('id', ParseIdPipe) id: number, @Body() dto: UpdateCopyDto) {
     return this.copies.update(id, dto);
   }
 }

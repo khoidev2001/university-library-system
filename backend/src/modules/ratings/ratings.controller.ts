@@ -2,9 +2,9 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   HttpCode,
   Param,
-  ParseIntPipe,
   Post,
 } from '@nestjs/common';
 import {
@@ -14,6 +14,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
+import { CATALOG_CACHE } from '../../common/cache-control';
+import { ParseIdPipe } from '../../common/pipes/parse-id.pipe';
 import {
   CurrentUser,
   JwtUser,
@@ -37,7 +39,7 @@ export class RatingsController {
   })
   @ApiResponse({ status: 403, description: 'NOT_BORROWED' })
   rate(
-    @Param('id', ParseIntPipe) bookId: number,
+    @Param('id', ParseIdPipe) bookId: number,
     @Body() dto: RateBookDto,
     @CurrentUser() user: JwtUser,
   ) {
@@ -46,8 +48,9 @@ export class RatingsController {
 
   @Public()
   @Get('summary')
+  @Header('Cache-Control', CATALOG_CACHE)
   @ApiOperation({ summary: 'Điểm trung bình và số lượt đánh giá' })
-  summary(@Param('id', ParseIntPipe) bookId: number) {
+  summary(@Param('id', ParseIdPipe) bookId: number) {
     return this.ratings.summary(bookId);
   }
 }

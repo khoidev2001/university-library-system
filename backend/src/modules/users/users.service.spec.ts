@@ -75,18 +75,59 @@ describe('UsersService', () => {
     await expect(service.findOne(99)).rejects.toBeInstanceOf(NotFoundException);
   });
 
+  const librarian = { id: 2, role: Role.LIBRARIAN };
+  const admin = { id: 1, role: Role.ADMIN };
+
   it('update locks a card and refuses memberType on staff accounts', async () => {
     prisma.user.findUnique.mockResolvedValue(reader);
     prisma.user.update.mockResolvedValue({ ...reader, isActive: false });
-    expect((await service.update(3, { isActive: false })).isActive).toBe(false);
+    expect(
+      (await service.update(3, { isActive: false }, librarian)).isActive,
+    ).toBe(false);
 
     prisma.user.findUnique.mockResolvedValue({
       ...reader,
       role: Role.LIBRARIAN,
     });
     await expect(
-      service.update(3, { memberType: 'LECTURER' }),
+      service.update(3, { memberType: 'LECTURER' }, admin),
     ).rejects.toMatchObject({ code: 'NOT_A_READER' });
+  });
+
+  it('a librarian cannot lock or edit staff accounts, an admin can', async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      ...reader,
+      id: 1,
+      role: Role.ADMIN,
+    });
+    await expect(
+      service.update(1, { isActive: false }, librarian),
+    ).rejects.toMatchObject({
+      code: 'STAFF_ACCOUNT_PROTECTED',
+      status: 403,
+    });
+    expect(prisma.user.update).not.toHaveBeenCalled();
+
+    prisma.user.findUnique.mockResolvedValue({
+      ...reader,
+      id: 2,
+      role: Role.LIBRARIAN,
+    });
+    prisma.user.update.mockResolvedValue({ ...reader, id: 2 });
+    await service.update(2, { fullName: 'Thủ thư mới' }, admin);
+    expect(prisma.user.update).toHaveBeenCalled();
+  });
+
+  it('nobody can lock their own account', async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      ...reader,
+      id: 1,
+      role: Role.ADMIN,
+    });
+    await expect(
+      service.update(1, { isActive: false }, admin),
+    ).rejects.toMatchObject({ code: 'CANNOT_LOCK_SELF' });
+    expect(prisma.user.update).not.toHaveBeenCalled();
   });
 
   it('createStaff hashes the password and rejects duplicate emails', async () => {

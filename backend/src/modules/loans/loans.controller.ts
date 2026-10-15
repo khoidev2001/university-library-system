@@ -4,7 +4,6 @@ import {
   Get,
   HttpCode,
   Param,
-  ParseIntPipe,
   Post,
   Query,
 } from '@nestjs/common';
@@ -15,6 +14,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
+import { ParseIdPipe } from '../../common/pipes/parse-id.pipe';
 import {
   CurrentUser,
   JwtUser,
@@ -68,7 +68,7 @@ export class LoansController {
   @Get(':id')
   @Roles(Role.LIBRARIAN)
   @ApiOperation({ summary: 'Chi tiết phiếu mượn' })
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  findOne(@Param('id', ParseIdPipe) id: number) {
     return this.loans.findOne(id);
   }
 
@@ -77,7 +77,7 @@ export class LoansController {
   @HttpCode(200)
   @ApiOperation({ summary: 'Nhận trả sách; tự tạo phiếu phạt nếu trả trễ' })
   @ApiResponse({ status: 409, description: 'LOAN_NOT_ACTIVE' })
-  returnCopy(@Param('id', ParseIntPipe) id: number) {
+  returnCopy(@Param('id', ParseIdPipe) id: number) {
     return this.loans.returnCopy(id);
   }
 
@@ -86,7 +86,7 @@ export class LoansController {
   @HttpCode(200)
   @ApiOperation({ summary: 'Ghi nhận mất sách; phạt = giá bìa + phạt trễ' })
   @ApiResponse({ status: 409, description: 'LOAN_NOT_ACTIVE' })
-  reportLost(@Param('id', ParseIntPipe) id: number) {
+  reportLost(@Param('id', ParseIdPipe) id: number) {
     return this.loans.reportLost(id);
   }
 
@@ -99,7 +99,7 @@ export class LoansController {
     description:
       'LOAN_NOT_ACTIVE | LOAN_OVERDUE_CANNOT_RENEW | RENEW_LIMIT_REACHED | UNPAID_FINE',
   })
-  renew(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: JwtUser) {
+  renew(@Param('id', ParseIdPipe) id: number, @CurrentUser() user: JwtUser) {
     return this.loans.renew(id, user.id);
   }
 }

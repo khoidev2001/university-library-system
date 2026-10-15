@@ -168,11 +168,23 @@ describe('BooksService', () => {
       expect(prisma.book.delete).not.toHaveBeenCalled();
     });
 
-    it('deletes ratings, free copies and the book in one transaction', async () => {
+    it('refuses when the book has loan history, even if all returned (BOOK_HAS_LOAN_HISTORY)', async () => {
+      prisma.book.findUnique.mockResolvedValue(row);
+      prisma.loan.count.mockResolvedValueOnce(0).mockResolvedValueOnce(4);
+      await expect(service.remove(1)).rejects.toMatchObject({
+        code: 'BOOK_HAS_LOAN_HISTORY',
+      });
+      expect(prisma.book.delete).not.toHaveBeenCalled();
+    });
+
+    it('deletes reservations, ratings, copies and the book in one transaction', async () => {
       prisma.book.findUnique.mockResolvedValue(row);
       prisma.loan.count.mockResolvedValue(0);
       await service.remove(1);
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(prisma.reservation.deleteMany).toHaveBeenCalledWith({
+        where: { bookId: 1 },
+      });
       expect(prisma.book.delete).toHaveBeenCalledWith({ where: { id: 1 } });
     });
   });
@@ -180,10 +192,10 @@ describe('BooksService', () => {
   describe('importByIsbn', () => {
     it('skips existing and unknown ISBNs, creates the rest with author/category upserts', async () => {
       prisma.book.findUnique.mockImplementation(async ({ where }) =>
-        where.isbn === '111' ? { id: 1 } : null,
+        where.isbn === '9780000000111' ? { id: 1 } : null,
       );
       google.lookup.mockImplementation(async (isbn: string) =>
-        isbn === '333'
+        isbn === '9780000000333'
           ? {
               isbn,
               title: 'Found',
@@ -206,13 +218,21 @@ describe('BooksService', () => {
       });
 
       const report = await service.importByIsbn({
-        isbns: ['111', '2-22', '333'],
+        isbns: [
+          '978-0-00-000011-1',
+          '978-0-00-000022-2',
+          '9780000000111', // trùng trong lô: bỏ qua
+          'abc', // sai độ dài: không gọi Google
+          '9780000000333',
+        ],
       });
 
       expect(report.skipped).toEqual([
-        { isbn: '111', reason: 'EXISTS' },
-        { isbn: '222', reason: 'NOT_FOUND' },
+        { isbn: '9780000000111', reason: 'EXISTS' },
+        { isbn: '9780000000222', reason: 'NOT_FOUND' },
+        { isbn: '', reason: 'NOT_FOUND' },
       ]);
+      expect(google.lookup).toHaveBeenCalledTimes(2); // chỉ 222 và 333
       expect(report.created).toHaveLength(1);
       expect(prisma.category.upsert.mock.calls[0][0].create).toEqual({
         name: 'Fiction',

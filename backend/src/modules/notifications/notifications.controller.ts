@@ -1,5 +1,6 @@
-import { Controller, Get, Param, ParseIntPipe, Post } from '@nestjs/common';
+import { Controller, Get, Param, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ParseIdPipe } from '../../common/pipes/parse-id.pipe';
 import {
   CurrentUser,
   JwtUser,
@@ -26,7 +27,7 @@ export class NotificationsController {
 
   @Post(':id/read')
   @ApiOperation({ summary: 'Đánh dấu đã đọc một thông báo' })
-  read(@CurrentUser() user: JwtUser, @Param('id', ParseIntPipe) id: number) {
+  read(@CurrentUser() user: JwtUser, @Param('id', ParseIdPipe) id: number) {
     return this.notifications.markRead(user.id, id);
   }
 }
