@@ -5,8 +5,12 @@ import { useState } from "react";
 import { apiFetch, formatCurrency } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { Author, BookCopy, BookDetail, BookSummary, Category, CopyStatus, ImportReport, Page } from "@/lib/types";
-import { Badge, Button, Field, PageHeading, Spinner, inputClass } from "../ui";
+import Link from "next/link";
+import { ExportButtons } from "../export-buttons";
+import { TapCheckbox } from "../tap-checkbox";
+import { Badge, Button, ButtonLink, Field, PageHeading, Spinner, inputClass } from "../ui";
 import { Modal, Pagination, TableShell, Th, Toolbar, errorText, useNotice } from "./admin-ui";
+import { BookImportDialog } from "./book-import-dialog";
 
 const LIMIT = 15;
 
@@ -30,6 +34,8 @@ export function BooksAdminView() {
   const [editing, setEditing] = useState<BookSummary | "new" | null>(null);
   const [copiesOf, setCopiesOf] = useState<BookSummary | null>(null);
   const [importing, setImporting] = useState(false);
+  const [importingFile, setImportingFile] = useState(false);
+  const [picked, setPicked] = useState<Set<number>>(new Set());
 
   const categories = useQuery({
     queryKey: ["categories"],
@@ -69,12 +75,15 @@ export function BooksAdminView() {
         title="Sách và bản sao"
         description="Thêm, sửa, xoá đầu sách và quản lý từng bản sao trên kệ."
         action={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {can("ADMIN") && (
               <Button variant="ghost" onClick={() => setImporting(true)}>
                 Nhập theo ISBN
               </Button>
             )}
+            <Button variant="ghost" onClick={() => setImportingFile(true)}>
+              Nhập từ file
+            </Button>
             <Button onClick={() => setEditing("new")}>Thêm sách</Button>
           </div>
         }
@@ -127,14 +136,41 @@ export function BooksAdminView() {
         </form>
       </Toolbar>
 
+      <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
+        <ExportButtons dataset="books" subject="danh mục sách" params={{ q: query, categoryId }} />
+        {picked.size > 0 ? (
+          <ButtonLink href={`/librarian/labels?bookIds=${[...picked].join(",")}`} variant="ghost">
+            In nhãn mã vạch ({picked.size} sách)
+          </ButtonLink>
+        ) : (
+          <Button type="button" variant="ghost" disabled title="Tích chọn sách trong bảng để in nhãn bản sao">
+            In nhãn mã vạch
+          </Button>
+        )}
+      </div>
+
       <div className="mt-5">
         {books.isLoading ? (
           <Spinner />
         ) : (
-          <TableShell minWidth={760}>
+          <TableShell minWidth={820}>
             <caption className="sr-only">Danh sách đầu sách</caption>
             <thead className="border-b border-line bg-paper-2">
               <tr>
+                <th scope="col" className="w-12 px-3 py-3">
+                  <TapCheckbox
+                    label="Chọn tất cả sách trên trang này"
+                    checked={(books.data?.items ?? []).length > 0 && (books.data?.items ?? []).every((b) => picked.has(b.id))}
+                    onChange={(checked) => {
+                      const next = new Set(picked);
+                      for (const b of books.data?.items ?? []) {
+                        if (checked) next.add(b.id);
+                        else next.delete(b.id);
+                      }
+                      setPicked(next);
+                    }}
+                  />
+                </th>
                 <Th>Sách</Th>
                 <Th>Thể loại</Th>
                 <Th>Giá bìa</Th>
@@ -147,6 +183,18 @@ export function BooksAdminView() {
             <tbody className="divide-y divide-line">
               {(books.data?.items ?? []).map((book) => (
                 <tr key={book.id}>
+                  <td className="px-3 py-3">
+                    <TapCheckbox
+                      label={`Chọn ${book.title} để in nhãn`}
+                      checked={picked.has(book.id)}
+                      onChange={(checked) => {
+                        const next = new Set(picked);
+                        if (checked) next.add(book.id);
+                        else next.delete(book.id);
+                        setPicked(next);
+                      }}
+                    />
+                  </td>
                   <td className="px-4 py-3">
                     <span className="font-medium">{book.title}</span>
                     <span className="block text-xs text-ink-faint">
@@ -215,6 +263,15 @@ export function BooksAdminView() {
           }}
         />
       )}
+      {importingFile && (
+        <BookImportDialog
+          onClose={() => setImportingFile(false)}
+          onDone={() => {
+            refresh();
+            queryClient.invalidateQueries({ queryKey: ["categories"] });
+          }}
+        />
+      )}
       {importing && (
         <ImportModal
           onClose={() => setImporting(false)}
@@ -236,7 +293,7 @@ function RowButton({
     <button
       type="button"
       {...props}
-      className={`rounded-md border px-3 py-1.5 text-xs font-medium disabled:opacity-50 ${
+      className={`inline-flex min-h-10 items-center rounded-md border px-3 text-xs font-medium disabled:opacity-50 ${
         danger ? "border-brand/30 text-brand hover:bg-brand-soft" : "border-line hover:bg-paper-2"
       }`}
     >
@@ -530,16 +587,30 @@ function CopiesModal({ book, onClose, onChanged }: { book: BookSummary; onClose:
       </form>
 
       <div className="mt-5">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm text-ink-soft">{copies.data ? `${copies.data.length} bản sao` : ""}</p>
+          <Link
+            href={`/librarian/labels?bookIds=${book.id}`}
+            target="_blank"
+            rel="noopener"
+            className="inline-flex min-h-10 items-center rounded-md border border-line bg-white px-4 text-sm font-medium hover:bg-paper-2"
+          >
+            In nhãn mã vạch tất cả bản sao
+          </Link>
+        </div>
         {copies.isLoading ? (
           <Spinner />
         ) : (
-          <TableShell minWidth={520}>
+          <TableShell minWidth={620}>
             <caption className="sr-only">Danh sách bản sao</caption>
             <thead className="border-b border-line bg-paper-2">
               <tr>
                 <Th>Mã vạch</Th>
                 <Th>Vị trí kệ</Th>
                 <Th>Trạng thái</Th>
+                <Th align="right">
+                  <span className="sr-only">In nhãn</span>
+                </Th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -585,7 +656,7 @@ function CopyRow({
           onBlur={() => {
             if (shelf.trim() !== (copy.shelfLocation ?? "")) onSave({ shelfLocation: shelf.trim() });
           }}
-          className={`${inputClass} py-1.5`}
+          className={`${inputClass} min-h-10`}
         />
       </td>
       <td className="px-4 py-2.5">
@@ -597,7 +668,7 @@ function CopyRow({
             value={copy.status}
             disabled={pending}
             onChange={(e) => onSave({ status: e.target.value as CopyStatus })}
-            className={`${inputClass} py-1.5`}
+            className={`${inputClass} min-h-10`}
           >
             {(["AVAILABLE", "MAINTENANCE", "LOST"] as const).map((status) => (
               <option key={status} value={status}>
@@ -606,6 +677,17 @@ function CopyRow({
             ))}
           </select>
         )}
+      </td>
+      <td className="px-4 py-2.5 text-right">
+        <Link
+          href={`/librarian/labels?copyIds=${copy.id}`}
+          target="_blank"
+          rel="noopener"
+          aria-label={`In nhãn của ${copy.barcode}`}
+          className="inline-flex min-h-10 items-center rounded-md border border-line px-3 text-xs font-medium hover:bg-paper-2"
+        >
+          In nhãn
+        </Link>
       </td>
     </tr>
   );

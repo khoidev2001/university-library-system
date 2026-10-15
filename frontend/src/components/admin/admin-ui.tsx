@@ -136,7 +136,7 @@ export function Modal({
             type="button"
             onClick={onClose}
             aria-label="Đóng"
-            className="rounded-md p-1.5 text-ink-soft hover:bg-paper-2"
+            className="-mr-2 -mt-2 grid h-10 w-10 shrink-0 place-items-center rounded-md text-ink-soft hover:bg-paper-2"
           >
             <X size={18} aria-hidden="true" />
           </button>
@@ -152,9 +152,21 @@ export function Toolbar({ children }: { children: React.ReactNode }) {
   return <div className="mt-6 flex flex-wrap items-end gap-3">{children}</div>;
 }
 
-export function TableShell({ children, minWidth = 640 }: { children: React.ReactNode; minWidth?: number }) {
+export function TableShell({
+  children,
+  minWidth = 640,
+  label,
+}: {
+  children: React.ReactNode;
+  minWidth?: number;
+  /** Có nhãn thì vùng cuộn ngang nhận được focus bàn phím (cuộn bằng phím mũi tên). */
+  label?: string;
+}) {
   return (
-    <div className="relative overflow-x-auto rounded-xl border border-line bg-white">
+    <div
+      className="relative overflow-x-auto rounded-xl border border-line bg-white"
+      {...(label ? { role: "region", "aria-label": label, tabIndex: 0 } : {})}
+    >
       <table className="w-full text-sm" style={{ minWidth }}>
         {children}
       </table>

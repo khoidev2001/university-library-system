@@ -33,7 +33,7 @@ export function SiteHeader() {
   const items = NAV.filter((item) => item.show(can, !!user));
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-paper">
+    <header className="sticky top-0 z-40 border-b border-line bg-paper print:hidden">
       <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3 sm:px-6">
         <Link href="/" className="flex shrink-0 items-center gap-2.5" aria-label={`Trang chủ ${SITE.shortName}`}>
           <span className="grid h-9 w-9 place-items-center rounded-md bg-ink text-paper">

@@ -4,7 +4,7 @@ import { SITE } from "@/lib/site";
 
 export function SiteFooter() {
   return (
-    <footer className="mt-20 border-t border-line bg-paper-2">
+    <footer className="mt-20 border-t border-line bg-paper-2 print:hidden">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-3">
         <section>
           <h2 className="font-serif text-lg font-bold">{SITE.shortName}</h2>
