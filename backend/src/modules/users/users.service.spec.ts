@@ -131,7 +131,7 @@ describe('UsersService', () => {
   });
 
   it('createStaff hashes the password and rejects duplicate emails', async () => {
-    prisma.user.findUnique.mockResolvedValue(null);
+    prisma.user.findFirst.mockResolvedValue(null);
     prisma.user.create.mockImplementation(async ({ data }) => ({
       id: 7,
       isActive: true,
@@ -151,7 +151,7 @@ describe('UsersService', () => {
       'Secret123',
     );
 
-    prisma.user.findUnique.mockResolvedValue({ id: 1 });
+    prisma.user.findFirst.mockResolvedValue({ id: 1 });
     await expect(
       service.createStaff({
         email: 'l@b.vn',

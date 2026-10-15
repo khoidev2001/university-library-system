@@ -7,7 +7,7 @@ import { Page, toPage } from '../../common/dto/pagination.dto';
 import { BusinessException } from '../../common/exceptions/business.exception';
 import { likePattern } from '../../common/sql.util';
 import { PrismaService } from '../../prisma/prisma.service';
-import { BCRYPT_ROUNDS } from '../auth/auth.service';
+import { BCRYPT_ROUNDS, normalizeEmail } from '../auth/auth.service';
 import { UserResponseDto } from './dto/user-response.dto';
 import { CreateStaffDto, QueryUsersDto, UpdateUserDto } from './dto/users.dto';
 
@@ -113,14 +113,15 @@ export class UsersService {
 
   /** FR-USER-05: Admin tạo thủ thư / admin. */
   async createStaff(dto: CreateStaffDto): Promise<UserResponseDto> {
-    const exists = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+    const email = normalizeEmail(dto.email);
+    const exists = await this.prisma.user.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' } },
     });
     if (exists)
       throw new BusinessException('EMAIL_EXISTS', 'Email đã được đăng ký');
     const user = await this.prisma.user.create({
       data: {
-        email: dto.email,
+        email,
         passwordHash: await bcrypt.hash(dto.password, BCRYPT_ROUNDS),
         fullName: dto.fullName,
         role: dto.role,

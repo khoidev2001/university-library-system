@@ -11,6 +11,11 @@ import { JwtPayload } from './jwt.strategy';
 
 export const BCRYPT_ROUNDS = 10;
 
+/** Email lưu và tra cứu theo chữ thường, bỏ khoảng trắng hai đầu. */
+export function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
 /** Băm giả để email không tồn tại cũng tốn thời gian như sai mật khẩu (chống dò email qua độ trễ). */
 const DUMMY_HASH = bcrypt.hashSync('uls-timing-equalizer', BCRYPT_ROUNDS);
 
@@ -23,9 +28,15 @@ export class AuthService {
 
   /** FR-AUTH-01: tài khoản tự đăng ký luôn là READER. */
   async register(dto: RegisterDto): Promise<UserResponseDto> {
+    // Email / mã bạn đọc không phân biệt hoa thường: "A@x.vn" và "a@x.vn" là một tài khoản.
+    const email = normalizeEmail(dto.email);
     const [emailTaken, codeTaken] = await Promise.all([
-      this.prisma.user.findUnique({ where: { email: dto.email } }),
-      this.prisma.user.findUnique({ where: { memberCode: dto.memberCode } }),
+      this.prisma.user.findFirst({
+        where: { email: { equals: email, mode: 'insensitive' } },
+      }),
+      this.prisma.user.findFirst({
+        where: { memberCode: { equals: dto.memberCode, mode: 'insensitive' } },
+      }),
     ]);
     if (emailTaken)
       throw new BusinessException('EMAIL_EXISTS', 'Email đã được đăng ký');
@@ -37,7 +48,7 @@ export class AuthService {
 
     const user = await this.prisma.user.create({
       data: {
-        email: dto.email,
+        email,
         passwordHash: await bcrypt.hash(dto.password, BCRYPT_ROUNDS),
         fullName: dto.fullName,
         role: Role.READER,
@@ -52,9 +63,13 @@ export class AuthService {
   async login(
     dto: LoginDto,
   ): Promise<{ accessToken: string; user: UserResponseDto }> {
-    const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-    });
+    const email = normalizeEmail(dto.email);
+    // Email lưu chữ thường; tài khoản cũ lưu chữ hoa thì tìm lại không phân biệt hoa thường.
+    const user =
+      (await this.prisma.user.findUnique({ where: { email } })) ??
+      (await this.prisma.user.findFirst({
+        where: { email: { equals: email, mode: 'insensitive' } },
+      }));
     const matches = await bcrypt.compare(
       dto.password,
       user?.passwordHash ?? DUMMY_HASH,

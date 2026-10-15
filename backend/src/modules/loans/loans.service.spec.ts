@@ -68,6 +68,7 @@ describe('LoansService', () => {
   // Hành vi thật của ReservationsService được kiểm ở test e2e trên DB thật.
   const reservations = {
     fulfillHeldCopy: jest.fn(),
+    expireStale: jest.fn(),
     handleCopyReturned: jest.fn(async (tx: PrismaMock, copyId: number) =>
       tx.bookCopy.update({
         where: { id: copyId },
@@ -178,6 +179,7 @@ describe('LoansService', () => {
         status: CopyStatus.HELD,
       });
       await service.borrow({ barcode: 'LIB-1', memberCode: 'SV001' }, 2, NOW);
+      expect(reservations.expireStale).toHaveBeenCalledWith(NOW); // hạn giữ đã qua thì giải phóng trước
       expect(reservations.fulfillHeldCopy).toHaveBeenCalledWith(
         prisma,
         copy.id,

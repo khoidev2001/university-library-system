@@ -382,6 +382,95 @@ describeWithDb('Củng cố đầu vào, xác thực và xung đột (e2e)', () 
     });
   });
 
+  describe('email và mã bạn đọc không phân biệt hoa thường', () => {
+    it('refuses a look-alike email / member code and lets the owner log in with any casing', async () => {
+      const body = {
+        email: `Case.User${SUFFIX}`,
+        password: 'Secret123',
+        fullName: 'Case User',
+        memberType: 'STUDENT',
+        memberCode: `CaSe${RUN}`,
+      };
+      const created = await http
+        .post('/api/auth/register')
+        .send(body)
+        .expect(201);
+      expect(created.body.email).toBe(`case.user${SUFFIX}`);
+
+      const dupEmail = await http
+        .post('/api/auth/register')
+        .send({
+          ...body,
+          email: `CASE.USER${SUFFIX}`,
+          memberCode: `OTHER${RUN}`,
+        })
+        .expect(409);
+      expect(dupEmail.body.error).toBe('EMAIL_EXISTS');
+      const dupCode = await http
+        .post('/api/auth/register')
+        .send({ ...body, email: `another${SUFFIX}`, memberCode: `CASE${RUN}` })
+        .expect(409);
+      expect(dupCode.body.error).toBe('MEMBER_CODE_EXISTS');
+
+      await http
+        .post('/api/auth/login')
+        .send({ email: `CASE.user${SUFFIX}`, password: 'Secret123' })
+        .expect(200);
+    });
+  });
+
+  describe('giữ sách quá hạn nhận', () => {
+    it('lets another reader borrow a HELD copy once its hold has expired, without waiting for the scheduler', async () => {
+      const book = await prisma.book.create({
+        data: {
+          title: `${TITLE} hold`,
+          price: 1000,
+          categoryId,
+          copies: {
+            create: [{ barcode: `HARD-${RUN}-H1`, status: 'HELD' as const }],
+          },
+        },
+        include: { copies: true },
+      });
+      const owner = await prisma.user.findFirstOrThrow({
+        where: { email: `rd${SUFFIX}` },
+      });
+      await prisma.reservation.create({
+        data: {
+          userId: owner.id,
+          bookId: book.id,
+          copyId: book.copies[0].id,
+          status: 'READY',
+          readyAt: new Date(Date.now() - 4 * 86_400_000),
+          expiresAt: new Date(Date.now() - 86_400_000),
+        },
+      });
+      const other = await prisma.user.create({
+        data: {
+          email: `other${SUFFIX}`,
+          passwordHash: 'x',
+          fullName: 'Other',
+          role: 'READER',
+          memberType: 'STUDENT',
+          memberCode: `OTH${RUN}`,
+        },
+      });
+
+      await http
+        .post('/api/loans')
+        .set(auth(lib))
+        .send({ barcode: `HARD-${RUN}-H1`, memberCode: other.memberCode })
+        .expect(201);
+      expect(
+        (
+          await prisma.reservation.findFirstOrThrow({
+            where: { bookId: book.id },
+          })
+        ).status,
+      ).toBe('EXPIRED');
+    });
+  });
+
   describe('quyền sửa tài khoản', () => {
     it('a librarian cannot lock an admin or themselves; an admin can lock a librarian', async () => {
       const onAdmin = await http

@@ -93,7 +93,10 @@ export class BooksController {
   @Roles(Role.LIBRARIAN)
   @HttpCode(204)
   @ApiOperation({ summary: 'Xoá đầu sách (không còn bản đang mượn)' })
-  @ApiResponse({ status: 409, description: 'BOOK_HAS_ACTIVE_LOANS' })
+  @ApiResponse({
+    status: 409,
+    description: 'BOOK_HAS_ACTIVE_LOANS | BOOK_HAS_LOAN_HISTORY',
+  })
   remove(@Param('id', ParseIdPipe) id: number) {
     return this.books.remove(id);
   }

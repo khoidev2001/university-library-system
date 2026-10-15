@@ -9,6 +9,7 @@ export interface PrismaMock {
   user: Record<
     | 'findUnique'
     | 'findUniqueOrThrow'
+    | 'findFirst'
     | 'findMany'
     | 'count'
     | 'create'
@@ -101,6 +102,7 @@ export function createPrismaMock(): PrismaMock {
     user: model(
       'findUnique',
       'findUniqueOrThrow',
+      'findFirst',
       'findMany',
       'count',
       'create',

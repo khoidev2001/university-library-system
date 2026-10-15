@@ -96,14 +96,22 @@ export class LoansService {
     if (!reader.isActive)
       throw new BusinessException('ACCOUNT_LOCKED', 'Thẻ bạn đọc đang bị khoá');
 
-    const copy = await this.prisma.bookCopy.findUnique({
-      where: { barcode: dto.barcode },
-      include: { book: true },
-    });
+    const findCopy = () =>
+      this.prisma.bookCopy.findUnique({
+        where: { barcode: dto.barcode },
+        include: { book: true },
+      });
+    let copy = await findCopy();
     if (!copy)
       throw new NotFoundException(
         `Không tìm thấy bản sao có mã vạch ${dto.barcode}`,
       );
+    // Bản sao HELD đã quá hạn nhận sách thì giải phóng ngay (cho người kế tiếp hoặc về kệ),
+    // không đợi lượt quét định kỳ — instance miễn phí có thể đang ngủ nên lượt quét không chạy.
+    if (copy.status === CopyStatus.HELD) {
+      await this.reservations.expireStale(at);
+      copy = (await findCopy()) ?? copy;
+    }
     // HELD = đang giữ cho người đặt trước; chỉ đúng người đó mượn được (kiểm trong transaction).
     if (
       copy.status !== CopyStatus.AVAILABLE &&

@@ -36,7 +36,7 @@ describe('AuthService', () => {
 
   describe('register', () => {
     it('creates a READER with a bcrypt hash and never returns the hash', async () => {
-      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.user.findFirst.mockResolvedValue(null);
       prisma.user.create.mockImplementation(async ({ data }) => ({
         id: 1,
         isActive: true,
@@ -62,7 +62,7 @@ describe('AuthService', () => {
     });
 
     it('rejects a duplicate email with EMAIL_EXISTS', async () => {
-      prisma.user.findUnique.mockImplementation(async ({ where }) =>
+      prisma.user.findFirst.mockImplementation(async ({ where }) =>
         where.email ? { id: 9 } : null,
       );
       await expect(service.register(registerDto)).rejects.toMatchObject({
@@ -72,12 +72,35 @@ describe('AuthService', () => {
     });
 
     it('rejects a duplicate member code with MEMBER_CODE_EXISTS', async () => {
-      prisma.user.findUnique.mockImplementation(async ({ where }) =>
+      prisma.user.findFirst.mockImplementation(async ({ where }) =>
         where.memberCode ? { id: 9 } : null,
       );
       await expect(service.register(registerDto)).rejects.toMatchObject({
         code: 'MEMBER_CODE_EXISTS',
       });
+    });
+  });
+
+  it('register stores the email in lower case and checks duplicates case-insensitively', async () => {
+    prisma.user.findFirst.mockResolvedValue(null);
+    prisma.user.create.mockImplementation(async ({ data }) => ({
+      id: 2,
+      isActive: true,
+      createdAt: new Date(),
+      ...data,
+    }));
+    await service.register({ ...registerDto, email: '  Sv001@Student.VN ' });
+
+    expect(prisma.user.create.mock.calls[0][0].data.email).toBe(
+      'sv001@student.vn',
+    );
+    expect(prisma.user.findFirst.mock.calls[0][0].where.email).toEqual({
+      equals: 'sv001@student.vn',
+      mode: 'insensitive',
+    });
+    expect(prisma.user.findFirst.mock.calls[1][0].where.memberCode).toEqual({
+      equals: registerDto.memberCode,
+      mode: 'insensitive',
     });
   });
 

@@ -43,7 +43,7 @@ export class LoansController {
   @ApiResponse({
     status: 409,
     description:
-      'NOT_A_READER | ACCOUNT_LOCKED | COPY_NOT_AVAILABLE | LOAN_LIMIT_REACHED | HAS_OVERDUE_LOAN | UNPAID_FINE',
+      'NOT_A_READER | ACCOUNT_LOCKED | COPY_NOT_AVAILABLE | COPY_HELD | LOAN_LIMIT_REACHED | HAS_OVERDUE_LOAN | UNPAID_FINE',
   })
   borrow(@Body() dto: BorrowDto, @CurrentUser() user: JwtUser) {
     return this.loans.borrow(dto, user.id);
@@ -97,7 +97,7 @@ export class LoansController {
   @ApiResponse({
     status: 409,
     description:
-      'LOAN_NOT_ACTIVE | LOAN_OVERDUE_CANNOT_RENEW | RENEW_LIMIT_REACHED | UNPAID_FINE',
+      'LOAN_NOT_ACTIVE | LOAN_OVERDUE_CANNOT_RENEW | RENEW_LIMIT_REACHED | UNPAID_FINE | LOAN_CHANGED',
   })
   renew(@Param('id', ParseIdPipe) id: number, @CurrentUser() user: JwtUser) {
     return this.loans.renew(id, user.id);
