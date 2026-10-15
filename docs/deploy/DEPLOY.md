@@ -38,6 +38,7 @@ Làm đúng thứ tự vì dịch vụ sau cần địa chỉ của dịch vụ 
    | uls-backend | `DATABASE_URL` | chuỗi Neon ở bước 1 |
    | uls-backend | `AI_SERVICE_URL` | địa chỉ `uls-ai`, ví dụ `https://uls-ai.onrender.com` |
    | uls-backend | `CORS_ORIGINS` | địa chỉ Vercel (điền sau, xem bước 4) |
+   | uls-backend | `RESEND_API_KEY`, `MAIL_FROM`, `APP_PUBLIC_URL` | tuỳ chọn, để gửi email: xem README mục "Tài khoản và email" |
    | uls-ai | `BACKEND_URL` | `https://uls-backend.onrender.com/api` |
    | uls-ai | `INTERNAL_API_KEY` | **cùng giá trị** Render đã tự sinh cho `uls-backend` (xem ở tab Environment của backend) |
 

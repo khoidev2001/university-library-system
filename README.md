@@ -86,14 +86,47 @@ Hai script smoke chạy trên hệ thống **đang chạy** với dữ liệu se
 | Trang | Đường dẫn | Dành cho |
 |---|---|---|
 | Trang chủ, tra cứu, chi tiết sách, quy định | `/`, `/books`, `/books/[id]`, `/quy-dinh` | Công khai, dựng phía máy chủ cho SEO |
-| Đăng nhập, đăng ký | `/login`, `/register` | Công khai |
+| Đăng nhập, đăng ký, quên mật khẩu | `/login`, `/register`, `/forgot-password`, `/reset-password` | Công khai |
+| Tài khoản của tôi (hồ sơ, đổi mật khẩu, nhắc hạn qua email) | `/account` | Mọi vai trò |
 | Sách của tôi, tiền phạt, gợi ý | `/my/loans`, `/my/fines`, `/recommendations` | Bạn đọc |
-| Quầy mượn trả, quản lý bạn đọc, thống kê | `/librarian/desk`, `/librarian/readers`, `/reports` | Thủ thư |
+| Quầy mượn trả, quản lý bạn đọc (thêm bạn đọc, cấp mật khẩu tạm), thống kê | `/librarian/desk`, `/librarian/readers`, `/reports` | Thủ thư |
 | Chính sách mượn | `/admin/policies` | Quản trị |
 
 SEO: tiêu đề và mô tả riêng từng trang, canonical, Open Graph, dữ liệu có cấu trúc schema.org (`Library` kèm `SearchAction`, `Book` kèm `aggregateRating` và tình trạng còn sách, `FAQPage` cho trang quy định), `sitemap.xml` và `robots.txt` sinh tự động, khu vực tài khoản bị chặn khỏi chỉ mục.
 
 Trình duyệt luôn gọi `/api` cùng origin qua gateway, không nhúng tên miền lúc build, nên một image chạy được ở mọi tên miền và cổng. Ảnh chụp màn hình trong `docs/report/screenshots/`.
+
+## Tài khoản và email
+
+| Chức năng | API | Giao diện |
+|---|---|---|
+| Hồ sơ, đổi tên, bật/tắt nhắc hạn qua email | `GET/PATCH /api/auth/me` (chỉ `fullName`, `emailReminders`) | `/account` (mọi vai trò; tên người dùng ở thanh đầu trang dẫn tới đây) |
+| Đổi mật khẩu | `POST /api/auth/change-password` (5 lần/phút) | `/account` |
+| Quên mật khẩu | `POST /api/auth/forgot-password` (5 lần/phút), `POST /api/auth/reset-password` (10 lần/phút) | `/forgot-password`, `/reset-password` |
+| Thủ thư thêm bạn đọc tại quầy | `POST /api/users/readers` | `/librarian/readers`, nút "Thêm bạn đọc" |
+| Cấp lại mật khẩu tạm (khi email không dùng được) | `POST /api/users/:id/reset-password` (thủ thư: bạn đọc; quản trị viên: mọi tài khoản) | `/librarian/readers`, `/admin/users` |
+
+- **Chính sách mật khẩu** dùng chung cho đăng ký, đổi và đặt lại: 8 đến 72 byte, mật khẩu mới phải khác mật khẩu hiện tại.
+- **Quên mật khẩu**: luôn trả 200 cùng một nội dung dù email có tồn tại hay không (và san phẳng thời gian phản hồi), tài khoản bị khoá không nhận thư, cách nhau tối thiểu 60 giây mỗi tài khoản. Token là 32 byte ngẫu nhiên, **chỉ lưu SHA-256**, hạn 1 giờ, dùng một lần; xin token mới hoặc dùng xong thì token cũ hết hiệu lực. Đặt lại thành công thì mọi phiên đăng nhập cũ bị thu hồi.
+- **Mật khẩu tạm** (thủ thư tạo bạn đọc / cấp lại): sinh ngẫu nhiên 12 ký tự, trả đúng **một lần** (có nút sao chép và in phiếu), tài khoản mang cờ `mustChangePassword`. Cờ này hiện ở `GET /api/auth/me` và backend trả `403 PASSWORD_CHANGE_REQUIRED` cho mọi API khác (trừ `/auth/me`, `/auth/change-password`) cho tới khi đổi mật khẩu; giao diện tự chuyển tới `/account`.
+- **Nhắc hạn qua email**: cùng lịch với thông báo trong web (mỗi 15 phút), gộp các phiếu cùng loại của một bạn đọc thành một thư. Mỗi phiếu và loại (sắp hạn / quá hạn) chỉ gửi **một lần thành công** (bảng `reminder_emails`, duy nhất theo phiếu + loại); gửi lỗi thì thử lại ở lượt sau, tối đa 5 lần. Bạn đọc tắt được tại `/account`.
+
+### Cấu hình gửi email (Resend)
+
+Backend gửi thư bằng HTTP tới Resend (Render gói miễn phí chặn SMTP). **Không có `RESEND_API_KEY` thì mọi việc gửi thư bị bỏ qua có ghi log, ứng dụng vẫn chạy bình thường**; khi đó dùng chức năng cấp mật khẩu tạm của thủ thư.
+
+1. Tạo tài khoản ở resend.com, tạo API key (quyền "Sending access").
+2. Thử nhanh: để `MAIL_FROM` trống (mặc định `onboarding@resend.dev`, chỉ gửi được tới email chủ tài khoản Resend). Chạy thật: thêm và xác minh tên miền ở Resend (bản ghi SPF/DKIM) rồi đặt `MAIL_FROM`, ví dụ `Thư viện MUCE <no-reply@ten-mien.vn>`.
+3. Đặt biến môi trường cho backend:
+
+| Biến | Ý nghĩa |
+|---|---|
+| `RESEND_API_KEY` | API key Resend; bỏ trống = tắt gửi thư |
+| `MAIL_FROM` | Người gửi (tên miền đã xác minh) |
+| `APP_PUBLIC_URL` | Địa chỉ công khai của web, dùng dựng `${APP_PUBLIC_URL}/reset-password?token=...` (mặc định: mục đầu của `CORS_ORIGINS`) |
+| `MAIL_SEND_INTERVAL_MS` | Nghỉ giữa hai thư nhắc hạn, mặc định 600 ms (Resend giới hạn 2 yêu cầu/giây) |
+
+Khi test, e2e luôn thay cổng gửi thư bằng hộp thư trong bộ nhớ (`InMemoryMailSender`), không bao giờ gọi Resend.
 
 ## AI Service
 
