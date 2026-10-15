@@ -3,6 +3,7 @@ import { Fine, FineType, LoanPolicy, Prisma } from '@prisma/client';
 import { overdueDays } from '../../common/date.util';
 import { Page, toPage } from '../../common/dto/pagination.dto';
 import { BusinessException } from '../../common/exceptions/business.exception';
+import { INT4_MAX } from '../../common/pipes/parse-id.pipe';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QueryFinesDto } from './dto/fines.dto';
 
@@ -52,7 +53,10 @@ export class FinesService {
     type: FineType,
     amount: number,
   ): Promise<Fine> {
-    return tx.fine.create({ data: { loanId, type, amount } });
+    // Cột amount là INT4: kẹp trần để phiếu quá hạn rất lâu không làm tràn số (→ 500)
+    return tx.fine.create({
+      data: { loanId, type, amount: Math.min(amount, INT4_MAX) },
+    });
   }
 
   async findMine(
@@ -97,9 +101,18 @@ export class FinesService {
         'FINE_ALREADY_PAID',
         'Khoản phạt này đã được thanh toán',
       );
-    return this.prisma.fine.update({
-      where: { id: fineId },
+    // Chỉ ghi khi vẫn chưa thu: hai thủ thư bấm đồng thời thì một người thắng, người kia nhận FINE_ALREADY_PAID.
+    const paid = await this.prisma.fine.updateMany({
+      where: { id: fineId, paidAt: null },
       data: { paidAt: new Date(), paidToId: librarianId },
+    });
+    if (paid.count === 0)
+      throw new BusinessException(
+        'FINE_ALREADY_PAID',
+        'Khoản phạt này đã được thanh toán',
+      );
+    return this.prisma.fine.findUniqueOrThrow({
+      where: { id: fineId },
       include: fineInclude,
     });
   }

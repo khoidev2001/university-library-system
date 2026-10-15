@@ -5,6 +5,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 
 /** Số ngày trước hạn trả thì nhắc "sắp đến hạn". */
 export const DUE_SOON_DAYS = 2;
+/** Số phiếu xử lý mỗi lô khi nhắc hạn. */
+const REMINDER_BATCH = 500;
 
 export interface NewNotification {
   userId: number;
@@ -20,20 +22,20 @@ export interface NewNotification {
 export class NotificationsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Tạo thông báo; trùng dedupeKey thì bỏ qua (trả về false). */
+  /**
+   * Tạo thông báo; trùng dedupeKey thì bỏ qua (trả về false).
+   * Một câu INSERT … ON CONFLICT DO NOTHING: hai tiến trình / hai instance cùng nhắc một phiếu
+   * không còn đụng ràng buộc duy nhất (lỗi đó từng làm hỏng cả lượt nhắc hạn và huỷ transaction chứa nó).
+   */
   async notify(
     n: NewNotification,
     tx: Prisma.TransactionClient = this.prisma,
   ): Promise<boolean> {
-    if (n.dedupeKey) {
-      const existed = await tx.notification.findUnique({
-        where: { dedupeKey: n.dedupeKey },
-        select: { id: true },
-      });
-      if (existed) return false;
-    }
-    await tx.notification.create({ data: n });
-    return true;
+    const res = await tx.notification.createMany({
+      data: [n],
+      skipDuplicates: true,
+    });
+    return res.count > 0;
   }
 
   async listMine(userId: number, limit = 30) {
@@ -74,37 +76,68 @@ export class NotificationsService {
   /**
    * Nhắc hạn trả: "sắp đến hạn" (trong DUE_SOON_DAYS ngày) và "quá hạn".
    * Mỗi phiếu chỉ nhắc một lần mỗi loại nhờ dedupeKey, nên chạy lặp an toàn.
+   * Duyệt hết mọi phiếu theo từng lô (con trỏ theo id) — trước đây chỉ lấy 500 phiếu đầu nên
+   * khi có hơn 500 phiếu cần nhắc, phần còn lại không bao giờ được nhắc.
    */
   async sendLoanReminders(
     at: Date = new Date(),
   ): Promise<{ dueSoon: number; overdue: number }> {
     const soonLimit = addDays(at, DUE_SOON_DAYS);
-    const loans = await this.prisma.loan.findMany({
-      where: {
-        status: LoanStatus.ACTIVE,
-        dueAt: { lt: soonLimit },
-        user: { isActive: true },
-      },
-      include: { copy: { include: { book: { select: { title: true } } } } },
-      take: 500,
-    });
     const overdueLine = overdueCutoff(at);
     let dueSoon = 0;
     let overdue = 0;
-    for (const loan of loans) {
-      const title = loan.copy.book.title;
-      const isLate = loan.dueAt < overdueLine;
-      const created = await this.notify({
-        userId: loan.userId,
-        type: isLate ? 'LOAN_OVERDUE' : 'LOAN_DUE_SOON',
-        title: isLate ? 'Sách đã quá hạn trả' : 'Sách sắp đến hạn trả',
-        body: isLate
-          ? `"${title}" đã quá hạn từ ${loan.dueAt.toLocaleDateString('vi-VN')}. Vui lòng mang sách tới quầy để tránh phạt tăng thêm.`
-          : `"${title}" đến hạn ngày ${loan.dueAt.toLocaleDateString('vi-VN')}. Bạn có thể gia hạn trong mục Sách của tôi.`,
-        link: '/my/loans',
-        dedupeKey: `loan:${loan.id}:${isLate ? 'overdue' : 'due'}`,
+    let cursor: number | undefined;
+    for (;;) {
+      const loans = await this.prisma.loan.findMany({
+        where: {
+          status: LoanStatus.ACTIVE,
+          dueAt: { lt: soonLimit },
+          user: { isActive: true },
+        },
+        include: { copy: { include: { book: { select: { title: true } } } } },
+        orderBy: { id: 'asc' },
+        take: REMINDER_BATCH,
+        ...(cursor !== undefined && { cursor: { id: cursor }, skip: 1 }),
       });
-      if (created) isLate ? overdue++ : dueSoon++;
+      if (loans.length === 0) break;
+      cursor = loans[loans.length - 1].id;
+
+      const candidates = loans.map((loan) => {
+        const isLate = loan.dueAt < overdueLine;
+        const title = loan.copy.book.title;
+        const dueDate = loan.dueAt.toLocaleDateString('vi-VN');
+        return {
+          isLate,
+          data: {
+            userId: loan.userId,
+            type: isLate ? 'LOAN_OVERDUE' : 'LOAN_DUE_SOON',
+            title: isLate ? 'Sách đã quá hạn trả' : 'Sách sắp đến hạn trả',
+            body: isLate
+              ? `"${title}" đã quá hạn từ ${dueDate}. Vui lòng mang sách tới quầy để tránh phạt tăng thêm.`
+              : `"${title}" đến hạn ngày ${dueDate}. Bạn có thể gia hạn trong mục Sách của tôi.`,
+            link: '/my/loans',
+            dedupeKey: `loan:${loan.id}:${isLate ? 'overdue' : 'due'}`,
+          },
+        };
+      });
+      const existing = await this.prisma.notification.findMany({
+        where: { dedupeKey: { in: candidates.map((c) => c.data.dedupeKey) } },
+        select: { dedupeKey: true },
+      });
+      const sent = new Set(existing.map((e) => e.dedupeKey));
+      for (const isLate of [true, false]) {
+        const fresh = candidates
+          .filter((c) => c.isLate === isLate && !sent.has(c.data.dedupeKey))
+          .map((c) => c.data);
+        if (fresh.length === 0) continue;
+        const res = await this.prisma.notification.createMany({
+          data: fresh,
+          skipDuplicates: true,
+        });
+        if (isLate) overdue += res.count;
+        else dueSoon += res.count;
+      }
+      if (loans.length < REMINDER_BATCH) break;
     }
     return { dueSoon, overdue };
   }
