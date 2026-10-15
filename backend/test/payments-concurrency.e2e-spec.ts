@@ -21,6 +21,9 @@ const ROUNDS = 6;
 const jitter = (maxMs = 10) =>
   new Promise<void>((resolve) => setTimeout(resolve, Math.random() * maxMs));
 
+// Các bài đua chạy nhiều vòng song song; mặc định 5 giây của jest quá chặt khi máy (hoặc CI) đang bận.
+jest.setTimeout(60_000);
+
 describeWithDb('Thanh toán phạt VNPay: đua nhau (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;

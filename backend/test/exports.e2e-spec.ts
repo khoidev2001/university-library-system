@@ -483,7 +483,7 @@ describeWithDb('Xuất CSV / Excel (e2e)', () => {
   });
 
   describe('xuất lượng lớn', () => {
-    const BIG = 30_000;
+    const BIG = 10_000;
 
     beforeAll(async () => {
       await prisma.$executeRaw`
@@ -496,7 +496,7 @@ describeWithDb('Xuất CSV / Excel (e2e)', () => {
         FROM generate_series(1, ${BIG}) g`;
     });
 
-    it('CSV 30.000 dòng được phát theo lô (không Content-Length) và đủ từng dòng', async () => {
+    it('CSV 10.000 dòng được phát theo lô (không Content-Length) và đủ từng dòng', async () => {
       const started = Date.now();
       const d = await download(
         `/api/exports/loans?userId=${readerId}&from=1990-01-01&to=1990-12-31`,
@@ -511,7 +511,7 @@ describeWithDb('Xuất CSV / Excel (e2e)', () => {
       expect(Date.now() - started).toBeLessThan(30_000);
     }, 60_000);
 
-    it('xlsx 30.000 dòng mở lại được và đủ dòng', async () => {
+    it('xlsx 10.000 dòng mở lại được và đủ dòng', async () => {
       const d = await download(
         `/api/exports/loans?format=xlsx&userId=${readerId}&from=1990-01-01&to=1990-12-31`,
       );

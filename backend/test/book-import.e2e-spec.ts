@@ -159,11 +159,19 @@ describeWithDb('Nhập sách từ file (e2e)', () => {
           },
         },
       });
-      const before = {
-        books: await prisma.book.count(),
-        cats: await prisma.category.count(),
-        authors: await prisma.author.count(),
-      };
+      // Chỉ đếm dữ liệu của suite này: các e2e khác chạy song song cũng tạo sách, thể loại, tác giả.
+      const mine = async () => ({
+        books: await prisma.book.count({
+          where: { title: { startsWith: TITLE } },
+        }),
+        cats: await prisma.category.count({
+          where: { name: { startsWith: CATEGORY } },
+        }),
+        authors: await prisma.author.count({
+          where: { name: { in: ['Tác giả Một', 'Tác giả Hai'] } },
+        }),
+      });
+      const before = await mine();
 
       const file = toCsv([
         {
@@ -240,9 +248,7 @@ describeWithDb('Nhập sách từ file (e2e)', () => {
       expect(body.newCategories).toContain(`${CATEGORY} mới`);
 
       // KHÔNG ghi gì
-      expect(await prisma.book.count()).toBe(before.books);
-      expect(await prisma.category.count()).toBe(before.cats);
-      expect(await prisma.author.count()).toBe(before.authors);
+      expect(await mine()).toEqual(before);
     });
 
     it('dryRun với onDuplicate=update báo action=update cho sách đã có', async () => {
