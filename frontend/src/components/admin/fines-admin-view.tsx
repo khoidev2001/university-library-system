@@ -133,6 +133,7 @@ export function FinesAdminView() {
                       {!fine.paidAt && (
                         <button
                           type="button"
+                          aria-label={`Thu tiền phạt của ${fine.loan?.user.fullName ?? "bạn đọc"}`}
                           disabled={pay.isPending}
                           onClick={() => {
                             if (

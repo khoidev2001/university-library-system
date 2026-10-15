@@ -163,10 +163,15 @@ export function BooksAdminView() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-2">
-                      <RowButton onClick={() => setCopiesOf(book)}>Bản sao</RowButton>
-                      <RowButton onClick={() => setEditing(book)}>Sửa</RowButton>
+                      <RowButton aria-label={`Bản sao của ${book.title}`} onClick={() => setCopiesOf(book)}>
+                        Bản sao
+                      </RowButton>
+                      <RowButton aria-label={`Sửa ${book.title}`} onClick={() => setEditing(book)}>
+                        Sửa
+                      </RowButton>
                       <RowButton
                         danger
+                        aria-label={`Xoá ${book.title}`}
                         disabled={remove.isPending}
                         onClick={() => {
                           if (window.confirm(`Xoá sách "${book.title}" cùng toàn bộ bản sao và đánh giá?`)) {

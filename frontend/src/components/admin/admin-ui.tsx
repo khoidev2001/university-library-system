@@ -2,6 +2,8 @@
 
 import { X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 import { ApiError } from "@/lib/api";
 import { Alert, Button } from "../ui";
 
@@ -76,17 +78,53 @@ export function Modal({
   children: React.ReactNode;
   wide?: boolean;
 }) {
+  const dialog = useRef<HTMLDivElement>(null);
+  // Giữ onClose mới nhất mà không chạy lại hiệu ứng (chạy lại sẽ kéo focus về ô đầu khi gõ)
+  const closeRef = useRef(onClose);
   useEffect(() => {
+    closeRef.current = onClose;
+  }, [onClose]);
+
+  // Hộp thoại đúng nghĩa: chuyển focus vào trong, giữ Tab trong hộp, khoá cuộn nền, trả focus khi đóng.
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null;
+    const body = document.body;
+    const overflow = body.style.overflow;
+    body.style.overflow = "hidden";
+    const root = dialog.current;
+    const first = root?.querySelector<HTMLElement>('input:not([type="hidden"]), select, textarea') ?? root?.querySelector<HTMLElement>(FOCUSABLE);
+    first?.focus();
+
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") {
+        closeRef.current();
+        return;
+      }
+      if (event.key !== "Tab" || !root) return;
+      const items = [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((el) => el.offsetParent !== null);
+      if (items.length === 0) return;
+      const head = items[0];
+      const tail = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === head) {
+        event.preventDefault();
+        tail.focus();
+      } else if (!event.shiftKey && document.activeElement === tail) {
+        event.preventDefault();
+        head.focus();
+      }
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      body.style.overflow = overflow;
+      previous?.focus?.();
+    };
+  }, []);
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overscroll-contain anim-fade overflow-y-auto bg-ink/40 px-4 py-10">
       <div
+        ref={dialog}
         role="dialog"
         aria-modal="true"
         aria-label={title}

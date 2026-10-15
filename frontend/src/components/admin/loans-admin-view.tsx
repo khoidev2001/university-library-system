@@ -189,6 +189,7 @@ export function LoansAdminView() {
                         <>
                           <button
                             type="button"
+                            aria-label={`Nhận trả ${loan.copy.book.title}`}
                             disabled={busy}
                             onClick={() => giveBack.mutate(loan)}
                             className="rounded-md border border-line px-3 py-1.5 text-xs font-medium hover:bg-paper-2 disabled:opacity-50"
@@ -197,6 +198,7 @@ export function LoansAdminView() {
                           </button>
                           <button
                             type="button"
+                            aria-label={`Báo mất ${loan.copy.book.title}`}
                             disabled={busy}
                             onClick={() => {
                               if (
