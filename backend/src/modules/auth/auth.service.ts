@@ -1,10 +1,11 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { BadRequestException, HttpStatus, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Role, User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { BusinessException } from '../../common/exceptions/business.exception';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UserResponseDto } from '../users/dto/user-response.dto';
+import { ChangePasswordDto, UpdateProfileDto } from './dto/account.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { JwtPayload } from './jwt.strategy';
@@ -88,7 +89,21 @@ export class AuthService {
         HttpStatus.FORBIDDEN,
       );
     }
-    return { accessToken: this.sign(user), user: UserResponseDto.from(user) };
+    // Giữ lần đăng nhập trước để trang tài khoản hiện "lần đăng nhập trước" (phát hiện đăng nhập lạ)
+    const now = new Date();
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { previousLoginAt: user.lastLoginAt, lastLoginAt: now },
+    });
+    const signedIn: User = {
+      ...user,
+      previousLoginAt: user.lastLoginAt,
+      lastLoginAt: now,
+    };
+    return {
+      accessToken: this.sign(user),
+      user: UserResponseDto.from(signedIn),
+    };
   }
 
   async me(userId: number): Promise<UserResponseDto> {
@@ -96,6 +111,71 @@ export class AuthService {
       where: { id: userId },
     });
     return UserResponseDto.from(user);
+  }
+
+  /** PATCH /auth/me: chỉ tên hiển thị và cờ nhắc hạn qua email. */
+  async updateMe(
+    userId: number,
+    dto: UpdateProfileDto,
+  ): Promise<UserResponseDto> {
+    if (dto.fullName === undefined && dto.emailReminders === undefined) {
+      throw new BadRequestException('Không có gì để cập nhật');
+    }
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(dto.fullName !== undefined && { fullName: dto.fullName }),
+        ...(dto.emailReminders !== undefined && {
+          emailReminders: dto.emailReminders,
+        }),
+      },
+    });
+    return UserResponseDto.from(user);
+  }
+
+  /**
+   * Đổi mật khẩu khi đã đăng nhập. Phải đúng mật khẩu hiện tại; mật khẩu mới theo cùng chính sách
+   * với đăng ký và không được trùng mật khẩu cũ. Xong thì tắt cờ mustChangePassword.
+   * Lỗi dùng 400 (không phải 401) để giao diện không hiểu nhầm là phiên hết hạn và đăng xuất.
+   */
+  async changePassword(
+    userId: number,
+    dto: ChangePasswordDto,
+  ): Promise<UserResponseDto> {
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+    });
+    if (!(await bcrypt.compare(dto.currentPassword, user.passwordHash))) {
+      throw new BusinessException(
+        'WRONG_CURRENT_PASSWORD',
+        'Mật khẩu hiện tại không đúng',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    if (dto.newPassword === dto.currentPassword) {
+      throw new BusinessException(
+        'PASSWORD_UNCHANGED',
+        'Mật khẩu mới phải khác mật khẩu hiện tại',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const passwordHash = await bcrypt.hash(dto.newPassword, BCRYPT_ROUNDS);
+    // Chỉ ghi nếu mật khẩu chưa bị đổi giữa chừng (hai yêu cầu đổi cùng lúc: một bên thắng)
+    const res = await this.prisma.user.updateMany({
+      where: { id: userId, passwordHash: user.passwordHash },
+      data: {
+        passwordHash,
+        mustChangePassword: false,
+        passwordChangedAt: new Date(),
+      },
+    });
+    if (res.count === 0) {
+      throw new BusinessException(
+        'PASSWORD_CHANGED_CONCURRENTLY',
+        'Mật khẩu vừa được thay đổi ở nơi khác, hãy thử lại',
+      );
+    }
+    return this.me(userId);
   }
 
   sign(user: Pick<User, 'id' | 'role' | 'memberType'>): string {

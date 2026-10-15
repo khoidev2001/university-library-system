@@ -2,6 +2,7 @@ import { NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { MailService } from '../mail/mail.service';
 import { createPrismaMock, PrismaMock } from '../../test-utils/prisma-mock';
 import { QueryUsersDto } from './dto/users.dto';
 import { UsersService } from './users.service';
@@ -22,7 +23,11 @@ describe('UsersService', () => {
   beforeEach(async () => {
     prisma = createPrismaMock();
     const moduleRef = await Test.createTestingModule({
-      providers: [UsersService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        UsersService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: MailService, useValue: { enabled: false } },
+      ],
     }).compile();
     service = moduleRef.get(UsersService);
   });

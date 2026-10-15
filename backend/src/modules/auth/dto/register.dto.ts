@@ -8,16 +8,17 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { IsPasswordValue } from '../../../common/password.util';
+
+/** Quy tắc mã sinh viên / giảng viên / mã thẻ, dùng chung cho đăng ký và thủ thư tạo bạn đọc. */
+export const MEMBER_CODE_PATTERN = /^[A-Za-z0-9-]{3,30}$/;
 
 export class RegisterDto {
   @ApiProperty({ example: 'sv001@student.muce.edu.vn' })
   @IsEmail()
   email: string;
 
-  @ApiProperty({ minLength: 8, example: 'Secret123' })
-  @IsString()
-  @MinLength(8)
-  @MaxLength(72)
+  @IsPasswordValue()
   password: string;
 
   @ApiProperty({ example: 'Nguyễn Văn A' })
@@ -35,7 +36,7 @@ export class RegisterDto {
     description: 'Mã sinh viên / giảng viên',
   })
   @IsString()
-  @Matches(/^[A-Za-z0-9-]{3,30}$/, {
+  @Matches(MEMBER_CODE_PATTERN, {
     message: 'memberCode chỉ gồm chữ, số, dấu gạch ngang (3-30 ký tự)',
   })
   memberCode: string;

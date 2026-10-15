@@ -289,6 +289,7 @@ enum ReminderEmailStatus {
   PENDING // chưa gửi được (lần đầu hoặc đang chờ gửi lại)
   SENT
   FAILED // quá số lần thử, bỏ cuộc
+  SKIPPED // không còn cần gửi (đã trả sách, đổi loại nhắc, ...)
 }
 
 // Trạng thái email nhắc hạn theo từng phiếu + loại ("due" | "overdue"); duy nhất (loanId, kind)

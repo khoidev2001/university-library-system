@@ -1,5 +1,5 @@
 -- CreateEnum
-CREATE TYPE "ReminderEmailStatus" AS ENUM ('PENDING', 'SENT', 'FAILED');
+CREATE TYPE "ReminderEmailStatus" AS ENUM ('PENDING', 'SENT', 'FAILED', 'SKIPPED');
 
 -- AlterTable
 ALTER TABLE "users" ADD COLUMN     "email_reminders" BOOLEAN NOT NULL DEFAULT true,
