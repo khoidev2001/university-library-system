@@ -10,8 +10,13 @@
  */
 import { signVnpParams } from '../src/modules/payments/vnpay.util';
 
-const [txnRef, amount, code = '00', kind = 'return', base = 'http://localhost:3000'] =
-  process.argv.slice(2);
+const [
+  txnRef,
+  amount,
+  code = '00',
+  kind = 'return',
+  base = 'http://localhost:3000',
+] = process.argv.slice(2);
 const secret = process.env.VNPAY_HASH_SECRET;
 if (!txnRef || !amount || !secret || !['return', 'ipn'].includes(kind)) {
   console.error(
