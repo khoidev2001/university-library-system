@@ -5,12 +5,15 @@ import { useState } from "react";
 import { apiFetch, formatCurrency } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { Author, BookCopy, BookDetail, BookSummary, Category, CopyStatus, ImportReport, Page } from "@/lib/types";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ExportButtons } from "../export-buttons";
 import { TapCheckbox } from "../tap-checkbox";
 import { Badge, Button, ButtonLink, Field, PageHeading, Spinner, inputClass } from "../ui";
 import { Modal, Pagination, TableShell, Th, Toolbar, errorText, useNotice } from "./admin-ui";
-import { BookImportDialog } from "./book-import-dialog";
+
+// Hộp thoại nhập file chỉ nạp khi thủ thư bấm "Nhập từ file", không làm nặng trang danh sách sách
+const BookImportDialog = dynamic(() => import("./book-import-dialog").then((m) => m.BookImportDialog), { ssr: false });
 
 const LIMIT = 15;
 
