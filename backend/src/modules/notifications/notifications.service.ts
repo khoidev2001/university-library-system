@@ -81,6 +81,7 @@ export class NotificationsService {
    */
   async sendLoanReminders(
     at: Date = new Date(),
+    batchSize: number = REMINDER_BATCH,
   ): Promise<{ dueSoon: number; overdue: number }> {
     const soonLimit = addDays(at, DUE_SOON_DAYS);
     const overdueLine = overdueCutoff(at);
@@ -96,7 +97,7 @@ export class NotificationsService {
         },
         include: { copy: { include: { book: { select: { title: true } } } } },
         orderBy: { id: 'asc' },
-        take: REMINDER_BATCH,
+        take: batchSize,
         ...(cursor !== undefined && { cursor: { id: cursor }, skip: 1 }),
       });
       if (loans.length === 0) break;
@@ -137,7 +138,7 @@ export class NotificationsService {
         if (isLate) overdue += res.count;
         else dueSoon += res.count;
       }
-      if (loans.length < REMINDER_BATCH) break;
+      if (loans.length < batchSize) break;
     }
     return { dueSoon, overdue };
   }
