@@ -714,6 +714,10 @@ describeWithDb('Nhập sách từ file (e2e)', () => {
       const big = Buffer.alloc(5 * 1024 * 1024 + 1024, 'a');
       const r = await upload(big, 'a.csv', '?dryRun=true');
       expect(r.status).toBe(413);
+      expect(r.body).toMatchObject({
+        error: 'IMPORT_FILE_TOO_LARGE',
+        message: 'File quá lớn (tối đa 5 MB)',
+      });
     });
 
     it('xlsx kiểu zip bomb (nén nhỏ, giải nén khổng lồ) → 413, server không treo', async () => {

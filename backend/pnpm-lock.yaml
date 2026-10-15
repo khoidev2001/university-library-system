@@ -50,6 +50,9 @@ importers:
       fflate:
         specifier: ^0.8.3
         version: 0.8.3
+      multer:
+        specifier: 2.0.2
+        version: 2.0.2
       passport:
         specifier: ^0.7.0
         version: 0.7.0
