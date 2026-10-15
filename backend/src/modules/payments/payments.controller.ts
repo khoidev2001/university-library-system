@@ -37,7 +37,7 @@ export class PaymentsController {
 
   @Post()
   @Roles(Role.READER)
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @ApiBearerAuth()
   @ApiOperation({
     summary:
