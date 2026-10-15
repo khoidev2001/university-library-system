@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { apiFetch } from "./api";
+import { UNAUTHORIZED_EVENT, apiFetch } from "./api";
 import type { Role, User } from "./types";
 
 const TOKEN_KEY = "uls_token";
@@ -51,6 +51,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setToken(null);
       })
       .finally(() => setLoading(false));
+  }, []);
+
+  // 401 giữa phiên (token hết hạn, tài khoản bị khoá): đăng xuất và về trang đăng nhập, nhớ trang đang xem
+  useEffect(() => {
+    const onUnauthorized = () => {
+      if (!readToken()) return;
+      writeToken(null);
+      setToken(null);
+      setUser(null);
+      const here = window.location.pathname + window.location.search;
+      // Trang công khai (tra cứu sách…) thì ở lại, chỉ trang cần đăng nhập mới chuyển hướng
+      const needsLogin = /^\/(admin|my|librarian|reports|recommendations)(\/|$)/.test(window.location.pathname);
+      if (needsLogin) window.location.assign(`/login?next=${encodeURIComponent(here)}`);
+    };
+    window.addEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
+    return () => window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
