@@ -111,7 +111,7 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
         </ol>
       </nav>
 
-      <article className="mt-6 grid gap-10 md:grid-cols-[260px_1fr]">
+      <article className="mt-6 grid grid-cols-1 gap-10 md:grid-cols-[260px_minmax(0,1fr)]">
         <div>
           <div className="aspect-[2/3] overflow-hidden rounded-xl border border-line bg-paper-2 shadow-sm">
             <BookCover title={book.title} coverUrl={book.coverUrl} />

@@ -73,7 +73,7 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-line bg-white shadow-lg">
+        <div className="anim-pop absolute right-0 z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-line bg-white shadow-lg">
           <div className="flex items-center justify-between border-b border-line px-4 py-3">
             <h2 className="text-sm font-bold">Thông báo</h2>
             <button
@@ -88,7 +88,7 @@ export function NotificationBell() {
           {items.length === 0 ? (
             <p className="px-4 py-8 text-center text-sm text-ink-faint">Chưa có thông báo nào.</p>
           ) : (
-            <ul className="max-h-96 divide-y divide-line overflow-y-auto">
+            <ul className="max-h-96 divide-y divide-line overflow-y-auto overscroll-contain">
               {items.map((item) => {
                 const content = (
                   <>

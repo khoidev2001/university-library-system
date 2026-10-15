@@ -49,4 +49,14 @@ export class QueryLoansDto extends PaginationDto {
   @Type(() => Number)
   @IsInt()
   userId?: number;
+
+  @ApiPropertyOptional({
+    description: 'Lọc theo mã vạch bản sao (quầy nhận trả tìm phiếu đang mở)',
+  })
+  @IsOptional()
+  @IsString()
+  @Matches(/^[A-Za-z0-9-]{3,40}$/, {
+    message: 'Mã vạch chỉ gồm chữ, số, dấu gạch ngang',
+  })
+  barcode?: string;
 }

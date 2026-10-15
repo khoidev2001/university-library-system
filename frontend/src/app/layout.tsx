@@ -8,7 +8,7 @@ import "./globals.css";
 
 // Một họ chữ duy nhất cho toàn bộ giao diện; có bộ ký tự tiếng Việt
 const beVietnam = Be_Vietnam_Pro({
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
   subsets: ["latin", "latin-ext", "vietnamese"],
   variable: "--font-be-vietnam",
   display: "swap",

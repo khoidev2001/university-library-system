@@ -336,6 +336,7 @@ export class LoansService {
     const where: Prisma.LoanWhereInput = {
       userId: query.userId,
       status: query.status,
+      ...(query.barcode && { copy: { barcode: query.barcode } }),
       ...(query.overdue && {
         status: LoanStatus.ACTIVE,
         dueAt: { lt: overdueCutoff(at) },

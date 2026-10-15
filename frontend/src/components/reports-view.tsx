@@ -2,25 +2,21 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Legend,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import dynamic from "next/dynamic";
 import { apiFetch, formatCurrency, formatDate } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { InventoryRow, MonthCount, OverdueRow, TopBookRow } from "@/lib/types";
-import { Badge, Card, PageHeading, Spinner } from "./ui";
+import { Badge, Card, ChartSkeleton, PageHeading, Spinner } from "./ui";
 
-const SLICE_COLORS = ["#8c3b24", "#2f6b52", "#a9701a", "#16243c", "#76818f", "#c2824f", "#4a7fa3", "#7a5ea8"];
+const MonthlyBarChart = dynamic(() => import("./charts").then((m) => m.MonthlyBarChart), {
+  ssr: false,
+  loading: () => <ChartSkeleton />,
+});
+const InventoryPieChart = dynamic(() => import("./charts").then((m) => m.InventoryPieChart), {
+  ssr: false,
+  loading: () => <ChartSkeleton />,
+});
+
 
 export function ReportsView() {
   const { token } = useAuth();
@@ -85,19 +81,7 @@ export function ReportsView() {
           <h2 className="font-serif text-lg font-bold">Lượt mượn theo tháng</h2>
           <p className="mt-1 text-sm text-ink-soft">Mười hai tháng gần nhất.</p>
           <div className="mt-4 h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={months} margin={{ top: 5, right: 5, bottom: 5, left: -18 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2dcd0" vertical={false} />
-                <XAxis dataKey="label" tick={{ fontSize: 12, fill: "#76818f" }} tickLine={false} axisLine={false} />
-                <YAxis tick={{ fontSize: 12, fill: "#76818f" }} tickLine={false} axisLine={false} />
-                <Tooltip
-                  contentStyle={{ borderRadius: 8, border: "1px solid #e2dcd0", fontSize: 13 }}
-                  labelFormatter={(label) => `Tháng ${label}`}
-                  formatter={(value) => [`${Number(value ?? 0).toLocaleString("vi-VN")} lượt`, "Lượt mượn"]}
-                />
-                <Bar dataKey="count" fill="#8c3b24" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <MonthlyBarChart data={months} fill="#8c3b24" detailed />
           </div>
         </Card>
 
@@ -105,39 +89,7 @@ export function ReportsView() {
           <h2 className="font-serif text-lg font-bold">Tồn kho theo thể loại</h2>
           <p className="mt-1 text-sm text-ink-soft">Tám thể loại có nhiều bản sao nhất.</p>
           <div className="mt-4 h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={topInventory}
-                  dataKey="total"
-                  nameKey="category.name"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={48}
-                  outerRadius={84}
-                  paddingAngle={2}
-                >
-                  {topInventory.map((row, index) => (
-                    <Cell key={row.category.id} fill={SLICE_COLORS[index % SLICE_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{ borderRadius: 8, border: "1px solid #e2dcd0", fontSize: 13 }}
-                  formatter={(value, _name, entry) => [
-                    `${Number(value ?? 0).toLocaleString("vi-VN")} bản`,
-                    (entry?.payload as unknown as InventoryRow)?.category?.name ?? "",
-                  ]}
-                />
-                <Legend
-                  verticalAlign="bottom"
-                  height={44}
-                  formatter={(_value, entry) =>
-                    (entry?.payload as unknown as InventoryRow)?.category?.name ?? ""
-                  }
-                  wrapperStyle={{ fontSize: 12 }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            <InventoryPieChart data={topInventory} />
           </div>
         </Card>
       </div>
@@ -170,7 +122,7 @@ export function ReportsView() {
             Không có bạn đọc nào quá hạn.
           </p>
         ) : (
-          <div className="mt-4 overflow-x-auto rounded-xl border border-line bg-white">
+          <div className="relative mt-4 overflow-x-auto rounded-xl border border-line bg-white">
             <table className="w-full min-w-[720px] text-sm">
               <caption className="sr-only">Bạn đọc đang giữ sách quá hạn</caption>
               <thead className="border-b border-line bg-paper-2 text-left">

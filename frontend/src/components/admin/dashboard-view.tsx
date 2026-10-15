@@ -2,11 +2,17 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import dynamic from "next/dynamic";
 import { apiFetch, formatCurrency, formatDate } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { InventoryRow, MonthCount, OverdueRow, Page, TopBookRow } from "@/lib/types";
-import { Badge, Card, PageHeading, Spinner } from "../ui";
+import { Badge, Card, ChartSkeleton, PageHeading, Spinner } from "../ui";
+
+const MonthlyBarChart = dynamic(() => import("../charts").then((m) => m.MonthlyBarChart), {
+  ssr: false,
+  loading: () => <ChartSkeleton />,
+});
+
 
 /** Chỉ cần tổng số nên lấy 1 dòng cho nhẹ. */
 function useTotal(key: string, path: string) {
@@ -57,7 +63,7 @@ export function DashboardView() {
     { label: "Đầu sách", value: books.data, href: "/admin/books" },
     {
       label: "Bản sao còn trên kệ",
-      value: inventory.data ? `${availableCopies}/${totalCopies}` : undefined,
+      value: inventory.data ? `${availableCopies.toLocaleString("vi-VN")} / ${totalCopies.toLocaleString("vi-VN")}` : undefined,
       href: "/admin/books",
     },
     { label: "Bạn đọc", value: readers.data, href: "/librarian/readers" },
@@ -101,22 +107,14 @@ export function DashboardView() {
         })}
       </ul>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1.4fr_1fr]">
+      <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <Card>
           <h2 className="font-serif text-lg font-bold">Lượt mượn 12 tháng gần nhất</h2>
           {byMonth.isLoading ? (
             <Spinner />
           ) : (
             <div className="mt-4 h-64" role="img" aria-label="Biểu đồ cột số lượt mượn theo tháng">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={months} margin={{ left: -16, right: 8 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2dcd0" vertical={false} />
-                  <XAxis dataKey="label" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
-                  <Tooltip formatter={(value) => [value, "Lượt mượn"]} />
-                  <Bar dataKey="count" fill="#16243c" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <MonthlyBarChart data={months} />
             </div>
           )}
         </Card>
@@ -153,7 +151,7 @@ export function DashboardView() {
         ) : overdueRows.length === 0 ? (
           <p className="mt-3 text-sm text-ink-soft">Hiện không có phiếu nào quá hạn.</p>
         ) : (
-          <div className="mt-3 overflow-x-auto">
+          <div className="relative mt-3 overflow-x-auto">
             <table className="w-full min-w-[560px] text-sm">
               <thead className="text-left text-ink-faint">
                 <tr>

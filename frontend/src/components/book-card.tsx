@@ -26,6 +26,9 @@ export function BookCover({
         src={coverUrl}
         alt={`Bìa sách ${title}`}
         loading="lazy"
+        decoding="async"
+        width={200}
+        height={300}
         className={`h-full w-full object-cover ${className}`}
       />
     );
@@ -51,9 +54,9 @@ export function BookCard({ book }: BookCardProps) {
   const authorNames = book.authors.map((author) => (typeof author === "string" ? author : author.name));
 
   return (
-    <article className="group">
+    <article className="group cv-auto">
       <Link href={`/books/${book.id}`} className="block">
-        <div className="aspect-[2/3] overflow-hidden rounded-lg border border-line bg-paper-2 shadow-sm transition-shadow group-hover:shadow-md">
+        <div className="aspect-[2/3] overflow-hidden rounded-lg border border-line bg-paper-2 shadow-sm transition-transform duration-200 group-hover:-translate-y-0.5">
           <BookCover title={book.title} coverUrl={book.coverUrl} className="transition-transform duration-300 group-hover:scale-[1.03]" />
         </div>
         <h3 className="mt-3 line-clamp-2 font-serif text-sm font-bold leading-snug group-hover:underline">

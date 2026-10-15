@@ -41,8 +41,12 @@ export function CirculationDesk() {
 
   const returnLoan = useMutation({
     mutationFn: async () => {
-      const found = await apiFetch<Page<Loan>>(`/loans?status=ACTIVE&limit=100`, { token });
-      const loan = found.items.find((item) => item.copy.barcode === returnBarcode.trim());
+      // Tìm đúng phiếu đang mở của mã vạch này ở máy chủ, không lọc trên 100 phiếu mới nhất
+      const found = await apiFetch<Page<Loan>>(
+        `/loans?status=ACTIVE&limit=1&barcode=${encodeURIComponent(returnBarcode.trim())}`,
+        { token },
+      );
+      const loan = found.items[0];
       if (!loan) throw new ApiError(404, "LOAN_NOT_FOUND", "Không tìm thấy phiếu mượn đang mở cho mã vạch này.");
       return apiFetch<ReturnResult>(`/loans/${loan.id}/return`, { method: "POST", token });
     },
@@ -202,7 +206,7 @@ export function CirculationDesk() {
             Hiện không có phiếu nào quá hạn.
           </p>
         ) : (
-          <div className="mt-4 overflow-x-auto rounded-xl border border-line bg-white">
+          <div className="relative mt-4 overflow-x-auto rounded-xl border border-line bg-white">
             <table className="w-full min-w-[640px] text-sm">
               <caption className="sr-only">Danh sách phiếu mượn đang quá hạn</caption>
               <thead className="border-b border-line bg-paper-2 text-left">

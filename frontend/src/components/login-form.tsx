@@ -22,9 +22,10 @@ function LoginFormInner() {
     try {
       const user = await login(email, password);
       const next = params.get("next");
-      if (next) router.push(next);
+      // Chỉ nhận đường dẫn nội bộ, chặn open redirect kiểu //evil.com hoặc https://evil.com
+      if (next && /^\/(?![/\\])/.test(next)) router.push(next);
       else if (user.role === "READER") router.push("/my/loans");
-      else if (user.role === "ADMIN") router.push("/admin/policies");
+      else if (user.role === "ADMIN") router.push("/admin");
       else router.push("/librarian/desk");
     } catch (err) {
       setError(err instanceof ApiError ? err.friendlyMessage : "Không đăng nhập được, vui lòng thử lại.");

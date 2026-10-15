@@ -85,12 +85,12 @@ export function Modal({
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/40 px-4 py-10">
+    <div className="fixed inset-0 z-50 flex items-start justify-center overscroll-contain anim-fade overflow-y-auto bg-ink/40 px-4 py-10">
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`w-full rounded-xl border border-line bg-paper p-6 shadow-xl ${wide ? "max-w-3xl" : "max-w-lg"}`}
+        className={`anim-sheet w-full rounded-xl border border-line bg-paper p-6 shadow-xl ${wide ? "max-w-3xl" : "max-w-lg"}`}
       >
         <div className="flex items-start justify-between gap-4">
           <h2 className="font-serif text-xl font-bold">{title}</h2>
@@ -116,7 +116,7 @@ export function Toolbar({ children }: { children: React.ReactNode }) {
 
 export function TableShell({ children, minWidth = 640 }: { children: React.ReactNode; minWidth?: number }) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-line bg-white">
+    <div className="relative overflow-x-auto rounded-xl border border-line bg-white">
       <table className="w-full text-sm" style={{ minWidth }}>
         {children}
       </table>

@@ -26,7 +26,10 @@ describeWithDb('Đặt trước sách và thông báo (e2e)', () => {
   let http: ReturnType<typeof request>;
   let lib: string;
   let librarianId: number;
-  const readers = {} as Record<Who, { id: number; token: string; code: string }>;
+  const readers = {} as Record<
+    Who,
+    { id: number; token: string; code: string }
+  >;
   let bookId: number;
   let copyId: number;
   const barcode = `RES-${RUN}-1`;
@@ -50,10 +53,12 @@ describeWithDb('Đặt trước sách và thông báo (e2e)', () => {
       .send({})
       .expect(200);
   const copyStatus = async () =>
-    (await prisma.bookCopy.findUniqueOrThrow({ where: { id: copyId } }))
-      .status;
+    (await prisma.bookCopy.findUniqueOrThrow({ where: { id: copyId } })).status;
   const reserve = (who: Who) =>
-    http.post('/api/reservations').set(auth(readers[who].token)).send({ bookId });
+    http
+      .post('/api/reservations')
+      .set(auth(readers[who].token))
+      .send({ bookId });
   const reservationOf = (who: Who) =>
     prisma.reservation.findFirstOrThrow({
       where: { bookId, userId: readers[who].id },
@@ -220,9 +225,7 @@ describeWithDb('Đặt trước sách và thông báo (e2e)', () => {
 
     await lend('b').expect(201);
     expect(await copyStatus()).toBe(CopyStatus.BORROWED);
-    expect((await reservationOf('b')).status).toBe(
-      ReservationStatus.FULFILLED,
-    );
+    expect((await reservationOf('b')).status).toBe(ReservationStatus.FULFILLED);
   });
 
   it('cancelling a READY reservation frees the copy when nobody else waits', async () => {
@@ -240,9 +243,7 @@ describeWithDb('Đặt trước sách và thông báo (e2e)', () => {
       .expect(200);
 
     expect(await copyStatus()).toBe(CopyStatus.AVAILABLE);
-    expect((await reservationOf('c')).status).toBe(
-      ReservationStatus.CANCELLED,
-    );
+    expect((await reservationOf('c')).status).toBe(ReservationStatus.CANCELLED);
   });
 
   it('expires a hold that was not collected and passes the copy on', async () => {
@@ -293,5 +294,28 @@ describeWithDb('Đặt trước sách và thông báo (e2e)', () => {
       userId: readers.a.id,
       type: 'LOAN_DUE_SOON',
     });
+  });
+
+  it('finds the open loan of a copy by barcode on the server', async () => {
+    const hit = await http
+      .get('/api/loans')
+      .query({ status: 'ACTIVE', barcode, limit: 1 })
+      .set(auth(lib))
+      .expect(200);
+    expect(hit.body.items).toHaveLength(1);
+    expect(hit.body.items[0].copy.barcode).toBe(barcode);
+
+    const miss = await http
+      .get('/api/loans')
+      .query({ status: 'ACTIVE', barcode: `NOPE-${RUN}`, limit: 1 })
+      .set(auth(lib))
+      .expect(200);
+    expect(miss.body.items).toHaveLength(0);
+
+    await http
+      .get('/api/loans')
+      .query({ barcode: "x'; drop" })
+      .set(auth(lib))
+      .expect(400);
   });
 });
