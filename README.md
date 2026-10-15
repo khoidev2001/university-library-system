@@ -95,6 +95,38 @@ SEO: tiêu đề và mô tả riêng từng trang, canonical, Open Graph, dữ l
 
 Trình duyệt luôn gọi `/api` cùng origin qua gateway, không nhúng tên miền lúc build, nên một image chạy được ở mọi tên miền và cổng. Ảnh chụp màn hình trong `docs/report/screenshots/`.
 
+## Xuất dữ liệu, in thẻ / nhãn, nhập sách từ file
+
+Dành cho thủ thư (Admin kế thừa). Tài liệu API đầy đủ ở Swagger (`/api/docs`, nhóm `exports` và `books`).
+
+### Xuất CSV / Excel
+
+`GET /api/exports/{overdue-loans|loans|top-books|inventory|fines|readers|books}?format=csv|xlsx` kèm bộ lọc của từng bộ dữ liệu
+(`from`, `to` dạng `YYYY-MM-DD` theo giờ thư viện UTC+7 và bao trọn ngày cuối; `status`, `overdue`, `paid`, `q`, `categoryId`, `isActive`...).
+
+- Phát trực tiếp theo lô 1.000 dòng bằng con trỏ trên `id` (không OFFSET, không dựng mảng lớn trong bộ nhớ). Trần 100.000 dòng mỗi lần (đổi bằng `EXPORT_MAX_ROWS`); vượt trần thì file bị cắt và có header `X-Export-Truncated: true`. `X-Total-Count` là số dòng khớp.
+- CSV: UTF-8 có BOM (Excel hiển thị đúng tiếng Việt), RFC 4180, chống formula injection: ô văn bản bắt đầu bằng `=` `+` `-` `@` tab CR được thêm dấu `'` phía trước. Số tiền, số lượng ghi chữ số trần.
+- Excel (`exceljs`, chế độ streaming): ô số và ô ngày là kiểu thật (cộng, lọc, sắp xếp được), tiền định dạng VND, ngày ghi theo giờ treo tường UTC+7, hàng tiêu đề cố định kèm bộ lọc.
+- `Content-Disposition` có cả `filename` (ASCII, bỏ dấu) lẫn `filename*=UTF-8''...` (tên tiếng Việt đầy đủ).
+
+### In thẻ bạn đọc và nhãn bản sao
+
+- `/librarian/readers/[id]/card` (một thẻ) và `/librarian/readers/cards?ids=1,2,3` hoặc `?q=...` (hàng loạt, tối đa 300 thẻ). Thẻ 85,6 × 54 mm, 10 thẻ trên một tờ A4 hoặc 1 thẻ/trang cho máy in thẻ. Mã vạch Code 128 và mã QR đều chứa mã thẻ.
+- `/librarian/labels?bookIds=1,2` hoặc `?copyIds=...`: nhãn mã vạch bản sao `LIB-<id>-<n>` kèm tên sách và vị trí kệ. Bố cục: 3×8 (63,5×33,9), 2×7 (99,1×38,1), 4×10 (52,5×29,7) trên A4, hoặc cuộn nhãn 50×25 mm; có ô "bỏ trống N ô đầu" để dùng tiếp tờ đã in dở. Dữ liệu lấy từ `GET /api/copies/labels`.
+- Mã vạch và QR vẽ bằng SVG ngay trên trình duyệt (bộ mã hoá Code 128 tự viết, ~2 KB; QR dùng `uqr` ~8 KB gzip), chỉ nạp ở trang in. Menu, header, footer ẩn khi in (`print:hidden`); khi in chọn tỉ lệ 100%, lề "Không có".
+- Kiểm tra giải mã ngược (chỉ dev): `pnpm --dir frontend verify:barcodes` sinh mã vạch / QR, dựng ảnh nhỏ như khi in và đọc lại bằng `zxing-wasm`.
+
+### Nhập sách hàng loạt từ file
+
+- `GET /api/books/import-template?format=csv|xlsx`: file mẫu có dòng ví dụ. Cột: `title, authors (cách nhau bằng ;), category, isbn, publisher, publishedYear, price, description, coverUrl, copies, shelfLocation`; tiêu đề cột tiếng Việt cũng được nhận.
+- `POST /api/books/import-file?dryRun=true|false&onDuplicate=skip|update` (multipart, trường `file`, CSV hoặc xlsx, tối đa 5 MB và 5.000 dòng).
+  - `dryRun=true`: chỉ kiểm tra, trả bản xem trước từng dòng (lỗi, cảnh báo, hành động tạo / cập nhật / bỏ qua, thể loại sẽ tạo). Không ghi gì.
+  - Ghi thật: lô 100 dòng trong giao dịch, kiểm tra lại dưới khoá advisory nên hai lần nhập song song không sinh sách / tác giả trùng và mã vạch không đụng nhau. Trả `{ created, updated, skipped, failed[{row, reason, raw}], createdCopies, newCategories }`; giao diện cho tải các dòng lỗi thành CSV.
+  - Idempotent theo ISBN (ISBN-10 và ISBN-13 của cùng sách được nhận là một). `copies` là số bản sao tối thiểu cần có (chỉ bổ sung, không bao giờ xoá). Dòng không có ISBN chỉ so trùng theo tiêu đề.
+  - Loại file kiểm bằng nội dung (magic bytes), không tin đuôi hay Content-Type; từ chối macro (`.xlsm`, `vbaProject.bin`), zip bomb (đếm byte giải nén thật, trần 25 MB mỗi phần), CSV hỏng, không phải UTF-8. Công thức trong xlsx không bao giờ được thực thi, chỉ lấy giá trị đã tính. URL ảnh bìa chỉ nhận `http` / `https`.
+  - Mã lỗi: `IMPORT_NO_FILE` 400, `IMPORT_FILE_TYPE_INVALID` / `IMPORT_MACRO_NOT_ALLOWED` 415, `IMPORT_FILE_TOO_LARGE` 413, `IMPORT_TOO_MANY_ROWS` / `IMPORT_MALFORMED` / `IMPORT_MISSING_COLUMN` / `IMPORT_EMPTY` / `IMPORT_ENCODING` 422.
+- Gateway nginx đã nâng `client_max_body_size` lên 6 MB cho `/api/`. Khi chạy sau proxy khác (Vercel rewrite, Render...), kiểm tra giới hạn kích thước thân yêu cầu của proxy đó.
+
 ## AI Service
 
 Khởi động xong, AI Service tự kéo dữ liệu qua `GET /api/internal/training-data` (header `X-Internal-Key`) rồi huấn luyện; `GET /ai/health` báo `recommender`/`overdue` đã `ready` chưa.
