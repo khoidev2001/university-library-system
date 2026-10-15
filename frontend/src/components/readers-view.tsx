@@ -1,11 +1,16 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import dynamic from "next/dynamic";
+import { useEffect, useRef, useState } from "react";
 import { ApiError, apiFetch, formatCurrency } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { Page, User, UserDetail } from "@/lib/types";
 import { Alert, Badge, Button, Card, PageHeading, Spinner, inputClass } from "./ui";
+
+// Hộp thoại chỉ cần khi thủ thư bấm nút: tải lười để trang danh sách nhẹ hơn
+const CreateReaderModal = dynamic(() => import("./create-reader-modal").then((m) => m.CreateReaderModal), { ssr: false });
+const ResetPasswordModal = dynamic(() => import("./reset-password-modal").then((m) => m.ResetPasswordModal), { ssr: false });
 
 export function ReadersView() {
   const { token } = useAuth();
@@ -14,6 +19,16 @@ export function ReadersView() {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<number | null>(null);
   const [notice, setNotice] = useState<{ tone: "good" | "bad"; text: string } | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const panel = useRef<HTMLElement>(null);
+
+  // Màn hình hẹp: hồ sơ nằm dưới danh sách, cuộn tới đó khi chọn một bạn đọc
+  useEffect(() => {
+    if (selected !== null && window.matchMedia("(max-width: 1023px)").matches) {
+      panel.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [selected]);
 
   const readers = useQuery({
     queryKey: ["readers", query],
@@ -48,7 +63,8 @@ export function ReadersView() {
       <PageHeading
         eyebrow="Nghiệp vụ thủ thư"
         title="Quản lý bạn đọc"
-        description="Tra cứu theo tên, email hoặc mã thẻ. Xem tình trạng mượn và khoá thẻ khi cần."
+        description="Tra cứu theo tên, email hoặc mã thẻ. Xem tình trạng mượn, khoá thẻ, cấp mật khẩu tạm và thêm bạn đọc mới tại quầy."
+        action={<Button onClick={() => setCreating(true)}>Thêm bạn đọc</Button>}
       />
 
       {notice && (
@@ -59,6 +75,7 @@ export function ReadersView() {
 
       <form
         className="mt-6 flex max-w-xl gap-2"
+        role="search"
         onSubmit={(event) => {
           event.preventDefault();
           setQuery(search.trim());
@@ -83,13 +100,13 @@ export function ReadersView() {
           {readers.isLoading ? (
             <Spinner />
           ) : (
-            <table className="w-full min-w-[560px] text-sm">
+            <table className="w-full text-sm sm:min-w-[560px]">
               <caption className="sr-only">Danh sách bạn đọc</caption>
               <thead className="border-b border-line bg-paper-2 text-left">
                 <tr>
                   <th scope="col" className="px-4 py-3 font-semibold">Họ tên</th>
-                  <th scope="col" className="px-4 py-3 font-semibold">Mã thẻ</th>
-                  <th scope="col" className="px-4 py-3 font-semibold">Đối tượng</th>
+                  <th scope="col" className="hidden px-4 py-3 font-semibold sm:table-cell">Mã thẻ</th>
+                  <th scope="col" className="hidden px-4 py-3 font-semibold sm:table-cell">Đối tượng</th>
                   <th scope="col" className="px-4 py-3 font-semibold">Thẻ</th>
                   <th scope="col" className="px-4 py-3 font-semibold"><span className="sr-only">Thao tác</span></th>
                 </tr>
@@ -99,10 +116,13 @@ export function ReadersView() {
                   <tr key={reader.id} className={selected === reader.id ? "bg-paper-2" : undefined}>
                     <td className="px-4 py-3">
                       <span className="font-medium">{reader.fullName}</span>
-                      <span className="block text-xs text-ink-faint">{reader.email}</span>
+                      <span className="block break-all text-xs text-ink-faint">{reader.email}</span>
+                      <span className="block text-xs text-ink-faint sm:hidden">
+                        {reader.memberCode} · {reader.memberType === "LECTURER" ? "Giảng viên" : "Sinh viên"}
+                      </span>
                     </td>
-                    <td className="px-4 py-3 text-ink-soft">{reader.memberCode}</td>
-                    <td className="px-4 py-3 text-ink-soft">
+                    <td className="hidden px-4 py-3 text-ink-soft sm:table-cell">{reader.memberCode}</td>
+                    <td className="hidden px-4 py-3 text-ink-soft sm:table-cell">
                       {reader.memberType === "LECTURER" ? "Giảng viên" : "Sinh viên"}
                     </td>
                     <td className="px-4 py-3">
@@ -112,7 +132,8 @@ export function ReadersView() {
                       <button
                         type="button"
                         onClick={() => setSelected(reader.id)}
-                        className="rounded-md border border-line px-3 py-1.5 text-xs font-medium hover:bg-paper-2"
+                        aria-label={`Xem hồ sơ ${reader.fullName}`}
+                        className="min-h-10 rounded-md border border-line px-3 py-1.5 text-xs font-medium hover:bg-paper-2"
                       >
                         Xem hồ sơ
                       </button>
@@ -127,7 +148,7 @@ export function ReadersView() {
           )}
         </div>
 
-        <aside aria-label="Hồ sơ bạn đọc">
+        <aside aria-label="Hồ sơ bạn đọc" ref={panel} className="scroll-mt-20">
           {selected === null ? (
             <Card className="text-sm text-ink-soft">Chọn một bạn đọc để xem hồ sơ chi tiết.</Card>
           ) : detail.isLoading ? (
@@ -165,10 +186,30 @@ export function ReadersView() {
               >
                 {detail.data.isActive ? "Khoá thẻ bạn đọc" : "Mở thẻ bạn đọc"}
               </Button>
+              <Button variant="ghost" className="mt-2 w-full" onClick={() => setResetting(true)}>
+                Cấp lại mật khẩu
+              </Button>
+              <p className="mt-2 text-xs text-ink-faint">
+                Dùng khi bạn đọc quên mật khẩu mà không nhận được email. Mật khẩu tạm hiện một lần để thủ thư trao lại.
+              </p>
             </Card>
           ) : null}
         </aside>
       </div>
+
+      {creating && (
+        <CreateReaderModal
+          onClose={() => setCreating(false)}
+          onCreated={() => queryClient.invalidateQueries({ queryKey: ["readers"] })}
+        />
+      )}
+      {resetting && detail.data && (
+        <ResetPasswordModal
+          target={detail.data}
+          onClose={() => setResetting(false)}
+          onDone={() => queryClient.invalidateQueries({ queryKey: ["reader"] })}
+        />
+      )}
     </div>
   );
 }

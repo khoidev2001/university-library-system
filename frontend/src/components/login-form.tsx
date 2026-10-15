@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { ApiError } from "@/lib/api";
@@ -23,7 +24,9 @@ function LoginFormInner() {
       const user = await login(email, password);
       const next = params.get("next");
       // Chỉ nhận đường dẫn nội bộ, chặn open redirect kiểu //evil.com hoặc https://evil.com
-      if (next && /^\/(?![/\\])/.test(next)) router.push(next);
+      // Mật khẩu tạm: bắt đổi mật khẩu trước khi làm gì khác
+      if (user.mustChangePassword) router.push("/account?forced=1");
+      else if (next && /^\/(?![/\\])/.test(next)) router.push(next);
       else if (user.role === "READER") router.push("/my/loans");
       else if (user.role === "ADMIN") router.push("/admin");
       else router.push("/librarian/desk");
@@ -64,6 +67,11 @@ function LoginFormInner() {
       <Button type="submit" disabled={busy} className="w-full">
         {busy ? "Đang kiểm tra..." : "Đăng nhập"}
       </Button>
+      <p className="text-center text-sm">
+        <Link href="/forgot-password" className="inline-flex min-h-10 items-center font-medium text-brand hover:underline">
+          Quên mật khẩu?
+        </Link>
+      </p>
     </form>
   );
 }

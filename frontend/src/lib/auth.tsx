@@ -12,6 +12,8 @@ interface AuthState {
   loading: boolean;
   login: (email: string, password: string) => Promise<User>;
   logout: () => void;
+  /** Cập nhật thông tin người dùng đang đăng nhập sau khi sửa hồ sơ / đổi mật khẩu. */
+  updateUser: (user: User) => void;
   can: (...roles: Role[]) => boolean;
 }
 
@@ -62,7 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       const here = window.location.pathname + window.location.search;
       // Trang công khai (tra cứu sách…) thì ở lại, chỉ trang cần đăng nhập mới chuyển hướng
-      const needsLogin = /^\/(admin|my|librarian|reports|recommendations)(\/|$)/.test(window.location.pathname);
+      const needsLogin = /^\/(admin|my|librarian|reports|recommendations|account)(\/|$)/.test(window.location.pathname);
       if (needsLogin) window.location.assign(`/login?next=${encodeURIComponent(here)}`);
     };
     window.addEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
@@ -86,6 +88,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }, []);
 
+  const updateUser = useCallback((next: User) => setUser(next), []);
+
   const can = useCallback(
     (...roles: Role[]) => {
       if (!user) return false;
@@ -97,8 +101,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const value = useMemo<AuthState>(
-    () => ({ user, token, loading, login, logout, can }),
-    [user, token, loading, login, logout, can],
+    () => ({ user, token, loading, login, logout, updateUser, can }),
+    [user, token, loading, login, logout, updateUser, can],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

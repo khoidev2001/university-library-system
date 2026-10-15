@@ -15,7 +15,7 @@ interface Inbox {
 
 /** Chuông thông báo ở thanh đầu trang: số chưa đọc, danh sách gần đây, đánh dấu đã đọc. */
 export function NotificationBell() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
@@ -23,7 +23,8 @@ export function NotificationBell() {
   const inbox = useQuery({
     queryKey: ["notifications"],
     queryFn: () => apiFetch<Inbox>("/notifications/me", { token }),
-    enabled: !!token,
+    // Tài khoản đang dùng mật khẩu tạm bị backend chặn mọi API ngoài đổi mật khẩu
+    enabled: !!token && !user?.mustChangePassword,
     refetchInterval: 60_000,
   });
 
@@ -62,7 +63,7 @@ export function NotificationBell() {
         aria-expanded={open}
         aria-haspopup="true"
         aria-label={unread > 0 ? `Thông báo, ${unread} chưa đọc` : "Thông báo"}
-        className="relative rounded-md border border-line p-2 text-ink-soft transition-colors hover:bg-paper-2 hover:text-ink"
+        className="relative inline-flex h-10 w-10 items-center justify-center rounded-md border border-line text-ink-soft transition-colors hover:bg-paper-2 hover:text-ink"
       >
         <Bell size={16} aria-hidden="true" />
         {unread > 0 && (

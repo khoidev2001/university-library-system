@@ -15,6 +15,20 @@ export interface User {
   memberCode: string | null;
   isActive: boolean;
   createdAt?: string;
+  /** Nhận email nhắc hạn trả sách. */
+  emailReminders?: boolean;
+  /** Đang dùng mật khẩu tạm: phải đổi mật khẩu trước khi dùng tiếp. */
+  mustChangePassword?: boolean;
+  passwordChangedAt?: string | null;
+  lastLoginAt?: string | null;
+  previousLoginAt?: string | null;
+}
+
+/** Kết quả cấp mật khẩu tạm (tạo bạn đọc tại quầy / cấp lại mật khẩu): mật khẩu chỉ hiện một lần. */
+export interface TemporaryPasswordResult {
+  user: User;
+  temporaryPassword: string;
+  welcomeEmailQueued?: boolean;
 }
 
 export interface UserDetail extends User {

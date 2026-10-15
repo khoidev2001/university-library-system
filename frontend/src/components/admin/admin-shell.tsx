@@ -90,7 +90,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 <Link
                   href={item.href}
                   aria-current={isActive(item.href) ? "page" : undefined}
-                  className={`block rounded-full border px-3.5 py-1.5 text-sm ${
+                  className={`flex min-h-10 items-center rounded-full border px-3.5 py-1.5 text-sm ${
                     isActive(item.href)
                       ? "border-ink bg-ink text-paper"
                       : "border-line bg-white text-ink-soft hover:bg-paper-2"
