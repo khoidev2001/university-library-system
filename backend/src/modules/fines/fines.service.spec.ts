@@ -15,6 +15,15 @@ describe('FinesService', () => {
 
   beforeEach(async () => {
     prisma = createPrismaMock();
+    // Thu tiền mặt chạy trong transaction có khoá dòng và tra bản ghi nối với giao dịch VNPay
+    Object.assign(prisma, {
+      payment: { findMany: jest.fn().mockResolvedValue([]) },
+      paymentFine: { findFirst: jest.fn().mockResolvedValue(null) },
+    });
+    prisma.$queryRaw.mockResolvedValue([]);
+    prisma.$transaction.mockImplementation((arg: unknown) =>
+      typeof arg === 'function' ? arg(prisma) : Promise.all(arg as unknown[]),
+    );
     const moduleRef = await Test.createTestingModule({
       providers: [FinesService, { provide: PrismaService, useValue: prisma }],
     }).compile();
@@ -95,10 +104,12 @@ describe('FinesService', () => {
   });
 
   it('findMine returns the rows and the unpaid total', async () => {
-    prisma.fine.findMany.mockResolvedValue([{ id: 1, amount: 5000 }]);
+    prisma.fine.findMany.mockResolvedValue([
+      { id: 1, amount: 5000, paymentLinks: [] },
+    ]);
     prisma.fine.aggregate.mockResolvedValue({ _sum: { amount: 5000 } });
     expect(await service.findMine(7)).toEqual({
-      items: [{ id: 1, amount: 5000 }],
+      items: [{ id: 1, amount: 5000, onlinePayment: null }],
       unpaidTotal: 5000,
     });
   });
@@ -128,6 +139,7 @@ describe('FinesService', () => {
         id: 1,
         paidToId: 2,
         paidAt: new Date(),
+        paymentLinks: [],
       });
       const fine = await service.pay(1, 2);
       expect(fine).toMatchObject({ paidToId: 2 });
@@ -144,6 +156,22 @@ describe('FinesService', () => {
       await expect(service.pay(1, 2)).rejects.toMatchObject({
         code: 'FINE_ALREADY_PAID',
       });
+    });
+
+    it('refuses cash while the fine sits in a live PENDING VNPay payment', async () => {
+      prisma.fine.findUnique.mockResolvedValue({ id: 1, paidAt: null });
+      (
+        prisma as unknown as { paymentFine: { findFirst: jest.Mock } }
+      ).paymentFine.findFirst.mockResolvedValue({
+        payment: {
+          status: 'PENDING',
+          expiresAt: new Date(Date.now() + 60_000),
+        },
+      });
+      await expect(service.pay(1, 2)).rejects.toMatchObject({
+        code: 'FINE_PAYMENT_PENDING',
+      });
+      expect(prisma.fine.updateMany).not.toHaveBeenCalled();
     });
 
     it('refuses to collect twice and 404s an unknown fine', async () => {

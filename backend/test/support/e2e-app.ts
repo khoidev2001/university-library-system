@@ -115,6 +115,7 @@ export async function cleanupE2eData(
     where: { OR: [{ userId: { in: userIds } }, { bookId: { in: bookIds } }] },
   });
   await prisma.notification.deleteMany({ where: { userId: { in: userIds } } });
+  await prisma.payment.deleteMany({ where: { userId: { in: userIds } } });
   await prisma.fine.deleteMany({
     where: {
       OR: [
