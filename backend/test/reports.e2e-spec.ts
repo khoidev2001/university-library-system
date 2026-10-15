@@ -185,7 +185,9 @@ describeWithDb('Báo cáo gộp bằng SQL (e2e)', () => {
       const after = await read();
 
       expect(Object.keys(after)).toEqual([prevKey, thisKey]);
-      expect(after[thisKey] - before[thisKey]).toBe(1);
+      // Các e2e khác chạy song song cũng tạo phiếu trong tháng hiện tại nên chỉ đòi ít nhất 1.
+      // Tháng trước thì không suite nào đụng tới: nếu phiếu 01:00 bị xếp theo UTC thì delta ở đây thành 2.
+      expect(after[thisKey] - before[thisKey]).toBeGreaterThanOrEqual(1);
       expect(after[prevKey] - before[prevKey]).toBe(1);
     });
   });
