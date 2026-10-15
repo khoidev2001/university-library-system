@@ -6,6 +6,7 @@ import { useState } from "react";
 import { apiFetch, describeDueDate, formatCurrency, formatDate } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { Fine, Loan, LoanStatus, Page } from "@/lib/types";
+import { ExportButtons } from "../export-buttons";
 import { Badge, PageHeading, RiskMeter, Spinner, inputClass } from "../ui";
 import { Pagination, TableShell, Th, Toolbar, errorText, useNotice } from "./admin-ui";
 
@@ -122,7 +123,7 @@ export function LoansAdminView() {
                 setFilter(item.value);
                 setPage(1);
               }}
-              className={`rounded-md px-3.5 py-1.5 text-sm ${
+              className={`min-h-10 rounded-md px-3.5 py-1.5 text-sm ${
                 filter === item.value ? "bg-ink font-medium text-paper" : "text-ink-soft hover:bg-paper-2"
               }`}
             >
@@ -150,6 +151,14 @@ export function LoansAdminView() {
           />
         </form>
       </Toolbar>
+
+      <ExportButtons
+        className="mt-4"
+        dataset="loans"
+        subject="phiếu mượn"
+        dateRange
+        params={filter === "OVERDUE" ? { overdue: true } : filter === "ALL" ? {} : { status: filter }}
+      />
 
       <div className="mt-5">
         {loans.isLoading ? (

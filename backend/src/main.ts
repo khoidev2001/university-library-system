@@ -9,7 +9,11 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
   app.enableCors({
     origin: (process.env.CORS_ORIGINS ?? 'http://localhost').split(','),
-    exposedHeaders: ['X-Total-Count'],
+    exposedHeaders: [
+      'X-Total-Count',
+      'X-Export-Truncated',
+      'Content-Disposition',
+    ],
   });
   app.useGlobalPipes(
     new ValidationPipe({

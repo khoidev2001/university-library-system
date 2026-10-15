@@ -7,6 +7,7 @@ import { CopiesController } from '../copies/copies.controller';
 import { CopiesService } from '../copies/copies.service';
 import { BooksController } from './books.controller';
 import { BooksService } from './books.service';
+import { BookImportService } from './import/book-import.service';
 import { GoogleBooksClient } from './google-books.client';
 
 /** F2 + F5: sách, tác giả, thể loại, bản sao — một module vì dùng chung entity Book. */
@@ -19,6 +20,7 @@ import { GoogleBooksClient } from './google-books.client';
   ],
   providers: [
     BooksService,
+    BookImportService,
     AuthorsService,
     CategoriesService,
     CopiesService,

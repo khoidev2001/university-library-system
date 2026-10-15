@@ -313,6 +313,8 @@ model ReminderEmail {
   @@unique([loanId, kind])
   @@index([status, id])
   @@map("reminder_emails")
+}
+
 // ===== Thanh toán phạt trực tuyến (VNPay) =====
 enum PaymentStatus {
   PENDING // đã tạo, chờ bạn đọc trả tiền / chờ IPN

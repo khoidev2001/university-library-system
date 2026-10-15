@@ -6,6 +6,7 @@ import { useState } from "react";
 import { apiFetch, formatCurrency, formatDate, formatDateTime } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { Fine, Page } from "@/lib/types";
+import { ExportButtons } from "../export-buttons";
 import { Badge, PageHeading, Spinner } from "../ui";
 import { Pagination, TableShell, Th, Toolbar, errorText, useNotice } from "./admin-ui";
 
@@ -99,6 +100,14 @@ export function FinesAdminView() {
           </p>
         )}
       </Toolbar>
+
+      <ExportButtons
+        className="mt-4"
+        dataset="fines"
+        subject="khoản phạt"
+        dateRange
+        params={filter === "PAID" ? { paid: true } : filter === "UNPAID" ? { paid: false } : {}}
+      />
 
       <div className="mt-5">
         {fines.isLoading ? (

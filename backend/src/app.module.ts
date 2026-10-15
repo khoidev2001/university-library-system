@@ -8,6 +8,7 @@ import { RolesGuard } from './common/guards/roles.guard';
 import { RejectNullBytePipe } from './common/pipes/reject-null-byte.pipe';
 import { AuthModule } from './modules/auth/auth.module';
 import { CatalogModule } from './modules/books/catalog.module';
+import { ExportsModule } from './modules/exports/exports.module';
 import { HealthModule } from './modules/health/health.module';
 import { MailModule } from './modules/mail/mail.module';
 import { CirculationModule } from './modules/loans/circulation.module';
@@ -30,6 +31,7 @@ import { PrismaModule } from './prisma/prisma.module';
     CatalogModule,
     CirculationModule,
     RecommendationsModule,
+    ExportsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
