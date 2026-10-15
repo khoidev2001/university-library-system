@@ -78,6 +78,13 @@ const BUSINESS_MESSAGES: Record<string, string> = {
   PAYLOAD_TOO_LARGE: "Dữ liệu gửi lên quá lớn.",
   REFERENCE_CONFLICT: "Dữ liệu đang được nơi khác sử dụng nên chưa thay đổi được.",
   AI_UNAVAILABLE: "Dịch vụ gợi ý tạm thời không phản hồi.",
+  PAYMENT_NOT_CONFIGURED: "Thanh toán trực tuyến chưa được bật. Vui lòng nộp phạt tại quầy thủ thư.",
+  FINE_PAYMENT_PENDING:
+    "Khoản phạt đang chờ thanh toán trực tuyến. Hãy hoàn tất hoặc huỷ giao dịch chờ (hoặc đợi 15 phút) rồi thử lại.",
+  NO_UNPAID_FINES: "Bạn không có khoản phạt nào cần thanh toán.",
+  PAYMENT_AMOUNT_TOO_SMALL: "VNPay yêu cầu tối thiểu 5.000đ mỗi giao dịch. Hãy chọn thêm khoản phạt hoặc nộp tại quầy.",
+  PAYMENT_AMOUNT_TOO_LARGE: "Số tiền vượt hạn mức một giao dịch. Hãy chọn bớt khoản phạt hoặc nộp tại quầy.",
+  PAYMENT_NOT_PENDING: "Giao dịch này không còn ở trạng thái chờ thanh toán.",
 };
 
 interface RequestOptions extends Omit<RequestInit, "body"> {
@@ -120,6 +127,16 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
 
 export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 }).format(amount);
+}
+
+export function formatDateTime(value: string | Date): string {
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
 }
 
 export function formatDate(value: string | Date): string {

@@ -101,9 +101,55 @@ export interface Fine {
   type: FineType;
   amount: number;
   paidAt: string | null;
+  /** null khi khoản phạt được thanh toán online (không qua thủ thư). */
   paidToId: number | null;
   createdAt: string;
   loan?: Loan;
+  /** Giao dịch VNPay đang giữ hoặc đã thanh toán khoản phạt này. */
+  onlinePayment?: FineOnlinePayment | null;
+}
+
+export type PaymentStatus = "PENDING" | "PAID" | "FAILED" | "EXPIRED" | "CANCELLED";
+
+export interface FineOnlinePayment {
+  id: number;
+  txnRef: string;
+  status: PaymentStatus;
+  vnpTransactionNo: string | null;
+  bankCode: string | null;
+  paidAt: string | null;
+  expiresAt: string;
+}
+
+export interface Payment {
+  id: number;
+  txnRef: string;
+  amount: number;
+  status: PaymentStatus;
+  vnpTransactionNo: string | null;
+  bankCode: string | null;
+  responseCode: string | null;
+  needsRefund: boolean;
+  createdAt: string;
+  paidAt: string | null;
+  expiresAt: string;
+  user: { id: number; fullName: string; memberCode: string | null };
+  fines: { id: number; type: FineType; amount: number; loanId: number; bookTitle: string }[];
+}
+
+export interface PaymentConfig {
+  online: boolean;
+  minAmount: number;
+  maxAmount: number;
+  ttlMinutes: number;
+}
+
+export interface CreatedPayment {
+  paymentUrl: string;
+  paymentId: number;
+  txnRef: string;
+  amount: number;
+  expiresAt: string;
 }
 
 export interface LoanPolicy {

@@ -19,6 +19,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "seed:loans": "ts-node prisma/seed/simulate-loans.ts",
+    "vnpay:callback": "ts-node scripts/vnpay-callback.ts",
     "build:seed": "pnpm exec tsc -p tsconfig.seed.json",
     "seed:prod": "node dist-seed/index.js",
     "seed:loans:prod": "node dist-seed/simulate-loans.js"

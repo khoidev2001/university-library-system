@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { apiFetch, formatCurrency, formatDate } from "@/lib/api";
+import { apiFetch, formatCurrency, formatDate, formatDateTime } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { Fine, Page } from "@/lib/types";
 import { Badge, PageHeading, Spinner } from "../ui";
@@ -50,6 +50,18 @@ export function FinesAdminView() {
     onError: (error) => show("bad", errorText(error, "Không ghi nhận được khoản thu.")),
   });
 
+  const cancelOnline = useMutation({
+    mutationFn: (paymentId: number) => apiFetch(`/payments/${paymentId}/cancel`, { method: "POST", token }),
+    onSuccess: () => {
+      show("good", "Đã huỷ giao dịch VNPay đang chờ. Giờ có thể thu tiền mặt khoản phạt này.");
+      queryClient.invalidateQueries({ queryKey: ["admin-fines"] });
+    },
+    onError: (error) => {
+      show("bad", errorText(error, "Không huỷ được giao dịch."));
+      queryClient.invalidateQueries({ queryKey: ["admin-fines"] });
+    },
+  });
+
   const pageTotal = (fines.data?.items ?? []).reduce((sum, fine) => sum + fine.amount, 0);
 
   return (
@@ -57,7 +69,7 @@ export function FinesAdminView() {
       <PageHeading
         eyebrow="Nghiệp vụ"
         title="Khoản phạt"
-        description="Ghi nhận thu tiền mặt tại quầy. Bạn đọc còn nợ phạt sẽ chưa mượn thêm được sách."
+        description="Ghi nhận thu tiền mặt tại quầy; khoản bạn đọc trả qua VNPay tự được ghi nhận. Bạn đọc còn nợ phạt sẽ chưa mượn thêm được sách."
       />
       {node}
 
@@ -73,7 +85,7 @@ export function FinesAdminView() {
                 setFilter(item.value);
                 setPage(1);
               }}
-              className={`rounded-md px-3.5 py-1.5 text-sm ${
+              className={`min-h-10 rounded-md px-3.5 py-1.5 text-sm ${
                 filter === item.value ? "bg-ink font-medium text-paper" : "text-ink-soft hover:bg-paper-2"
               }`}
             >
@@ -121,8 +133,25 @@ export function FinesAdminView() {
                   <td className="px-4 py-3">
                     {fine.paidAt ? (
                       <span className="space-y-1">
-                        <Badge tone="good">Đã thu</Badge>
+                        {fine.onlinePayment?.status === "PAID" ? (
+                          <Badge tone="info">Đã thanh toán qua VNPay</Badge>
+                        ) : (
+                          <Badge tone="good">Đã thu</Badge>
+                        )}
                         <span className="block text-xs text-ink-faint">{formatDate(fine.paidAt)}</span>
+                        {fine.onlinePayment?.status === "PAID" && (
+                          <span className="block text-xs text-ink-faint">
+                            GD {fine.onlinePayment.vnpTransactionNo ?? fine.onlinePayment.txnRef}
+                            {fine.onlinePayment.bankCode ? ` · ${fine.onlinePayment.bankCode}` : ""}
+                          </span>
+                        )}
+                      </span>
+                    ) : fine.onlinePayment?.status === "PENDING" ? (
+                      <span className="space-y-1">
+                        <Badge tone="warn">Đang chờ thanh toán VNPay</Badge>
+                        <span className="block text-xs text-ink-faint">
+                          Hết hạn {formatDateTime(fine.onlinePayment.expiresAt)}
+                        </span>
                       </span>
                     ) : (
                       <Badge tone="warn">Chưa thu</Badge>
@@ -130,7 +159,26 @@ export function FinesAdminView() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end">
-                      {!fine.paidAt && (
+                      {!fine.paidAt && fine.onlinePayment?.status === "PENDING" && (
+                        <button
+                          type="button"
+                          aria-label={`Huỷ giao dịch VNPay đang chờ của ${fine.loan?.user.fullName ?? "bạn đọc"}`}
+                          disabled={cancelOnline.isPending}
+                          onClick={() => {
+                            if (
+                              window.confirm(
+                                `Huỷ giao dịch VNPay đang chờ của ${fine.loan?.user.fullName}? Nếu bạn đọc vẫn trả bên VNPay, khoản tiền đó sẽ cần hoàn lại.`,
+                              )
+                            ) {
+                              cancelOnline.mutate(fine.onlinePayment!.id);
+                            }
+                          }}
+                          className="min-h-10 whitespace-nowrap rounded-md border border-line px-3 py-1.5 text-xs font-medium hover:bg-paper-2 disabled:opacity-50"
+                        >
+                          Huỷ giao dịch chờ
+                        </button>
+                      )}
+                      {!fine.paidAt && fine.onlinePayment?.status !== "PENDING" && (
                         <button
                           type="button"
                           aria-label={`Thu tiền phạt của ${fine.loan?.user.fullName ?? "bạn đọc"}`}
@@ -144,7 +192,7 @@ export function FinesAdminView() {
                               pay.mutate(fine);
                             }
                           }}
-                          className="rounded-md border border-line px-3 py-1.5 text-xs font-medium hover:bg-paper-2 disabled:opacity-50"
+                          className="min-h-10 whitespace-nowrap rounded-md border border-line px-3 py-1.5 text-xs font-medium hover:bg-paper-2 disabled:opacity-50"
                         >
                           Thu tiền
                         </button>
