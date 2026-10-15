@@ -1,8 +1,13 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, Res } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
+import { Response } from 'express';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { LoansByMonthQueryDto, TopBooksQueryDto } from './dto/reports.dto';
+import {
+  LoansByMonthQueryDto,
+  OverdueQueryDto,
+  TopBooksQueryDto,
+} from './dto/reports.dto';
 import { ReportsService } from './reports.service';
 
 @ApiTags('reports')
@@ -22,8 +27,16 @@ export class ReportsController {
   @ApiOperation({
     summary: 'Bạn đọc đang quá hạn kèm số ngày trễ và phạt ước tính',
   })
-  overdue() {
-    return this.reports.overdueReaders();
+  async overdue(
+    @Query() query: OverdueQueryDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const [rows, total] = await Promise.all([
+      this.reports.overdueReaders(new Date(), query.limit),
+      this.reports.countOverdue(),
+    ]);
+    res.setHeader('X-Total-Count', String(total));
+    return rows;
   }
 
   @Get('loans-by-month')

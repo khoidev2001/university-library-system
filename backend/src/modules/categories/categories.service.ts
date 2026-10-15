@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Category } from '@prisma/client';
 import { BusinessException } from '../../common/exceptions/business.exception';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -33,6 +37,10 @@ export class CategoriesService {
 
   async create(dto: CreateCategoryDto): Promise<Category> {
     const slug = dto.slug ?? slugify(dto.name);
+    if (!slug)
+      throw new BadRequestException(
+        'Tên thể loại phải có ít nhất một chữ cái hoặc chữ số',
+      );
     const clash = await this.prisma.category.findFirst({
       where: { OR: [{ name: dto.name }, { slug }] },
     });
@@ -47,6 +55,10 @@ export class CategoriesService {
       name: dto.name,
       slug: dto.slug ?? (dto.name ? slugify(dto.name) : undefined),
     };
+    if (data.slug === '')
+      throw new BadRequestException(
+        'Tên thể loại phải có ít nhất một chữ cái hoặc chữ số',
+      );
     const clash = await this.prisma.category.findFirst({
       where: {
         id: { not: id },

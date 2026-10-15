@@ -1,5 +1,5 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
-import { CopyStatus, LoanStatus } from '@prisma/client';
+import { CopyStatus } from '@prisma/client';
 import { BusinessException } from '../../common/exceptions/business.exception';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AiClient, AiUnavailableError } from '../ai/ai.client';
@@ -163,24 +163,22 @@ export class RecommendationsService {
     actuallyLate: number;
     hitRate: number | null;
   }> {
-    const loans = await this.prisma.loan.findMany({
-      where: {
-        predictedOverdueRisk: { not: null },
-        status: LoanStatus.RETURNED,
-      },
-      select: { predictedOverdueRisk: true, dueAt: true, returnedAt: true },
-    });
-    const high = loans.filter((l) => (l.predictedOverdueRisk ?? 0) >= 0.5);
-    const lateAmongHigh = high.filter(
-      (l) => l.returnedAt && l.returnedAt > l.dueAt,
-    ).length;
+    // Gộp trong SQL: trước đây kéo mọi phiếu có dự báo về Node, tăng mãi theo số lượt mượn.
+    const [row] = await this.prisma.$queryRaw<
+      { sampled: number; high: number; late: number }[]
+    >`
+      SELECT COUNT(*)::int AS sampled,
+             COUNT(*) FILTER (WHERE predicted_overdue_risk >= 0.5)::int AS high,
+             COUNT(*) FILTER (
+               WHERE predicted_overdue_risk >= 0.5 AND returned_at > due_at
+             )::int AS late
+      FROM loans
+      WHERE predicted_overdue_risk IS NOT NULL AND status = 'RETURNED'::"LoanStatus"`;
     return {
-      sampled: loans.length,
-      predictedHigh: high.length,
-      actuallyLate: lateAmongHigh,
-      hitRate: high.length
-        ? Number((lateAmongHigh / high.length).toFixed(3))
-        : null,
+      sampled: row.sampled,
+      predictedHigh: row.high,
+      actuallyLate: row.late,
+      hitRate: row.high ? Number((row.late / row.high).toFixed(3)) : null,
     };
   }
 }

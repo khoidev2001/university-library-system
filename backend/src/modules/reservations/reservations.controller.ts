@@ -4,7 +4,6 @@ import {
   Delete,
   Get,
   Param,
-  ParseIntPipe,
   Post,
   Query,
 } from '@nestjs/common';
@@ -15,6 +14,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
+import { ParseIdPipe } from '../../common/pipes/parse-id.pipe';
 import {
   CurrentUser,
   JwtUser,
@@ -62,7 +62,7 @@ export class ReservationsController {
   @ApiOperation({
     summary: 'Huỷ đặt trước (bạn đọc: của mình; thủ thư: bất kỳ)',
   })
-  cancel(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: JwtUser) {
+  cancel(@Param('id', ParseIdPipe) id: number, @CurrentUser() user: JwtUser) {
     return this.reservations.cancel(id, user.id, user.role);
   }
 }

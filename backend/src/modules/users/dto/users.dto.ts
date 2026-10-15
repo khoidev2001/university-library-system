@@ -17,6 +17,7 @@ export class QueryUsersDto extends PaginationDto {
   @ApiPropertyOptional({ description: 'Tìm theo tên, email, mã SV/GV' })
   @IsOptional()
   @IsString()
+  @MaxLength(100)
   q?: string;
 
   @ApiPropertyOptional({ enum: Role })

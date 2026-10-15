@@ -75,43 +75,48 @@ export class ReservationsService {
         'Sách đang còn trên kệ, bạn đến quầy mượn trực tiếp',
       );
 
-    const borrowing = await this.prisma.loan.count({
-      where: {
-        userId,
-        status: LoanStatus.ACTIVE,
-        copy: { bookId },
-      },
-    });
-    if (borrowing > 0)
-      throw new BusinessException(
-        'ALREADY_BORROWING',
-        'Bạn đang mượn cuốn sách này',
-      );
+    // Khoá hàng bạn đọc rồi mới kiểm tra + ghi: nhiều yêu cầu đồng thời của cùng một người
+    // xếp hàng nối đuôi, nên không thể vượt hạn mức hay đặt trùng một cuốn.
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM users WHERE id = ${userId} FOR UPDATE`;
+      const borrowing = await tx.loan.count({
+        where: {
+          userId,
+          status: LoanStatus.ACTIVE,
+          copy: { bookId },
+        },
+      });
+      if (borrowing > 0)
+        throw new BusinessException(
+          'ALREADY_BORROWING',
+          'Bạn đang mượn cuốn sách này',
+        );
 
-    const mine = await this.prisma.reservation.findMany({
-      where: { userId, status: { in: ACTIVE } },
-      select: { bookId: true },
-    });
-    if (mine.some((r) => r.bookId === bookId))
-      throw new BusinessException(
-        'ALREADY_RESERVED',
-        'Bạn đã đặt trước cuốn sách này',
-      );
-    if (mine.length >= MAX_ACTIVE_RESERVATIONS)
-      throw new BusinessException(
-        'RESERVATION_LIMIT',
-        `Mỗi bạn đọc đặt trước tối đa ${MAX_ACTIVE_RESERVATIONS} cuốn cùng lúc`,
-      );
-    const unpaid = await this.fines.unpaidTotal(userId);
-    if (unpaid > 0)
-      throw new BusinessException(
-        'UNPAID_FINE',
-        `Bạn còn ${unpaid.toLocaleString('vi-VN')}đ phạt chưa thanh toán`,
-      );
+      const mine = await tx.reservation.findMany({
+        where: { userId, status: { in: ACTIVE } },
+        select: { bookId: true },
+      });
+      if (mine.some((r) => r.bookId === bookId))
+        throw new BusinessException(
+          'ALREADY_RESERVED',
+          'Bạn đã đặt trước cuốn sách này',
+        );
+      if (mine.length >= MAX_ACTIVE_RESERVATIONS)
+        throw new BusinessException(
+          'RESERVATION_LIMIT',
+          `Mỗi bạn đọc đặt trước tối đa ${MAX_ACTIVE_RESERVATIONS} cuốn cùng lúc`,
+        );
+      const unpaid = await this.fines.unpaidTotal(userId, tx);
+      if (unpaid > 0)
+        throw new BusinessException(
+          'UNPAID_FINE',
+          `Bạn còn ${unpaid.toLocaleString('vi-VN')}đ phạt chưa thanh toán`,
+        );
 
-    return this.prisma.reservation.create({
-      data: { userId, bookId },
-      include: reservationInclude,
+      return tx.reservation.create({
+        data: { userId, bookId },
+        include: reservationInclude,
+      });
     });
   }
 
@@ -204,15 +209,23 @@ export class ReservationsService {
     bookId: number,
     at: Date = new Date(),
   ): Promise<void> {
-    const next = await tx.reservation.findFirst({
-      where: {
-        bookId,
-        status: ReservationStatus.WAITING,
-        user: { isActive: true },
-      },
-      orderBy: { id: 'asc' },
-      include: { book: { select: { title: true } } },
-    });
+    // SKIP LOCKED: hai bản sao trả về cùng lúc không thể cùng chọn một người xếp hàng đầu
+    // (người thứ hai nhận lượt kế tiếp, hoặc bản sao về AVAILABLE nếu hết người chờ).
+    const [pick] = await tx.$queryRaw<{ id: number }[]>`
+      SELECT r.id FROM reservations r
+      JOIN users u ON u.id = r.user_id
+      WHERE r.book_id = ${bookId}
+        AND r.status = 'WAITING'::"ReservationStatus"
+        AND u.is_active
+      ORDER BY r.id ASC
+      LIMIT 1
+      FOR UPDATE OF r SKIP LOCKED`;
+    const next = pick
+      ? await tx.reservation.findUnique({
+          where: { id: pick.id },
+          include: { book: { select: { title: true } } },
+        })
+      : null;
     if (!next) {
       await tx.bookCopy.update({
         where: { id: copyId },
@@ -253,18 +266,16 @@ export class ReservationsService {
     copyId: number,
     userId: number,
   ): Promise<void> {
-    const res = await tx.reservation.findFirst({
-      where: { copyId, status: ReservationStatus.READY },
+    // Một câu UPDATE có điều kiện: chỉ đúng người đặt và chỉ một lần (mượn đồng thời không nhân đôi).
+    const fulfilled = await tx.reservation.updateMany({
+      where: { copyId, userId, status: ReservationStatus.READY },
+      data: { status: ReservationStatus.FULFILLED },
     });
-    if (!res || res.userId !== userId)
+    if (fulfilled.count === 0)
       throw new BusinessException(
         'COPY_HELD',
         'Bản sao đang được giữ cho bạn đọc đã đặt trước',
       );
-    await tx.reservation.update({
-      where: { id: res.id },
-      data: { status: ReservationStatus.FULFILLED },
-    });
   }
 
   /** Quá hạn nhận sách: huỷ giữ, trả bản sao về hàng đợi người kế tiếp. */

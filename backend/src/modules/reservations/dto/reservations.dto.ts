@@ -1,14 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ReservationStatus } from '@prisma/client';
-import { Type } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional, Min } from 'class-validator';
+import { IsEnum, IsOptional } from 'class-validator';
+import { IsEntityId } from '../../../common/dto/entity-id.decorator';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
 
 export class CreateReservationDto {
   @ApiProperty({ example: 1, description: 'Mã đầu sách cần đặt' })
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
+  @IsEntityId()
   bookId: number;
 }
 
@@ -20,7 +18,6 @@ export class QueryReservationsDto extends PaginationDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @Type(() => Number)
-  @IsInt()
+  @IsEntityId()
   bookId?: number;
 }

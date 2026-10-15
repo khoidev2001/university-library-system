@@ -3,9 +3,9 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   HttpCode,
   Param,
-  ParseIntPipe,
   Patch,
   Post,
 } from '@nestjs/common';
@@ -16,6 +16,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
+import { STATIC_CACHE } from '../../common/cache-control';
+import { ParseIdPipe } from '../../common/pipes/parse-id.pipe';
 import { Public } from '../../common/decorators/public.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CategoriesService } from './categories.service';
@@ -28,6 +30,7 @@ export class CategoriesController {
 
   @Public()
   @Get()
+  @Header('Cache-Control', STATIC_CACHE)
   @ApiOperation({ summary: 'Danh sách thể loại kèm số sách' })
   findAll() {
     return this.categories.findAll();
@@ -44,10 +47,7 @@ export class CategoriesController {
   @Patch(':id')
   @ApiBearerAuth()
   @Roles(Role.LIBRARIAN)
-  update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdateCategoryDto,
-  ) {
+  update(@Param('id', ParseIdPipe) id: number, @Body() dto: UpdateCategoryDto) {
     return this.categories.update(id, dto);
   }
 
@@ -56,7 +56,7 @@ export class CategoriesController {
   @Roles(Role.LIBRARIAN)
   @HttpCode(204)
   @ApiResponse({ status: 409, description: 'CATEGORY_IN_USE' })
-  remove(@Param('id', ParseIntPipe) id: number) {
+  remove(@Param('id', ParseIdPipe) id: number) {
     return this.categories.remove(id);
   }
 }

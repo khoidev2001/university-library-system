@@ -60,3 +60,45 @@ export function overdueCutoff(
 export function addDays(from: Date, days: number): Date {
   return new Date(from.getTime() + days * MS_PER_DAY);
 }
+
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Mốc nửa đêm đầu ngày `YYYY-MM-DD` theo giờ thư viện, quy về UTC.
+ * Ngày không có thật ("2026-02-31", V8 tự đổi thành 03-03) trả Invalid Date để người gọi từ chối.
+ */
+function libraryDayStart(dateOnly: string, offsetMinutes: number): Date {
+  const utcMidnight = new Date(`${dateOnly}T00:00:00.000Z`);
+  if (
+    isNaN(utcMidnight.getTime()) ||
+    utcMidnight.toISOString().slice(0, 10) !== dateOnly
+  )
+    return new Date(NaN);
+  return new Date(utcMidnight.getTime() - offsetMinutes * 60_000);
+}
+
+/**
+ * Đầu khoảng lọc (bao gồm): "2026-01-01" là 00:00 ngày đó theo giờ thư viện;
+ * chuỗi có giờ thì dùng nguyên.
+ */
+export function rangeStart(
+  value: string,
+  offsetMinutes: number = LIBRARY_UTC_OFFSET_MINUTES,
+): Date {
+  return DATE_ONLY.test(value)
+    ? libraryDayStart(value, offsetMinutes)
+    : new Date(value);
+}
+
+/**
+ * Cuối khoảng lọc (LOẠI TRỪ, dùng với `<`): "2026-12-31" bao trọn cả ngày 31
+ * (đến 00:00 ngày 1/1); chuỗi có giờ thì lấy đúng thời điểm đó cộng 1ms để vẫn tính phiếu lúc đó.
+ */
+export function rangeEnd(
+  value: string,
+  offsetMinutes: number = LIBRARY_UTC_OFFSET_MINUTES,
+): Date {
+  return DATE_ONLY.test(value)
+    ? addDays(libraryDayStart(value, offsetMinutes), 1)
+    : new Date(new Date(value).getTime() + 1);
+}

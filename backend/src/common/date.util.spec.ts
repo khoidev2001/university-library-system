@@ -1,4 +1,11 @@
-import { addDays, isOverdue, overdueCutoff, overdueDays } from './date.util';
+import {
+  addDays,
+  isOverdue,
+  overdueCutoff,
+  rangeEnd,
+  rangeStart,
+  overdueDays,
+} from './date.util';
 
 // Giờ thư viện mặc định UTC+7: 2026-10-05T09:00Z = 16:00 ngày 05/10 giờ Việt Nam.
 const NOW = new Date('2026-10-05T09:00:00.000Z');
@@ -81,5 +88,34 @@ describe('addDays', () => {
   it('cộng đúng số ngày và giữ nguyên giờ', () => {
     expect(addDays(NOW, 14)).toEqual(new Date('2026-10-19T09:00:00.000Z'));
     expect(addDays(NOW, 0)).toEqual(NOW);
+  });
+});
+
+describe('rangeStart / rangeEnd (lọc báo cáo theo ngày giờ thư viện)', () => {
+  it('ngày dạng YYYY-MM-DD bắt đầu lúc 00:00 giờ VN và kết thúc (loại trừ) lúc 00:00 ngày kế tiếp', () => {
+    expect(rangeStart('2026-01-01')).toEqual(
+      new Date('2025-12-31T17:00:00.000Z'),
+    );
+    expect(rangeEnd('2026-12-31')).toEqual(
+      new Date('2026-12-31T17:00:00.000Z'),
+    );
+    // to = from = một ngày: khoảng [00:00, 24:00) của đúng ngày đó
+    expect(
+      rangeEnd('2026-03-15').getTime() - rangeStart('2026-03-15').getTime(),
+    ).toBe(24 * 60 * 60 * 1000);
+  });
+
+  it('chuỗi có giờ dùng nguyên; đầu mút cuối cộng 1ms để phiếu đúng thời điểm đó vẫn được tính', () => {
+    expect(rangeStart('2026-03-15T10:00:00Z')).toEqual(
+      new Date('2026-03-15T10:00:00Z'),
+    );
+    expect(rangeEnd('2026-03-15T10:00:00Z')).toEqual(
+      new Date('2026-03-15T10:00:00.001Z'),
+    );
+  });
+
+  it('ngày không có thật cho Invalid Date thay vì tự trôi sang tháng sau', () => {
+    expect(isNaN(rangeStart('2026-02-31').getTime())).toBe(true);
+    expect(isNaN(rangeEnd('2026-13-01').getTime())).toBe(true);
   });
 });

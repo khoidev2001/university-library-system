@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { CopyStatus, LoanStatus, MemberType } from '@prisma/client';
 import { overdueCutoff } from '../../common/date.util';
@@ -31,18 +32,14 @@ describe('ReportsService', () => {
   });
 
   describe('topBooks', () => {
-    it('ranks by loan count and respects the limit', async () => {
-      prisma.loan.findMany.mockResolvedValue([
-        { copy: { bookId: 1 } },
-        { copy: { bookId: 1 } },
-        { copy: { bookId: 2 } },
-        { copy: { bookId: 1 } },
-        { copy: { bookId: 2 } },
-        { copy: { bookId: 3 } },
+    it('ranks the SQL aggregate and keeps its order, enriched with book data', async () => {
+      prisma.$queryRaw.mockResolvedValue([
+        { bookId: 1, loanCount: 3 },
+        { bookId: 2, loanCount: 2 },
       ]);
       prisma.book.findMany.mockResolvedValue([
-        { id: 1, title: 'A', coverUrl: null },
         { id: 2, title: 'B', coverUrl: null },
+        { id: 1, title: 'A', coverUrl: null },
       ]);
 
       const rows = await service.topBooks(
@@ -55,8 +52,8 @@ describe('ReportsService', () => {
       ]);
     });
 
-    it('passes the date range through and returns [] with no loans', async () => {
-      prisma.loan.findMany.mockResolvedValue([]);
+    it('returns [] with no loans and rejects dates that are not real days', async () => {
+      prisma.$queryRaw.mockResolvedValue([]);
       const rows = await service.topBooks(
         Object.assign(new TopBooksQueryDto(), {
           from: '2026-01-01',
@@ -64,11 +61,13 @@ describe('ReportsService', () => {
         }),
       );
       expect(rows).toEqual([]);
-      expect(prisma.loan.findMany.mock.calls[0][0].where.borrowedAt).toEqual({
-        gte: new Date('2026-01-01'),
-        lte: new Date('2026-06-30'),
-      });
       expect(prisma.book.findMany).not.toHaveBeenCalled();
+
+      await expect(
+        service.topBooks(
+          Object.assign(new TopBooksQueryDto(), { from: '2026-02-31' }),
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
     });
   });
 
@@ -100,11 +99,26 @@ describe('ReportsService', () => {
     });
   });
 
-  it('loansByMonth keeps empty months at 0 and counts the rest', async () => {
-    prisma.loan.findMany.mockResolvedValue([
-      { borrowedAt: new Date('2026-10-01T00:00:00.000Z') },
-      { borrowedAt: new Date('2026-10-04T00:00:00.000Z') },
-      { borrowedAt: new Date('2026-08-15T00:00:00.000Z') },
+  it('overdueReaders caps the number of rows and countOverdue ignores the cap', async () => {
+    prisma.loan.findMany.mockResolvedValue([]);
+    await service.overdueReaders(NOW, 50);
+    expect(prisma.loan.findMany.mock.calls[0][0].take).toBe(50);
+    await service.overdueReaders(NOW);
+    expect(prisma.loan.findMany.mock.calls[1][0].take).toBe(5000);
+
+    prisma.loan.count.mockResolvedValue(24000);
+    expect(await service.countOverdue(NOW)).toBe(24000);
+    expect(prisma.loan.count.mock.calls[0][0].where).toMatchObject({
+      status: LoanStatus.ACTIVE,
+      dueAt: { lt: overdueCutoff(NOW) },
+    });
+  });
+
+  it('loansByMonth keeps empty months at 0 and fills the SQL counts', async () => {
+    prisma.$queryRaw.mockResolvedValue([
+      { month: '2026-10', count: 2 },
+      { month: '2026-08', count: 1 },
+      { month: '2025-01', count: 9 }, // ngoài cửa sổ: bỏ
     ]);
 
     const rows = await service.loansByMonth(3, NOW);
@@ -121,11 +135,11 @@ describe('ReportsService', () => {
       { id: 1, name: 'Fantasy' },
       { id: 2, name: 'Trống' },
     ]);
-    prisma.bookCopy.findMany.mockResolvedValue([
-      { status: CopyStatus.AVAILABLE, book: { categoryId: 1 } },
-      { status: CopyStatus.BORROWED, book: { categoryId: 1 } },
-      { status: CopyStatus.LOST, book: { categoryId: 1 } },
-      { status: CopyStatus.MAINTENANCE, book: { categoryId: 1 } },
+    prisma.$queryRaw.mockResolvedValue([
+      { categoryId: 1, status: CopyStatus.AVAILABLE, n: 1 },
+      { categoryId: 1, status: CopyStatus.BORROWED, n: 1 },
+      { categoryId: 1, status: CopyStatus.LOST, n: 1 },
+      { categoryId: 1, status: CopyStatus.MAINTENANCE, n: 1 },
     ]);
 
     const rows = await service.inventoryByCategory();

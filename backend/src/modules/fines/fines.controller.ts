@@ -1,12 +1,4 @@
-import {
-  Controller,
-  Get,
-  HttpCode,
-  Param,
-  ParseIntPipe,
-  Post,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, HttpCode, Param, Post, Query } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -14,6 +6,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
+import { ParseIdPipe } from '../../common/pipes/parse-id.pipe';
 import {
   CurrentUser,
   JwtUser,
@@ -49,7 +42,7 @@ export class FinesController {
   @HttpCode(200)
   @ApiOperation({ summary: 'Ghi nhận bạn đọc đã nộp tiền phạt' })
   @ApiResponse({ status: 409, description: 'FINE_ALREADY_PAID' })
-  pay(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: JwtUser) {
+  pay(@Param('id', ParseIdPipe) id: number, @CurrentUser() user: JwtUser) {
     return this.fines.pay(id, user.id);
   }
 }

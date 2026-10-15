@@ -121,15 +121,29 @@ describe('FinesService', () => {
   });
 
   describe('pay', () => {
-    it('records who collected and when', async () => {
+    it('records who collected and when, with a conditional update (paid_at IS NULL)', async () => {
       prisma.fine.findUnique.mockResolvedValue({ id: 1, paidAt: null });
-      prisma.fine.update.mockImplementation(async ({ data }) => ({
+      prisma.fine.updateMany.mockResolvedValue({ count: 1 });
+      prisma.fine.findUniqueOrThrow.mockResolvedValue({
         id: 1,
-        ...data,
-      }));
+        paidToId: 2,
+        paidAt: new Date(),
+      });
       const fine = await service.pay(1, 2);
       expect(fine).toMatchObject({ paidToId: 2 });
       expect((fine as unknown as { paidAt: Date }).paidAt).toBeInstanceOf(Date);
+      expect(prisma.fine.updateMany.mock.calls[0][0]).toMatchObject({
+        where: { id: 1, paidAt: null },
+        data: { paidToId: 2 },
+      });
+    });
+
+    it('race: another librarian collected between read and write → FINE_ALREADY_PAID', async () => {
+      prisma.fine.findUnique.mockResolvedValue({ id: 1, paidAt: null });
+      prisma.fine.updateMany.mockResolvedValue({ count: 0 });
+      await expect(service.pay(1, 2)).rejects.toMatchObject({
+        code: 'FINE_ALREADY_PAID',
+      });
     });
 
     it('refuses to collect twice and 404s an unknown fine', async () => {

@@ -142,25 +142,8 @@ describe('RecommendationsService', () => {
     expect(await service.train()).toEqual({ status: 'started' });
   });
 
-  it('overdueAccuracy compares stored predictions with what actually happened', async () => {
-    prisma.loan.findMany.mockResolvedValue([
-      {
-        predictedOverdueRisk: 0.8,
-        dueAt: new Date('2026-10-01'),
-        returnedAt: new Date('2026-10-04'),
-      }, // dự báo cao, trễ thật
-      {
-        predictedOverdueRisk: 0.7,
-        dueAt: new Date('2026-10-01'),
-        returnedAt: new Date('2026-09-30'),
-      }, // dự báo cao, trả sớm
-      {
-        predictedOverdueRisk: 0.1,
-        dueAt: new Date('2026-10-01'),
-        returnedAt: new Date('2026-10-05'),
-      }, // dự báo thấp
-    ]);
-
+  it('overdueAccuracy turns the SQL aggregate into counts and a hit rate', async () => {
+    prisma.$queryRaw.mockResolvedValue([{ sampled: 3, high: 2, late: 1 }]);
     expect(await service.overdueAccuracy()).toEqual({
       sampled: 3,
       predictedHigh: 2,
@@ -170,7 +153,7 @@ describe('RecommendationsService', () => {
   });
 
   it('overdueAccuracy reports null hit rate with no high-risk sample', async () => {
-    prisma.loan.findMany.mockResolvedValue([]);
+    prisma.$queryRaw.mockResolvedValue([{ sampled: 0, high: 0, late: 0 }]);
     expect(await service.overdueAccuracy()).toMatchObject({
       sampled: 0,
       hitRate: null,
