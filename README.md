@@ -124,6 +124,7 @@ Backend gửi thư bằng HTTP tới Resend (Render gói miễn phí chặn SMTP
 | `RESEND_API_KEY` | API key Resend; bỏ trống = tắt gửi thư |
 | `MAIL_FROM` | Người gửi (tên miền đã xác minh) |
 | `APP_PUBLIC_URL` | Địa chỉ công khai của web, dùng dựng `${APP_PUBLIC_URL}/reset-password?token=...` (mặc định: mục đầu của `CORS_ORIGINS`) |
+| `RESEND_API_URL` | Chỉ để thử: trỏ tới máy chủ Resend giả (mặc định `https://api.resend.com/emails`) |
 | `MAIL_SEND_INTERVAL_MS` | Nghỉ giữa hai thư nhắc hạn, mặc định 600 ms (Resend giới hạn 2 yêu cầu/giây) |
 
 Khi test, e2e luôn thay cổng gửi thư bằng hộp thư trong bộ nhớ (`InMemoryMailSender`), không bao giờ gọi Resend.
