@@ -42,7 +42,16 @@ export interface PrismaMock {
     | 'deleteMany',
     Fn
   >;
-  notification: Record<'findUnique' | 'create' | 'createMany', Fn>;
+  notification: Record<
+    | 'findUnique'
+    | 'findFirst'
+    | 'findMany'
+    | 'count'
+    | 'create'
+    | 'createMany'
+    | 'updateMany',
+    Fn
+  >;
   author: Record<
     | 'findUnique'
     | 'findFirst'
@@ -136,7 +145,15 @@ export function createPrismaMock(): PrismaMock {
       'updateMany',
       'deleteMany',
     ),
-    notification: model('findUnique', 'create', 'createMany'),
+    notification: model(
+      'findUnique',
+      'findFirst',
+      'findMany',
+      'count',
+      'create',
+      'createMany',
+      'updateMany',
+    ),
     author: model(
       'findUnique',
       'findFirst',
