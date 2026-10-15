@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
+import { useRef } from "react";
 import { ApiError, apiFetch, formatCurrency, formatDateTime } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { Payment } from "@/lib/types";
@@ -28,13 +29,21 @@ export function PaymentResultView() {
   const idParam = Number(params.get("paymentId"));
   const paymentId = Number.isInteger(idParam) && idParam > 0 ? idParam : null;
 
+  const fetches = useRef(0);
   const payment = useQuery({
     queryKey: ["payment", paymentId],
-    queryFn: () => apiFetch<Payment>(`/payments/${paymentId}`, { token }),
+    queryFn: () => {
+      fetches.current += 1;
+      return apiFetch<Payment>(`/payments/${paymentId}`, { token });
+    },
     enabled: !!token && paymentId !== null && !error,
     refetchInterval: (query) =>
       query.state.data?.status === "PENDING" && query.state.dataUpdateCount < MAX_POLLS ? POLL_MS : false,
   });
+
+  // Đọc dataUpdatedAt để React Query báo render lại sau mỗi lần hỏi, kể cả khi dữ liệu không đổi
+  // (nếu không, bộ đếm `fetches` đổi mà màn hình vẫn kẹt ở "Đang chờ").
+  void payment.dataUpdatedAt;
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
@@ -62,7 +71,11 @@ export function PaymentResultView() {
             <Actions />
           </>
         ) : payment.data ? (
-          <Result payment={payment.data} polling={payment.isFetching} onRetry={() => payment.refetch()} />
+          <Result
+            payment={payment.data}
+            waiting={fetches.current < MAX_POLLS}
+            onRetry={() => payment.refetch()}
+          />
         ) : null}
       </div>
     </div>
@@ -77,20 +90,22 @@ function Actions() {
   );
 }
 
-function Result({ payment, polling, onRetry }: { payment: Payment; polling: boolean; onRetry: () => void }) {
+function Result({ payment, waiting, onRetry }: { payment: Payment; waiting: boolean; onRetry: () => void }) {
   const status = payment.status;
+  // Tiền về sau khi khoản phạt đã được xử lý cách khác: chỉ hiện cảnh báo hoàn tiền, không nói "chưa thanh toán"
+  const showStatusNotice = !payment.needsRefund;
   return (
     <>
-      {status === "PAID" && (
+      {showStatusNotice && status === "PAID" && (
         <Alert tone="good">
           Thanh toán thành công <strong>{formatCurrency(payment.amount)}</strong>. Các khoản phạt bên dưới đã được ghi nhận
           là đã thanh toán.
         </Alert>
       )}
-      {status === "PENDING" && (
+      {showStatusNotice && status === "PENDING" && (
         <Alert tone="info">
           <p>
-            {polling ? "Đang chờ VNPay xác nhận kết quả..." : "Chưa nhận được xác nhận từ VNPay."} Nếu bạn đã thanh toán
+            {waiting ? "Đang chờ VNPay xác nhận kết quả..." : "Chưa nhận được xác nhận từ VNPay."} Nếu bạn đã thanh toán
             xong, kết quả sẽ tự cập nhật trong ít phút; nếu chưa, bạn có thể quay lại trang tiền phạt để huỷ giao dịch.
           </p>
           <button
@@ -102,11 +117,11 @@ function Result({ payment, polling, onRetry }: { payment: Payment; polling: bool
           </button>
         </Alert>
       )}
-      {status === "FAILED" && (
+      {showStatusNotice && status === "FAILED" && (
         <Alert tone="bad">Thanh toán không thành công (mã VNPay {payment.responseCode ?? "không rõ"}). Bạn chưa bị ghi nợ thêm, có thể thử lại.</Alert>
       )}
-      {status === "CANCELLED" && <Alert tone="info">Giao dịch đã bị huỷ. Các khoản phạt vẫn chưa thanh toán.</Alert>}
-      {status === "EXPIRED" && (
+      {showStatusNotice && status === "CANCELLED" && <Alert tone="info">Giao dịch đã bị huỷ. Các khoản phạt vẫn chưa thanh toán.</Alert>}
+      {showStatusNotice && status === "EXPIRED" && (
         <Alert tone="info">Giao dịch đã hết hạn thanh toán. Các khoản phạt vẫn chưa thanh toán, bạn có thể tạo giao dịch mới.</Alert>
       )}
       {payment.needsRefund && (

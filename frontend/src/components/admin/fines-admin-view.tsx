@@ -85,7 +85,7 @@ export function FinesAdminView() {
                 setFilter(item.value);
                 setPage(1);
               }}
-              className={`rounded-md px-3.5 py-1.5 text-sm ${
+              className={`min-h-10 rounded-md px-3.5 py-1.5 text-sm ${
                 filter === item.value ? "bg-ink font-medium text-paper" : "text-ink-soft hover:bg-paper-2"
               }`}
             >
@@ -173,7 +173,7 @@ export function FinesAdminView() {
                               cancelOnline.mutate(fine.onlinePayment!.id);
                             }
                           }}
-                          className="min-h-10 rounded-md border border-line px-3 py-1.5 text-xs font-medium hover:bg-paper-2 disabled:opacity-50"
+                          className="min-h-10 whitespace-nowrap rounded-md border border-line px-3 py-1.5 text-xs font-medium hover:bg-paper-2 disabled:opacity-50"
                         >
                           Huỷ giao dịch chờ
                         </button>
@@ -192,7 +192,7 @@ export function FinesAdminView() {
                               pay.mutate(fine);
                             }
                           }}
-                          className="min-h-10 rounded-md border border-line px-3 py-1.5 text-xs font-medium hover:bg-paper-2 disabled:opacity-50"
+                          className="min-h-10 whitespace-nowrap rounded-md border border-line px-3 py-1.5 text-xs font-medium hover:bg-paper-2 disabled:opacity-50"
                         >
                           Thu tiền
                         </button>

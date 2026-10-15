@@ -199,7 +199,7 @@ export function MyFinesView() {
             {items.map((fine) => (
               <li key={fine.id} className={`${CARD} p-4`}>
                 <div className="flex items-start gap-3">
-                  <SelectBox fine={fine} checked={selected.has(fine.id)} onToggle={toggle} enabled={online} />
+                  <SelectBox fine={fine} checked={selected.has(fine.id)} onToggle={toggle} enabled={online} compact />
                   <div className="min-w-0 flex-1">
                     <p className="font-medium">{fine.loan?.copy.book.title ?? `Phiếu #${fine.loanId}`}</p>
                     <p className="mt-0.5 text-sm text-ink-soft">
@@ -223,7 +223,7 @@ export function MyFinesView() {
                     <span className="sr-only">Chọn</span>
                   </th>
                   <th scope="col" className="px-4 py-3 font-semibold">Sách</th>
-                  <th scope="col" className="px-4 py-3 font-semibold">Lý do</th>
+                  <th scope="col" className="whitespace-nowrap px-4 py-3 font-semibold">Lý do</th>
                   <th scope="col" className="px-4 py-3 font-semibold">Số tiền</th>
                   <th scope="col" className="px-4 py-3 font-semibold">Ngày lập</th>
                   <th scope="col" className="px-4 py-3 font-semibold">Tình trạng</th>
@@ -236,8 +236,8 @@ export function MyFinesView() {
                       <SelectBox fine={fine} checked={selected.has(fine.id)} onToggle={toggle} enabled={online} />
                     </td>
                     <td className="px-4 py-3 font-medium">{fine.loan?.copy.book.title ?? `Phiếu #${fine.loanId}`}</td>
-                    <td className="px-4 py-3 text-ink-soft">{fine.type === "LOST" ? "Báo mất sách" : "Trả trễ"}</td>
-                    <td className="px-4 py-3 font-medium">{formatCurrency(fine.amount)}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-ink-soft">{fine.type === "LOST" ? "Báo mất sách" : "Trả trễ"}</td>
+                    <td className="whitespace-nowrap px-4 py-3 font-medium">{formatCurrency(fine.amount)}</td>
                     <td className="px-4 py-3 text-ink-soft">{formatDate(fine.createdAt)}</td>
                     <td className="px-4 py-3">
                       <FineStatus fine={fine} />
@@ -295,14 +295,17 @@ function SelectBox({
   checked,
   onToggle,
   enabled,
+  compact = false,
 }: {
   fine: Fine;
   checked: boolean;
   onToggle: (id: number) => void;
   enabled: boolean;
+  /** Dạng thẻ trên điện thoại: khoản không chọn được thì không chừa ô trống. */
+  compact?: boolean;
 }) {
   const selectable = enabled && !fine.paidAt && fine.onlinePayment?.status !== "PENDING";
-  if (!selectable) return <span className="inline-block h-10 w-10 shrink-0" aria-hidden="true" />;
+  if (!selectable) return compact ? null : <span className="inline-block h-10 w-10 shrink-0" aria-hidden="true" />;
   return (
     <label className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center">
       <input
