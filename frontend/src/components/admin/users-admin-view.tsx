@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import { apiFetch, formatDate } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -9,6 +10,9 @@ import { Badge, Button, Field, PageHeading, Spinner, inputClass } from "../ui";
 import { Modal, Pagination, TableShell, Th, Toolbar, errorText, useNotice } from "./admin-ui";
 
 const LIMIT = 15;
+
+// Chỉ tải khi bấm nút
+const ResetPasswordModal = dynamic(() => import("../reset-password-modal").then((m) => m.ResetPasswordModal), { ssr: false });
 
 const ROLE_LABEL: Record<Role, string> = {
   READER: "Bạn đọc",
@@ -27,6 +31,7 @@ export function UsersAdminView() {
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<User | null>(null);
   const [creating, setCreating] = useState(false);
+  const [resetting, setResetting] = useState<User | null>(null);
 
   const users = useQuery({
     queryKey: ["admin-users", role, query, page],
@@ -73,7 +78,7 @@ export function UsersAdminView() {
                 setRole(value);
                 setPage(1);
               }}
-              className={`rounded-md px-3.5 py-1.5 text-sm ${
+              className={`min-h-10 rounded-md px-3.5 py-1.5 text-sm ${
                 role === value ? "bg-ink font-medium text-paper" : "text-ink-soft hover:bg-paper-2"
               }`}
             >
@@ -127,8 +132,18 @@ export function UsersAdminView() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-2">
-                        <button type="button" aria-label={`Đổi tên ${row.fullName}`} onClick={() => setEditing(row)} className="rounded-md border border-line px-3 py-1.5 text-xs font-medium hover:bg-paper-2">
+                        <button type="button" aria-label={`Đổi tên ${row.fullName}`} onClick={() => setEditing(row)} className="min-h-10 rounded-md border border-line px-3 py-1.5 text-xs font-medium hover:bg-paper-2">
                           Đổi tên
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Cấp lại mật khẩu cho ${row.fullName}`}
+                          disabled={isMe}
+                          title={isMe ? "Dùng chức năng đổi mật khẩu ở trang tài khoản" : undefined}
+                          onClick={() => setResetting(row)}
+                          className="min-h-10 rounded-md border border-line px-3 py-1.5 text-xs font-medium hover:bg-paper-2 disabled:opacity-40"
+                        >
+                          Cấp mật khẩu
                         </button>
                         <button
                           type="button"
@@ -136,7 +151,7 @@ export function UsersAdminView() {
                           disabled={isMe || toggle.isPending}
                           title={isMe ? "Không tự khoá tài khoản của mình" : undefined}
                           onClick={() => toggle.mutate(row)}
-                          className="rounded-md border border-line px-3 py-1.5 text-xs font-medium hover:bg-paper-2 disabled:opacity-40"
+                          className="min-h-10 rounded-md border border-line px-3 py-1.5 text-xs font-medium hover:bg-paper-2 disabled:opacity-40"
                         >
                           {row.isActive ? "Khoá" : "Mở"}
                         </button>
@@ -163,6 +178,7 @@ export function UsersAdminView() {
           }}
         />
       )}
+      {resetting && <ResetPasswordModal target={resetting} onClose={() => setResetting(null)} onDone={refresh} />}
       {creating && (
         <CreateStaffModal
           onClose={() => setCreating(false)}

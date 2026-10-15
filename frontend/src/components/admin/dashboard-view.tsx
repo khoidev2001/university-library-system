@@ -128,7 +128,7 @@ export function DashboardView() {
               {(topBooks.data ?? []).map((row, index) => (
                 <li key={row.book.id} className="flex items-baseline gap-3">
                   <span className="w-5 text-ink-faint">{index + 1}</span>
-                  <Link href={`/books/${row.book.id}`} className="min-w-0 flex-1 truncate hover:underline">
+                  <Link href={`/books/${row.book.id}`} className="min-w-0 flex-1 truncate py-2 hover:underline">
                     {row.book.title}
                   </Link>
                   <span className="shrink-0 text-ink-soft">{row.loanCount} lượt</span>
@@ -142,7 +142,7 @@ export function DashboardView() {
       <Card className="mt-6">
         <div className="flex items-center justify-between gap-3">
           <h2 className="font-serif text-lg font-bold">Bạn đọc đang quá hạn</h2>
-          <Link href="/admin/loans?overdue=true" className="text-sm text-brand hover:underline">
+          <Link href="/admin/loans?overdue=true" className="inline-flex min-h-10 items-center text-sm text-brand hover:underline">
             Xem tất cả
           </Link>
         </div>

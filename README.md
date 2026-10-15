@@ -86,14 +86,79 @@ Hai script smoke chạy trên hệ thống **đang chạy** với dữ liệu se
 | Trang | Đường dẫn | Dành cho |
 |---|---|---|
 | Trang chủ, tra cứu, chi tiết sách, quy định | `/`, `/books`, `/books/[id]`, `/quy-dinh` | Công khai, dựng phía máy chủ cho SEO |
-| Đăng nhập, đăng ký | `/login`, `/register` | Công khai |
+| Đăng nhập, đăng ký, quên mật khẩu | `/login`, `/register`, `/forgot-password`, `/reset-password` | Công khai |
+| Tài khoản của tôi (hồ sơ, đổi mật khẩu, nhắc hạn qua email) | `/account` | Mọi vai trò |
 | Sách của tôi, tiền phạt, gợi ý | `/my/loans`, `/my/fines`, `/recommendations` | Bạn đọc |
-| Quầy mượn trả, quản lý bạn đọc, thống kê | `/librarian/desk`, `/librarian/readers`, `/reports` | Thủ thư |
+| Quầy mượn trả, quản lý bạn đọc (thêm bạn đọc, cấp mật khẩu tạm), thống kê | `/librarian/desk`, `/librarian/readers`, `/reports` | Thủ thư |
 | Chính sách mượn | `/admin/policies` | Quản trị |
 
 SEO: tiêu đề và mô tả riêng từng trang, canonical, Open Graph, dữ liệu có cấu trúc schema.org (`Library` kèm `SearchAction`, `Book` kèm `aggregateRating` và tình trạng còn sách, `FAQPage` cho trang quy định), `sitemap.xml` và `robots.txt` sinh tự động, khu vực tài khoản bị chặn khỏi chỉ mục.
 
 Trình duyệt luôn gọi `/api` cùng origin qua gateway, không nhúng tên miền lúc build, nên một image chạy được ở mọi tên miền và cổng. Ảnh chụp màn hình trong `docs/report/screenshots/`.
+
+## Tài khoản và email
+
+| Chức năng | API | Giao diện |
+|---|---|---|
+| Hồ sơ, đổi tên, bật/tắt nhắc hạn qua email | `GET/PATCH /api/auth/me` (chỉ `fullName`, `emailReminders`) | `/account` (mọi vai trò; tên người dùng ở thanh đầu trang dẫn tới đây) |
+| Đổi mật khẩu | `POST /api/auth/change-password` (5 lần/phút) | `/account` |
+| Quên mật khẩu | `POST /api/auth/forgot-password` (5 lần/phút), `POST /api/auth/reset-password` (10 lần/phút) | `/forgot-password`, `/reset-password` |
+| Thủ thư thêm bạn đọc tại quầy | `POST /api/users/readers` | `/librarian/readers`, nút "Thêm bạn đọc" |
+| Cấp lại mật khẩu tạm (khi email không dùng được) | `POST /api/users/:id/reset-password` (thủ thư: bạn đọc; quản trị viên: mọi tài khoản) | `/librarian/readers`, `/admin/users` |
+
+- **Chính sách mật khẩu** dùng chung cho đăng ký, đổi và đặt lại: 8 đến 72 byte, mật khẩu mới phải khác mật khẩu hiện tại.
+- **Quên mật khẩu**: luôn trả 200 cùng một nội dung dù email có tồn tại hay không (và san phẳng thời gian phản hồi), tài khoản bị khoá không nhận thư, cách nhau tối thiểu 60 giây mỗi tài khoản. Token là 32 byte ngẫu nhiên, **chỉ lưu SHA-256**, hạn 1 giờ, dùng một lần; xin token mới hoặc dùng xong thì token cũ hết hiệu lực. Đặt lại thành công thì mọi phiên đăng nhập cũ bị thu hồi.
+- **Mật khẩu tạm** (thủ thư tạo bạn đọc / cấp lại): sinh ngẫu nhiên 12 ký tự, trả đúng **một lần** (có nút sao chép và in phiếu), tài khoản mang cờ `mustChangePassword`. Cờ này hiện ở `GET /api/auth/me` và backend trả `403 PASSWORD_CHANGE_REQUIRED` cho mọi API khác (trừ `/auth/me`, `/auth/change-password`) cho tới khi đổi mật khẩu; giao diện tự chuyển tới `/account`.
+- **Nhắc hạn qua email**: cùng lịch với thông báo trong web (mỗi 15 phút), gộp các phiếu cùng loại của một bạn đọc thành một thư. Mỗi phiếu và loại (sắp hạn / quá hạn) chỉ gửi **một lần thành công** (bảng `reminder_emails`, duy nhất theo phiếu + loại); gửi lỗi thì thử lại ở lượt sau, tối đa 5 lần. Bạn đọc tắt được tại `/account`.
+
+### Cấu hình gửi email (Resend)
+
+Backend gửi thư bằng HTTP tới Resend (Render gói miễn phí chặn SMTP). **Không có `RESEND_API_KEY` thì mọi việc gửi thư bị bỏ qua có ghi log, ứng dụng vẫn chạy bình thường**; khi đó dùng chức năng cấp mật khẩu tạm của thủ thư.
+
+1. Tạo tài khoản ở resend.com, tạo API key (quyền "Sending access").
+2. Thử nhanh: để `MAIL_FROM` trống (mặc định `onboarding@resend.dev`, chỉ gửi được tới email chủ tài khoản Resend). Chạy thật: thêm và xác minh tên miền ở Resend (bản ghi SPF/DKIM) rồi đặt `MAIL_FROM`, ví dụ `Thư viện MUCE <no-reply@ten-mien.vn>`.
+3. Đặt biến môi trường cho backend:
+
+| Biến | Ý nghĩa |
+|---|---|
+| `RESEND_API_KEY` | API key Resend; bỏ trống = tắt gửi thư |
+| `MAIL_FROM` | Người gửi (tên miền đã xác minh) |
+| `APP_PUBLIC_URL` | Địa chỉ công khai của web, dùng dựng `${APP_PUBLIC_URL}/reset-password?token=...` (mặc định: mục đầu của `CORS_ORIGINS`) |
+| `RESEND_API_URL` | Chỉ để thử: trỏ tới máy chủ Resend giả (mặc định `https://api.resend.com/emails`) |
+| `MAIL_SEND_INTERVAL_MS` | Nghỉ giữa hai thư nhắc hạn, mặc định 600 ms (Resend giới hạn 2 yêu cầu/giây) |
+
+Khi test, e2e luôn thay cổng gửi thư bằng hộp thư trong bộ nhớ (`InMemoryMailSender`), không bao giờ gọi Resend.
+## Xuất dữ liệu, in thẻ / nhãn, nhập sách từ file
+
+Dành cho thủ thư (Admin kế thừa). Tài liệu API đầy đủ ở Swagger (`/api/docs`, nhóm `exports` và `books`).
+
+### Xuất CSV / Excel
+
+`GET /api/exports/{overdue-loans|loans|top-books|inventory|fines|readers|books}?format=csv|xlsx` kèm bộ lọc của từng bộ dữ liệu
+(`from`, `to` dạng `YYYY-MM-DD` theo giờ thư viện UTC+7 và bao trọn ngày cuối; `status`, `overdue`, `paid`, `q`, `categoryId`, `isActive`...).
+
+- Phát trực tiếp theo lô 1.000 dòng bằng con trỏ trên `id` (không OFFSET, không dựng mảng lớn trong bộ nhớ). Trần 100.000 dòng mỗi lần (đổi bằng `EXPORT_MAX_ROWS`); vượt trần thì file bị cắt và có header `X-Export-Truncated: true`. `X-Total-Count` là số dòng khớp.
+- CSV: UTF-8 có BOM (Excel hiển thị đúng tiếng Việt), RFC 4180, chống formula injection: ô văn bản bắt đầu bằng `=` `+` `-` `@` tab CR được thêm dấu `'` phía trước. Số tiền, số lượng ghi chữ số trần.
+- Excel (`exceljs`, chế độ streaming): ô số và ô ngày là kiểu thật (cộng, lọc, sắp xếp được), tiền định dạng VND, ngày ghi theo giờ treo tường UTC+7, hàng tiêu đề cố định kèm bộ lọc.
+- `Content-Disposition` có cả `filename` (ASCII, bỏ dấu) lẫn `filename*=UTF-8''...` (tên tiếng Việt đầy đủ).
+
+### In thẻ bạn đọc và nhãn bản sao
+
+- `/librarian/readers/[id]/card` (một thẻ) và `/librarian/readers/cards?ids=1,2,3` hoặc `?q=...` (hàng loạt, tối đa 300 thẻ). Thẻ 85,6 × 54 mm, 10 thẻ trên một tờ A4 hoặc 1 thẻ/trang cho máy in thẻ. Mã vạch Code 128 và mã QR đều chứa mã thẻ.
+- `/librarian/labels?bookIds=1,2` hoặc `?copyIds=...`: nhãn mã vạch bản sao `LIB-<id>-<n>` kèm tên sách và vị trí kệ. Bố cục: 3×8 (63,5×33,9), 2×7 (99,1×38,1), 4×10 (52,5×29,7) trên A4, hoặc cuộn nhãn 50×25 mm; có ô "bỏ trống N ô đầu" để dùng tiếp tờ đã in dở. Dữ liệu lấy từ `GET /api/copies/labels`.
+- Mã vạch và QR vẽ bằng SVG ngay trên trình duyệt (bộ mã hoá Code 128 tự viết, ~2 KB; QR dùng `uqr` ~8 KB gzip), chỉ nạp ở trang in. Menu, header, footer ẩn khi in (`print:hidden`); khi in chọn tỉ lệ 100%, lề "Không có".
+- Kiểm tra giải mã ngược (chỉ dev): `pnpm --dir frontend verify:barcodes` sinh mã vạch / QR, dựng ảnh nhỏ như khi in và đọc lại bằng `zxing-wasm`.
+
+### Nhập sách hàng loạt từ file
+
+- `GET /api/books/import-template?format=csv|xlsx`: file mẫu có dòng ví dụ. Cột: `title, authors (cách nhau bằng ;), category, isbn, publisher, publishedYear, price, description, coverUrl, copies, shelfLocation`; tiêu đề cột tiếng Việt cũng được nhận.
+- `POST /api/books/import-file?dryRun=true|false&onDuplicate=skip|update` (multipart, trường `file`, CSV hoặc xlsx, tối đa 5 MB và 5.000 dòng).
+  - `dryRun=true`: chỉ kiểm tra, trả bản xem trước từng dòng (lỗi, cảnh báo, hành động tạo / cập nhật / bỏ qua, thể loại sẽ tạo). Không ghi gì.
+  - Ghi thật: lô 100 dòng trong giao dịch, kiểm tra lại dưới khoá advisory nên hai lần nhập song song không sinh sách / tác giả trùng và mã vạch không đụng nhau. Trả `{ created, updated, skipped, failed[{row, reason, raw}], createdCopies, newCategories }`; giao diện cho tải các dòng lỗi thành CSV.
+  - Idempotent theo ISBN (ISBN-10 và ISBN-13 của cùng sách được nhận là một). `copies` là số bản sao tối thiểu cần có (chỉ bổ sung, không bao giờ xoá). Dòng không có ISBN chỉ so trùng theo tiêu đề.
+  - Loại file kiểm bằng nội dung (magic bytes), không tin đuôi hay Content-Type; từ chối macro (`.xlsm`, `vbaProject.bin`), zip bomb (đếm byte giải nén thật, trần 25 MB mỗi phần), CSV hỏng, không phải UTF-8. Công thức trong xlsx không bao giờ được thực thi, chỉ lấy giá trị đã tính. URL ảnh bìa chỉ nhận `http` / `https`.
+  - Mã lỗi: `IMPORT_NO_FILE` 400, `IMPORT_FILE_TYPE_INVALID` / `IMPORT_MACRO_NOT_ALLOWED` 415, `IMPORT_FILE_TOO_LARGE` 413, `IMPORT_TOO_MANY_ROWS` / `IMPORT_MALFORMED` / `IMPORT_MISSING_COLUMN` / `IMPORT_EMPTY` / `IMPORT_ENCODING` 422.
+- Gateway nginx đã nâng `client_max_body_size` lên 6 MB cho `/api/`. Khi chạy sau proxy khác (Vercel rewrite, Render...), kiểm tra giới hạn kích thước thân yêu cầu của proxy đó.
 
 ## AI Service
 
@@ -110,6 +175,67 @@ Qua Backend: `GET /api/recommendations/me` (bạn đọc), `GET /api/recommendat
 **AI chết không làm sập nghiệp vụ:** cho mượn vẫn thành công với `overdueRisk = null`, trang gợi ý rơi về sách mượn nhiều (`source: POPULAR`), endpoint quản trị AI trả `503 AI_UNAVAILABLE`.
 
 Số đo gần nhất trên dữ liệu seed (05/10/2026): Precision@5 = 0,309 · Recall@5 = 0,110; dự báo trả trễ ROC-AUC 0,762 (Logistic Regression) so với 0,756 (Random Forest). Lịch sử mượn/trả là **dữ liệu mô phỏng**, nên các số này phản ánh quy luật mô phỏng.
+
+## Thanh toán phạt trực tuyến (VNPay)
+
+Bạn đọc trả tiền phạt tại `/my/fines` qua cổng VNPay (v2.1.0, ký HMAC-SHA512), kết quả hiện ở `/my/payments/result`. Số tiền luôn do backend tính lại từ các khoản phạt trong DB; client chỉ gửi danh sách `fineIds` (bỏ trống = tất cả khoản chưa trả). Nộp tiền mặt tại quầy vẫn dùng như cũ.
+
+| Endpoint | Việc |
+|---|---|
+| `GET /api/payments/config` | Cổng đã bật chưa (`online`), hạn mức, thời hạn giữ chỗ |
+| `POST /api/payments` (READER) | Tạo giao dịch PENDING, trả `{paymentUrl, paymentId, txnRef, amount}`; 503 `PAYMENT_NOT_CONFIGURED` nếu thiếu cấu hình |
+| `GET /api/payments/me`, `GET /api/payments/:id` | Lịch sử của tôi; chi tiết (chủ giao dịch hoặc thủ thư) |
+| `POST /api/payments/:id/cancel` | Huỷ giao dịch đang chờ (chủ giao dịch hoặc thủ thư) |
+| `GET /api/payments/vnpay/ipn` | IPN, VNPay gọi máy chủ: nguồn xác nhận chính thức, trả `{RspCode, Message}` (00, 01, 02, 04, 97, 99) |
+| `GET /api/payments/vnpay/return` | Trình duyệt quay về; xác minh chữ ký rồi chuyển hướng tới `${APP_PUBLIC_URL}/my/payments/result` |
+
+Quy tắc nghiệp vụ:
+
+- **Một khoản phạt chỉ thuộc tối đa một giao dịch đang chờ hoặc đã trả**: chỉ mục duy nhất từng phần `payment_fines_active_fine_key`, cộng khoá dòng `FOR UPDATE` khi tạo giao dịch, thu tiền mặt và xử lý IPN.
+- Giao dịch hết hạn sau **15 phút** (cũng là `vnp_ExpireDate`); khoản phạt được nhả khi có ai đụng tới, và bộ lập lịch quét mỗi 15 phút.
+- **Thu tiền mặt bị chặn** (`409 FINE_PAYMENT_PENDING`) khi khoản phạt đang nằm trong giao dịch chờ còn hạn, vì bạn đọc có thể đang nhập OTP. Thủ thư bấm "Huỷ giao dịch chờ" (hoặc đợi hết hạn) rồi mới thu tiền mặt.
+- IPN thành công đặt `fines.paid_at` (với `paid_to = NULL`, phân biệt với thu tiền mặt có `paid_to` = thủ thư) và giao dịch `PAID` trong **một** transaction. IPN lặp trả `02`. Số tiền (`vnp_Amount / 100`) phải khớp số đã lưu, sai trả `04`.
+- Tiền về muộn (giao dịch đã hết hạn, bị huỷ hoặc ghi hỏng): nếu khoản phạt còn trống thì nhận tiền; nếu khoản phạt đã được thu cách khác thì **không** thu hai lần, giao dịch giữ nguyên trạng thái và gắn `needsRefund = true` (thủ thư hoàn tiền thủ công trên cổng VNPay), IPN vẫn trả `00` để VNPay ngừng gọi lại.
+- `vnp_ReturnUrl` cũng chốt giao dịch (qua cùng hàm idempotent với IPN, chỉ khi chữ ký đúng và số tiền khớp) vì sandbox thường không gọi được IPN. Chuyển hướng chỉ tới `APP_PUBLIC_URL`, không bao giờ theo tham số do người dùng gửi.
+- Mỗi giao dịch tối thiểu 5.000đ (yêu cầu của VNPay), tối đa 999.999.999đ.
+
+### Cấu hình
+
+| Biến | Bắt buộc | Ý nghĩa |
+|---|---|---|
+| `VNPAY_TMN_CODE` | có | Mã website (Terminal ID) VNPay gửi qua email |
+| `VNPAY_HASH_SECRET` | có | Khoá bí mật ký HMAC. Không ghi vào log hay commit |
+| `VNPAY_URL` | không | Mặc định `https://sandbox.vnpayment.vn/paymentv2/vpcpay.html`; môi trường thật dùng địa chỉ VNPay cấp |
+| `APP_PUBLIC_URL` | có | Địa chỉ web công khai (Vercel), không có `/` cuối |
+| `VNPAY_RETURN_URL` | không | Mặc định `${APP_PUBLIC_URL}/api/payments/vnpay/return` |
+
+Thiếu `VNPAY_TMN_CODE` hoặc `VNPAY_HASH_SECRET` thì tính năng tắt: giao diện ẩn nút và báo "chưa được bật", thu tiền mặt không bị ảnh hưởng.
+
+### Đăng ký sandbox và triển khai
+
+1. Đăng ký tại <http://sandbox.vnpayment.vn/devreg/>. VNPay gửi email gồm `TmnCode`, `HashSecret` và địa chỉ trang quản trị merchant sandbox.
+2. **Render** (`uls-backend`): thêm `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET` (secret), `APP_PUBLIC_URL` = địa chỉ Vercel. Sửa biến xong phải "Deploy latest commit". **Vercel** không cần biến mới: `/api/*` đã được rewrite sang Render nên return URL mặc định là `https://<vercel>/api/payments/vnpay/return`.
+3. Trong trang quản trị merchant sandbox, khai báo **IPN URL** là địa chỉ backend công khai `https://<render>/api/payments/vnpay/ipn` (nên trỏ thẳng Render, không qua Vercel). Không có IPN thì return URL vẫn chốt giao dịch khi bạn đọc quay về; nếu họ đóng tab trước khi quay về, giao dịch chỉ được chốt khi IPN tới.
+4. Chạy thử bằng thẻ test của VNPay (ngân hàng **NCB**, theo tài liệu sandbox; môi trường test chỉ nhận các thẻ trong danh sách):
+
+| Tình huống | Số thẻ | Tên chủ thẻ | Ngày phát hành | OTP |
+|---|---|---|---|---|
+| Thành công | `9704198526191432198` | NGUYEN VAN A | 07/15 | `123456` |
+| Không đủ số dư | `9704195798459170488` | | | |
+| Thẻ chưa kích hoạt | `9704192181368742` | | | |
+| Thẻ bị khoá | `9704193370791314` | | | |
+| Thẻ hết hạn | `9704194841945513` | | | |
+
+### Thử cục bộ không cần VNPay
+
+Chạy backend với `VNPAY_TMN_CODE=DEMO`, `VNPAY_HASH_SECRET=bi-mat-cuc-bo`, `APP_PUBLIC_URL=http://localhost:8080`. Bấm thanh toán sẽ chuyển sang VNPay sandbox và báo lỗi mã website (đúng như mong đợi vì `DEMO` không tồn tại). Để mô phỏng việc VNPay gọi về, dùng script tự ký:
+
+```bash
+VNPAY_HASH_SECRET=bi-mat-cuc-bo pnpm --dir backend vnpay:callback <txnRef> <số-tiền-VND> 00 return http://localhost:8080
+# 00 = thành công, 24 = bạn đọc huỷ, 51 = không đủ số dư; đổi `return` thành `ipn` để gọi IPN bằng curl
+```
+
+**Chưa kiểm chứng với VNPay thật:** chữ ký tạo URL đã được đối chiếu với HMAC-SHA512 tính độc lập bằng Python (`vnpay.util.spec.ts`), nhưng tài liệu VNPay không công bố bộ vector kiểm thử, nên cần một lần chạy thật trên sandbox bằng `TmnCode` thật trước khi dùng.
 
 ## Công cụ tài liệu
 

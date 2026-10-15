@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import { apiFetch, formatCurrency, formatDate } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { InventoryRow, MonthCount, OverdueRow, TopBookRow } from "@/lib/types";
+import { ExportButtons } from "./export-buttons";
 import { Badge, Card, ChartSkeleton, PageHeading, Spinner } from "./ui";
 
 const MonthlyBarChart = dynamic(() => import("./charts").then((m) => m.MonthlyBarChart), {
@@ -64,6 +65,29 @@ export function ReportsView() {
         description="Số liệu tổng hợp theo thời gian thực từ dữ liệu mượn trả."
       />
 
+      <section className="mt-6" aria-labelledby="tieu-de-xuat-bao-cao">
+        <h2 id="tieu-de-xuat-bao-cao" className="font-serif text-xl font-bold">
+          Xuất báo cáo
+        </h2>
+        <p className="mt-1 text-sm text-ink-soft">
+          CSV (UTF-8, mở được bằng Excel) hoặc Excel. Ngày tính theo giờ thư viện (UTC+7); tối đa 100.000 dòng mỗi lần.
+        </p>
+        <ul className="mt-3 divide-y divide-line rounded-xl border border-line bg-white">
+          <ExportRow title="Phiếu mượn quá hạn" hint="Kèm số ngày trễ và phạt ước tính tính đến hôm nay.">
+            <ExportButtons dataset="overdue-loans" subject="phiếu mượn quá hạn" />
+          </ExportRow>
+          <ExportRow title="Phiếu mượn theo khoảng ngày" hint="Lọc theo ngày mượn; bỏ trống để xuất tất cả.">
+            <ExportButtons dataset="loans" dateRange subject="phiếu mượn" />
+          </ExportRow>
+          <ExportRow title="Sách mượn nhiều nhất" hint="Top 100 đầu sách trong khoảng ngày chọn.">
+            <ExportButtons dataset="top-books" params={{ limit: 100 }} dateRange subject="sách mượn nhiều nhất" />
+          </ExportRow>
+          <ExportRow title="Tồn kho theo thể loại" hint="Số bản sao theo từng trạng thái.">
+            <ExportButtons dataset="inventory" subject="tồn kho theo thể loại" />
+          </ExportRow>
+        </ul>
+      </section>
+
       <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Chỉ số tổng quan">
         <StatTile label="Bản sao trong kho" value={totalCopies.toLocaleString("vi-VN")} />
         <StatTile label="Đang được mượn" value={borrowedCopies.toLocaleString("vi-VN")} />
@@ -104,7 +128,7 @@ export function ReportsView() {
               <span className="w-6 shrink-0 text-center font-serif text-lg font-bold text-ink-faint">
                 {index + 1}
               </span>
-              <Link href={`/books/${row.book.id}`} className="min-w-0 flex-1 truncate text-sm font-medium hover:underline">
+              <Link href={`/books/${row.book.id}`} className="flex min-h-10 min-w-0 flex-1 items-center truncate text-sm font-medium hover:underline">
                 {row.book.title}
               </Link>
               <span className="shrink-0 text-sm text-ink-soft">{row.loanCount.toLocaleString("vi-VN")} lượt</span>
@@ -160,6 +184,18 @@ export function ReportsView() {
         )}
       </section>
     </div>
+  );
+}
+
+function ExportRow({ title, hint, children }: { title: string; hint: string; children: React.ReactNode }) {
+  return (
+    <li className="flex flex-col gap-3 px-4 py-3 md:flex-row md:items-end md:justify-between">
+      <div className="min-w-0">
+        <p className="text-sm font-semibold">{title}</p>
+        <p className="text-xs text-ink-soft">{hint}</p>
+      </div>
+      {children}
+    </li>
   );
 }
 

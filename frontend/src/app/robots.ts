@@ -8,7 +8,7 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: "*",
         allow: "/",
         // Khu vực tài khoản và nghiệp vụ không có nội dung công khai
-        disallow: ["/my/", "/librarian/", "/admin/", "/reports", "/recommendations", "/login", "/register", "/api/"],
+        disallow: ["/my/", "/librarian/", "/admin/", "/reports", "/recommendations", "/login", "/register", "/account", "/forgot-password", "/reset-password", "/api/"],
       },
     ],
     sitemap: `${SITE.url}/sitemap.xml`,

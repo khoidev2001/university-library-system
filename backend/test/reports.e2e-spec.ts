@@ -162,14 +162,17 @@ describeWithDb('Báo cáo gộp bằng SQL (e2e)', () => {
       const bk = await makeBook(1, 'M');
       const now = Date.now();
       const local = new Date(now + OFFSET_MS);
+      // Một tháng cách đây 18 tháng: không suite e2e nào khác tạo phiếu ở đó, nên đếm được chính xác
+      // dù các suite chạy song song (tháng hiện tại và tháng trước thì có).
       const startOfLocalMonth =
-        Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), 1) - OFFSET_MS;
+        Date.UTC(local.getUTCFullYear(), local.getUTCMonth() - 18, 1) -
+        OFFSET_MS;
       const thisKey = monthKey(startOfLocalMonth + HOUR);
       const prevKey = monthKey(startOfLocalMonth - HOUR);
 
       const read = async () => {
         const res = await http
-          .get('/api/reports/loans-by-month?months=2')
+          .get('/api/reports/loans-by-month?months=24')
           .set(auth(lib))
           .expect(200);
         return Object.fromEntries(
@@ -184,11 +187,11 @@ describeWithDb('Báo cáo gộp bằng SQL (e2e)', () => {
       await loanAt(bk.copyIds[0], new Date(startOfLocalMonth - HOUR));
       const after = await read();
 
-      expect(Object.keys(after)).toEqual([prevKey, thisKey]);
-      // Các e2e khác chạy song song cũng tạo phiếu trong tháng hiện tại nên chỉ đòi ít nhất 1.
-      // Tháng trước thì không suite nào đụng tới: nếu phiếu 01:00 bị xếp theo UTC thì delta ở đây thành 2.
-      expect(after[thisKey] - before[thisKey]).toBeGreaterThanOrEqual(1);
-      expect(after[prevKey] - before[prevKey]).toBe(1);
+      expect(Object.keys(after)).toContain(prevKey);
+      expect(Object.keys(after)).toContain(thisKey);
+      // Nếu phiếu 01:00 bị xếp theo UTC thì nó rơi vào tháng trước và delta ở đây thành 2.
+      expect((after[thisKey] ?? 0) - (before[thisKey] ?? 0)).toBe(1);
+      expect((after[prevKey] ?? 0) - (before[prevKey] ?? 0)).toBe(1);
     });
   });
 

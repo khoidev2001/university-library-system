@@ -4,13 +4,15 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
+import { PaymentsService } from '../payments/payments.service';
 import { ReservationsService } from '../reservations/reservations.service';
 import { NotificationsService } from './notifications.service';
+import { ReminderEmailService } from './reminder-email.service';
 
 const EVERY_MS = 15 * 60 * 1000;
 
 /**
- * Việc định kỳ: huỷ giữ sách quá hạn nhận, nhắc hạn trả.
+ * Việc định kỳ: huỷ giữ sách quá hạn nhận, nhắc hạn trả (trong web và qua email), nhả khoản phạt của giao dịch VNPay quá hạn.
  * Chạy trong tiến trình API (đủ cho một instance); tắt khi chạy test.
  * Lệnh nào cũng an toàn khi lặp lại (dedupeKey, cập nhật có điều kiện).
  */
@@ -22,6 +24,8 @@ export class CirculationScheduler implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly reservations: ReservationsService,
     private readonly notifications: NotificationsService,
+    private readonly reminderEmails: ReminderEmailService,
+    private readonly payments: PaymentsService,
   ) {}
 
   onModuleInit(): void {
@@ -39,12 +43,23 @@ export class CirculationScheduler implements OnModuleInit, OnModuleDestroy {
     try {
       const expired = await this.reservations.expireStale(at);
       const reminders = await this.notifications.sendLoanReminders(at);
-      if (expired || reminders.dueSoon || reminders.overdue)
+      const expiredPayments = await this.payments.expireStale(at);
+      if (expired || expiredPayments || reminders.dueSoon || reminders.overdue)
         this.logger.log(
-          `expired=${expired} dueSoon=${reminders.dueSoon} overdue=${reminders.overdue}`,
+          `expired=${expired} expiredPayments=${expiredPayments} dueSoon=${reminders.dueSoon} overdue=${reminders.overdue}`,
         );
     } catch (err) {
       this.logger.error('Việc định kỳ thất bại', err as Error);
+    }
+    // Email nhắc hạn chạy riêng: nhà cung cấp lỗi không được làm hỏng nhắc hạn trong web
+    try {
+      const emails = await this.reminderEmails.sendDueEmails(at);
+      if (emails.queued || emails.sent || emails.failed || emails.skipped)
+        this.logger.log(
+          `emailQueued=${emails.queued} emailSent=${emails.sent} emailFailed=${emails.failed} emailSkipped=${emails.skipped}`,
+        );
+    } catch (err) {
+      this.logger.error('Gửi email nhắc hạn thất bại', err as Error);
     }
   }
 }

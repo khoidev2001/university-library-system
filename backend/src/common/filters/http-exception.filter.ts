@@ -65,6 +65,14 @@ export class HttpExceptionFilter implements ExceptionFilter {
         const b = body as { message?: string | string[]; error?: string };
         message = b.message ?? exception.message;
         error = b.error ?? error;
+        // multer báo "File too large" (tiếng Anh) khi file tải lên vượt trần dung lượng
+        if (
+          statusCode === HttpStatus.PAYLOAD_TOO_LARGE &&
+          message === 'File too large'
+        ) {
+          error = 'IMPORT_FILE_TOO_LARGE';
+          message = 'File quá lớn (tối đa 5 MB)';
+        }
       }
     } else if (exception instanceof Prisma.PrismaClientKnownRequestError) {
       ({ statusCode, error, message } = this.fromPrisma(exception));

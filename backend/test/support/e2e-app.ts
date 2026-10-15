@@ -6,6 +6,8 @@ import * as bcrypt from 'bcrypt';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
 import { HttpExceptionFilter } from '../../src/common/filters/http-exception.filter';
+import { InMemoryMailSender } from '../../src/modules/mail/memory-mail.sender';
+import { MAIL_SENDER } from '../../src/modules/mail/mail.types';
 import { PrismaService } from '../../src/prisma/prisma.service';
 
 export const PASSWORD = 'Secret123';
@@ -13,9 +15,14 @@ export const PASSWORD = 'Secret123';
 /** Khởi động app thật (cùng pipe + filter như main.ts) trên Postgres của DATABASE_URL. */
 export async function createE2eApp() {
   process.env.JWT_SECRET ??= 'e2e-secret';
+  // Thư luôn vào hộp thư trong bộ nhớ (test không bao giờ gọi Resend dù máy có RESEND_API_KEY)
+  const mailbox = new InMemoryMailSender();
   const moduleRef = await Test.createTestingModule({
     imports: [AppModule],
-  }).compile();
+  })
+    .overrideProvider(MAIL_SENDER)
+    .useValue(mailbox)
+    .compile();
   const app: INestApplication = moduleRef.createNestApplication();
   app.setGlobalPrefix('api');
   app.useGlobalPipes(
@@ -85,6 +92,7 @@ export async function createE2eApp() {
   return {
     app,
     prisma,
+    mailbox,
     http,
     login,
     auth,
@@ -115,6 +123,7 @@ export async function cleanupE2eData(
     where: { OR: [{ userId: { in: userIds } }, { bookId: { in: bookIds } }] },
   });
   await prisma.notification.deleteMany({ where: { userId: { in: userIds } } });
+  await prisma.payment.deleteMany({ where: { userId: { in: userIds } } });
   await prisma.fine.deleteMany({
     where: {
       OR: [

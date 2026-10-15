@@ -17,6 +17,9 @@ const SUFFIX = `${RUN}@conc.local`;
 const TITLE = `CONC ${RUN}`;
 const DAY = 24 * 60 * 60 * 1000;
 
+// Các bài đua chạy nhiều vòng song song; mặc định 5 giây của jest quá chặt khi máy (hoặc CI) đang bận.
+jest.setTimeout(60_000);
+
 describeWithDb(
   'Đồng thời: mượn, trả, gia hạn, thu phạt, đặt trước (e2e)',
   () => {

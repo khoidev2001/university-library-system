@@ -12,6 +12,7 @@ interface NavItem {
   href: string;
   label: string;
   show: (can: ReturnType<typeof useAuth>["can"], signedIn: boolean) => boolean;
+  mobileOnly?: boolean;
 }
 
 const NAV: NavItem[] = [
@@ -23,6 +24,8 @@ const NAV: NavItem[] = [
   { href: "/librarian/readers", label: "Bạn đọc", show: (can) => can("LIBRARIAN") },
   { href: "/reports", label: "Thống kê", show: (can) => can("LIBRARIAN") },
   { href: "/admin", label: "Quản trị", show: (can) => can("LIBRARIAN") },
+  // Chỉ hiện trong menu di động; trên màn hình rộng, tên người dùng ở góc phải dẫn tới đây
+  { href: "/account", label: "Tài khoản của tôi", show: (_can, signedIn) => signedIn, mobileOnly: true },
 ];
 
 export function SiteHeader() {
@@ -33,9 +36,9 @@ export function SiteHeader() {
   const items = NAV.filter((item) => item.show(can, !!user));
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-paper">
+    <header className="sticky top-0 z-40 border-b border-line bg-paper print:hidden">
       <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3 sm:px-6">
-        <Link href="/" className="flex shrink-0 items-center gap-2.5" aria-label={`Trang chủ ${SITE.shortName}`}>
+        <Link href="/" className="flex min-h-10 min-w-10 shrink-0 items-center gap-2.5" aria-label={`Trang chủ ${SITE.shortName}`}>
           <span className="grid h-9 w-9 place-items-center rounded-md bg-ink text-paper">
             <BookOpen size={18} aria-hidden="true" />
           </span>
@@ -46,7 +49,7 @@ export function SiteHeader() {
         </Link>
 
         <nav aria-label="Điều hướng chính" className="ml-auto hidden items-center gap-1 lg:flex">
-          {items.map((item) => {
+          {items.filter((item) => !item.mobileOnly).map((item) => {
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
               <Link
@@ -67,14 +70,19 @@ export function SiteHeader() {
           {!loading && user ? (
             <div className="flex items-center gap-2">
               <NotificationBell />
-              <span className="hidden text-right text-sm leading-tight sm:block">
-                <span className="block font-medium">{user.fullName}</span>
+              <Link
+                href="/account"
+                aria-label={`Tài khoản của ${user.fullName}`}
+                aria-current={pathname === "/account" ? "page" : undefined}
+                className="hidden max-w-[11rem] rounded-md px-2 py-1 text-right text-sm leading-tight transition-colors hover:bg-paper-2 sm:block"
+              >
+                <span className="block truncate font-medium">{user.fullName}</span>
                 <span className="block text-xs text-ink-faint">{roleLabel(user.role)}</span>
-              </span>
+              </Link>
               <button
                 type="button"
                 onClick={logout}
-                className="rounded-md border border-line p-2 text-ink-soft transition-colors hover:bg-paper-2 hover:text-ink"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-line text-ink-soft transition-colors hover:bg-paper-2 hover:text-ink"
                 aria-label="Đăng xuất"
                 title="Đăng xuất"
               >
@@ -95,7 +103,7 @@ export function SiteHeader() {
           <button
             type="button"
             onClick={() => setOpen((value) => !value)}
-            className="rounded-md border border-line p-2 text-ink-soft lg:hidden"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-line text-ink-soft lg:hidden"
             aria-expanded={open}
             aria-controls="menu-di-dong"
             aria-label={open ? "Đóng menu" : "Mở menu"}

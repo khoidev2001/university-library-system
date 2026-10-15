@@ -3,11 +3,14 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD, APP_PIPE } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { MustChangePasswordGuard } from './common/guards/must-change-password.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { RejectNullBytePipe } from './common/pipes/reject-null-byte.pipe';
 import { AuthModule } from './modules/auth/auth.module';
 import { CatalogModule } from './modules/books/catalog.module';
+import { ExportsModule } from './modules/exports/exports.module';
 import { HealthModule } from './modules/health/health.module';
+import { MailModule } from './modules/mail/mail.module';
 import { CirculationModule } from './modules/loans/circulation.module';
 import { PoliciesModule } from './modules/policies/policies.module';
 import { RecommendationsModule } from './modules/recommendations/recommendations.module';
@@ -21,16 +24,20 @@ import { PrismaModule } from './prisma/prisma.module';
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
     PrismaModule,
     HealthModule,
+    MailModule,
     AuthModule,
     UsersModule,
     PoliciesModule,
     CatalogModule,
     CirculationModule,
     RecommendationsModule,
+    ExportsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
+    // Sau JwtAuthGuard (cần req.user): tài khoản dùng mật khẩu tạm chỉ được đổi mật khẩu
+    { provide: APP_GUARD, useClass: MustChangePasswordGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
     // Chặn ký tự NUL ở mọi body/query/param trước khi xuống Postgres (sẽ thành 500)
     { provide: APP_PIPE, useClass: RejectNullBytePipe },

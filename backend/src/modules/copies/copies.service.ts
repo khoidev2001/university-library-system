@@ -1,8 +1,25 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { BookCopy, CopyStatus, LoanStatus } from '@prisma/client';
 import { BusinessException } from '../../common/exceptions/business.exception';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateCopyDto, UpdateCopyDto } from './dto/copies.dto';
+import {
+  CreateCopyDto,
+  LabelCopiesQueryDto,
+  MAX_LABEL_COPIES,
+  UpdateCopyDto,
+} from './dto/copies.dto';
+
+export interface LabelCopy {
+  id: number;
+  barcode: string;
+  shelfLocation: string | null;
+  status: CopyStatus;
+  book: { id: number; title: string; isbn: string | null };
+}
 
 @Injectable()
 export class CopiesService {
@@ -15,6 +32,38 @@ export class CopiesService {
       where: { bookId },
       orderBy: { barcode: 'asc' },
     });
+  }
+
+  /** Dữ liệu để in nhãn: bản sao của các đầu sách chọn (hoặc các bản sao chọn), xếp theo sách rồi mã vạch. */
+  async findForLabels(query: LabelCopiesQueryDto): Promise<LabelCopy[]> {
+    const bookIds = query.bookIds ?? [];
+    const copyIds = query.copyIds ?? [];
+    if (bookIds.length === 0 && copyIds.length === 0)
+      throw new BadRequestException('Cần truyền bookIds hoặc copyIds');
+    const copies = await this.prisma.bookCopy.findMany({
+      where: {
+        OR: [
+          ...(bookIds.length ? [{ bookId: { in: bookIds } }] : []),
+          ...(copyIds.length ? [{ id: { in: copyIds } }] : []),
+        ],
+      },
+      orderBy: [{ bookId: 'asc' }, { id: 'asc' }],
+      take: MAX_LABEL_COPIES + 1,
+      select: {
+        id: true,
+        barcode: true,
+        shelfLocation: true,
+        status: true,
+        book: { select: { id: true, title: true, isbn: true } },
+      },
+    });
+    if (copies.length > MAX_LABEL_COPIES)
+      throw new BusinessException(
+        'TOO_MANY_LABELS',
+        `Tối đa ${MAX_LABEL_COPIES} nhãn mỗi lần in, hãy chọn ít sách hơn`,
+        422,
+      );
+    return copies;
   }
 
   /** FR-COPY-01 */

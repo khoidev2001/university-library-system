@@ -9,14 +9,24 @@ import {
   Patch,
   Post,
   Query,
+  Res,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
   ApiOperation,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
+import type { Response } from 'express';
+import { memoryStorage } from 'multer';
+import { contentDisposition } from '../../common/http/content-disposition';
+import { BusinessException } from '../../common/exceptions/business.exception';
 import { CATALOG_CACHE } from '../../common/cache-control';
 import { ParseIdPipe } from '../../common/pipes/parse-id.pipe';
 import { Public } from '../../common/decorators/public.decorator';
@@ -24,6 +34,16 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { CopiesService } from '../copies/copies.service';
 import { CreateCopyDto } from '../copies/dto/copies.dto';
 import { BooksService } from './books.service';
+import {
+  ImportFileQueryDto,
+  ImportTemplateQueryDto,
+} from './import/book-import.dto';
+import { BookImportService } from './import/book-import.service';
+import {
+  importTemplateCsv,
+  importTemplateXlsx,
+} from './import/book-import.template';
+import { IMPORT_MAX_FILE_BYTES } from './import/book-import.types';
 import {
   CreateBookDto,
   ImportBooksDto,
@@ -37,6 +57,7 @@ export class BooksController {
   constructor(
     private readonly books: BooksService,
     private readonly copies: CopiesService,
+    private readonly bookImport: BookImportService,
   ) {}
 
   @Public()
@@ -48,6 +69,101 @@ export class BooksController {
   })
   search(@Query() query: QueryBooksDto) {
     return this.books.search(query);
+  }
+
+  @Get('import-template')
+  @ApiBearerAuth()
+  @Roles(Role.LIBRARIAN)
+  @ApiOperation({
+    summary:
+      'Tải file mẫu nhập sách (CSV UTF-8 có BOM hoặc xlsx) kèm dòng ví dụ',
+  })
+  async importTemplate(
+    @Query() query: ImportTemplateQueryDto,
+    @Res() res: Response,
+  ) {
+    const xlsx = query.format === 'xlsx';
+    res.setHeader(
+      'Content-Type',
+      xlsx
+        ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        : 'text/csv; charset=utf-8',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      contentDisposition(`Mẫu nhập sách.${query.format}`),
+    );
+    res.setHeader('Cache-Control', 'no-store');
+    res.send(xlsx ? await importTemplateXlsx() : importTemplateCsv());
+  }
+
+  @Post('import-file')
+  @ApiBearerAuth()
+  @Roles(Role.LIBRARIAN)
+  @HttpCode(200)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: {
+        fileSize: IMPORT_MAX_FILE_BYTES,
+        files: 1,
+        fields: 0,
+        parts: 2,
+      },
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: { file: { type: 'string', format: 'binary' } },
+    },
+  })
+  @ApiOperation({
+    summary:
+      'Nhập sách hàng loạt từ file CSV / xlsx (tối đa 5 MB, 5000 dòng). dryRun=true chỉ xem trước, không ghi',
+    description:
+      'Cột: title, authors (cách nhau bằng ;), category, isbn, publisher, publishedYear, price, description, ' +
+      'coverUrl, copies, shelfLocation. Idempotent theo ISBN. Trả ImportPreview khi dryRun=true, ImportReport khi ghi thật.',
+  })
+  @ApiResponse({
+    status: 413,
+    description: 'File quá 5 MB (hoặc giải nén quá lớn): IMPORT_FILE_TOO_LARGE',
+  })
+  @ApiResponse({
+    status: 415,
+    description:
+      'Không phải CSV / xlsx, hoặc có macro: IMPORT_FILE_TYPE_INVALID | IMPORT_MACRO_NOT_ALLOWED',
+  })
+  @ApiResponse({
+    status: 422,
+    description:
+      'IMPORT_TOO_MANY_ROWS | IMPORT_MALFORMED | IMPORT_MISSING_COLUMN | IMPORT_EMPTY | IMPORT_ENCODING',
+  })
+  async importFile(
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Query() query: ImportFileQueryDto,
+  ) {
+    if (!file)
+      throw new BusinessException(
+        'IMPORT_NO_FILE',
+        'Chưa chọn file (trường multipart "file")',
+        400,
+      );
+    if (query.dryRun)
+      return this.bookImport.toPreview(
+        await this.bookImport.analyze(
+          file.buffer,
+          file.originalname,
+          query.onDuplicate,
+        ),
+      );
+    return this.bookImport.run(
+      file.buffer,
+      file.originalname,
+      query.onDuplicate,
+    );
   }
 
   @Post('import')

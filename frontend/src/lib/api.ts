@@ -66,11 +66,25 @@ const BUSINESS_MESSAGES: Record<string, string> = {
   BOOK_HAS_ACTIVE_LOANS: "Sách đang có phiếu mượn mở nên chưa xoá được.",
   STAFF_ACCOUNT_PROTECTED: "Chỉ quản trị viên mới sửa được tài khoản nhân viên.",
   CANNOT_LOCK_SELF: "Bạn không thể tự khoá tài khoản của mình.",
+  WRONG_CURRENT_PASSWORD: "Mật khẩu hiện tại không đúng.",
+  PASSWORD_UNCHANGED: "Mật khẩu mới phải khác mật khẩu hiện tại.",
+  PASSWORD_CHANGED_CONCURRENTLY: "Mật khẩu vừa được đổi ở nơi khác, hãy thử lại.",
+  INVALID_RESET_TOKEN: "Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn. Hãy xin liên kết mới.",
+  PASSWORD_CHANGE_REQUIRED: "Bạn đang dùng mật khẩu tạm, hãy đổi mật khẩu trước khi tiếp tục.",
+  CANNOT_RESET_SELF: "Không thể cấp lại mật khẩu cho chính mình, hãy dùng chức năng đổi mật khẩu ở trang tài khoản.",
+  MEMBER_CODE_GENERATION_FAILED: "Không tự sinh được mã thẻ, hãy thử lại hoặc nhập mã thủ công.",
   LOAN_CHANGED: "Phiếu mượn vừa được người khác cập nhật, hãy tải lại rồi thử lại.",
   TOO_MANY_REQUESTS: "Thao tác quá nhanh, vui lòng thử lại sau ít phút.",
   PAYLOAD_TOO_LARGE: "Dữ liệu gửi lên quá lớn.",
   REFERENCE_CONFLICT: "Dữ liệu đang được nơi khác sử dụng nên chưa thay đổi được.",
   AI_UNAVAILABLE: "Dịch vụ gợi ý tạm thời không phản hồi.",
+  PAYMENT_NOT_CONFIGURED: "Thanh toán trực tuyến chưa được bật. Vui lòng nộp phạt tại quầy thủ thư.",
+  FINE_PAYMENT_PENDING:
+    "Khoản phạt đang chờ thanh toán trực tuyến. Hãy hoàn tất hoặc huỷ giao dịch chờ (hoặc đợi 15 phút) rồi thử lại.",
+  NO_UNPAID_FINES: "Bạn không có khoản phạt nào cần thanh toán.",
+  PAYMENT_AMOUNT_TOO_SMALL: "VNPay yêu cầu tối thiểu 5.000đ mỗi giao dịch. Hãy chọn thêm khoản phạt hoặc nộp tại quầy.",
+  PAYMENT_AMOUNT_TOO_LARGE: "Số tiền vượt hạn mức một giao dịch. Hãy chọn bớt khoản phạt hoặc nộp tại quầy.",
+  PAYMENT_NOT_PENDING: "Giao dịch này không còn ở trạng thái chờ thanh toán.",
 };
 
 interface RequestOptions extends Omit<RequestInit, "body"> {
@@ -113,6 +127,16 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
 
 export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 }).format(amount);
+}
+
+export function formatDateTime(value: string | Date): string {
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
 }
 
 export function formatDate(value: string | Date): string {

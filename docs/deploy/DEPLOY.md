@@ -38,6 +38,7 @@ Làm đúng thứ tự vì dịch vụ sau cần địa chỉ của dịch vụ 
    | uls-backend | `DATABASE_URL` | chuỗi Neon ở bước 1 |
    | uls-backend | `AI_SERVICE_URL` | địa chỉ `uls-ai`, ví dụ `https://uls-ai.onrender.com` |
    | uls-backend | `CORS_ORIGINS` | địa chỉ Vercel (điền sau, xem bước 4) |
+   | uls-backend | `RESEND_API_KEY`, `MAIL_FROM`, `APP_PUBLIC_URL` | tuỳ chọn, để gửi email: xem README mục "Tài khoản và email" |
    | uls-ai | `BACKEND_URL` | `https://uls-backend.onrender.com/api` |
    | uls-ai | `INTERNAL_API_KEY` | **cùng giá trị** Render đã tự sinh cho `uls-backend` (xem ở tab Environment của backend) |
 
@@ -87,6 +88,10 @@ Trên GitHub: **Settings, Secrets and variables, Actions**.
 | Variable | `LIVE_WEB_URL` | địa chỉ Vercel |
 
 Từ lúc này, mỗi lần merge vào `main` với mọi kiểm thử xanh: CI gọi hook để Render dựng lại backend và AI, Vercel tự dựng frontend qua tích hợp GitHub, rồi CI gọi thử ba địa chỉ live để xác nhận.
+
+### 6. Thanh toán phạt trực tuyến VNPay (tuỳ chọn)
+
+Không bắt buộc: thiếu cấu hình thì nút thanh toán online tự ẩn. Để bật, trên Render (`uls-backend`) điền `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET` (từ email đăng ký sandbox) và `APP_PUBLIC_URL` (địa chỉ Vercel, không có `/` cuối), rồi **Deploy latest commit**. Vercel không cần biến mới. Khai báo IPN URL `https://<render>/api/payments/vnpay/ipn` trong trang quản trị merchant của VNPay. Chi tiết và thẻ test: README, mục "Thanh toán phạt trực tuyến (VNPay)".
 
 ## Kiểm tra sau khi triển khai
 

@@ -28,8 +28,22 @@ services:
         sync: false # địa chỉ Vercel, ví dụ https://uls-library.vercel.app
       - key: GOOGLE_BOOKS_API_KEY
         sync: false
+      # Email qua Resend (tuỳ chọn). Để trống RESEND_API_KEY thì bỏ qua việc gửi thư; thủ thư vẫn cấp mật khẩu tạm được.
+      - key: RESEND_API_KEY
+        sync: false # API key lấy ở resend.com/api-keys
+      - key: MAIL_FROM
+        sync: false # ví dụ: Thư viện MUCE <no-reply@ten-mien.vn> (tên miền đã xác minh ở Resend)
+      - key: APP_PUBLIC_URL
+        sync: false # địa chỉ Vercel, dùng dựng liên kết trong thư, ví dụ https://uls-library.vercel.app
       - key: LIBRARY_UTC_OFFSET_MINUTES
         value: "420"
+      # Thanh toán phạt VNPay (bỏ trống VNPAY_TMN_CODE hoặc VNPAY_HASH_SECRET = tắt tính năng); xem README
+      - key: VNPAY_TMN_CODE
+        sync: false
+      - key: VNPAY_HASH_SECRET
+        sync: false
+      - key: APP_PUBLIC_URL
+        sync: false # địa chỉ Vercel, không có / cuối
 
   - type: web
     name: uls-ai

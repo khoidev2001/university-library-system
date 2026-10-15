@@ -60,12 +60,25 @@ model User {
   isActive     Boolean     @default(true) @map("is_active")
   createdAt    DateTime    @default(now()) @map("created_at")
 
+  // Tài khoản và email (nhóm tính năng tài khoản): xem khối cuối tệp
+  emailReminders     Boolean   @default(true) @map("email_reminders")
+  mustChangePassword Boolean   @default(false) @map("must_change_password")
+  passwordChangedAt  DateTime? @map("password_changed_at")
+  // Phiên (JWT) cấp trước mốc này bị từ chối: đặt khi đặt lại mật khẩu quên / thủ thư cấp lại
+  sessionsRevokedAt  DateTime? @map("sessions_revoked_at")
+  lastLoginAt        DateTime? @map("last_login_at")
+  previousLoginAt    DateTime? @map("previous_login_at")
+
+  passwordResetTokens PasswordResetToken[]
+  reminderEmails      ReminderEmail[]
+
   loans         Loan[]         @relation("LoanReader")
   createdLoans  Loan[]         @relation("LoanCreator")
   ratings       Rating[]
   finesPaid     Fine[]         @relation("FinePaidTo")
   reservations  Reservation[]
   notifications Notification[]
+  payments      Payment[]
 
   // Tìm bạn đọc (GET /users?q=) khớp tên, email, mã bằng ILIKE '%…%'
   @@index([fullName(ops: raw("gin_trgm_ops"))], type: Gin, map: "users_full_name_trgm_idx")
@@ -195,8 +208,9 @@ model Fine {
   paidToId  Int?      @map("paid_to")
   createdAt DateTime  @default(now()) @map("created_at")
 
-  loan   Loan  @relation(fields: [loanId], references: [id])
-  paidTo User? @relation("FinePaidTo", fields: [paidToId], references: [id])
+  loan         Loan          @relation(fields: [loanId], references: [id])
+  paidTo       User?         @relation("FinePaidTo", fields: [paidToId], references: [id])
+  paymentLinks PaymentFine[]
 
   @@index([paidAt])
   @@index([loanId])
@@ -254,4 +268,97 @@ model Notification {
 
   @@index([userId, readAt, createdAt])
   @@map("notifications")
+}
+
+// ---- Tài khoản và email ----
+
+// Token đặt lại mật khẩu. Chỉ lưu SHA-256 của token (32 byte ngẫu nhiên), dùng một lần, hạn 1 giờ.
+model PasswordResetToken {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("password_reset_tokens")
+}
+
+enum ReminderEmailStatus {
+  PENDING // chưa gửi được (lần đầu hoặc đang chờ gửi lại)
+  SENT
+  FAILED // quá số lần thử, bỏ cuộc
+  SKIPPED // không còn cần gửi (đã trả sách, đổi loại nhắc, ...)
+}
+
+// Trạng thái email nhắc hạn theo từng phiếu + loại ("due" | "overdue"); duy nhất (loanId, kind)
+// nên không bao giờ gửi hai lần cho cùng một phiếu và loại, nhưng gửi lỗi vẫn thử lại được.
+model ReminderEmail {
+  id        Int                 @id @default(autoincrement())
+  loanId    Int                 @map("loan_id")
+  userId    Int                 @map("user_id")
+  kind      String
+  status    ReminderEmailStatus @default(PENDING)
+  attempts  Int                 @default(0)
+  claimedAt DateTime?           @map("claimed_at") // đang được một tiến trình gửi
+  sentAt    DateTime?           @map("sent_at")
+  lastError String?             @map("last_error")
+  createdAt DateTime            @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([loanId, kind])
+  @@index([status, id])
+  @@map("reminder_emails")
+}
+
+// ===== Thanh toán phạt trực tuyến (VNPay) =====
+enum PaymentStatus {
+  PENDING // đã tạo, chờ bạn đọc trả tiền / chờ IPN
+  PAID
+  FAILED
+  EXPIRED // quá hạn thanh toán, các khoản phạt đã được nhả
+  CANCELLED
+}
+
+// Fine.paidToId = NULL và Payment PAID cho khoản phạt thu online (thu tiền mặt thì paidToId = thủ thư).
+model Payment {
+  id               Int           @id @default(autoincrement())
+  userId           Int           @map("user_id")
+  txnRef           String        @unique @map("txn_ref") // vnp_TxnRef, ngẫu nhiên khó đoán
+  amount           Int // VND, tính ở máy chủ từ các khoản phạt; vnp_Amount = amount × 100
+  status           PaymentStatus @default(PENDING)
+  vnpTransactionNo String?       @map("vnp_transaction_no")
+  bankCode         String?       @map("bank_code")
+  responseCode     String?       @map("response_code")
+  note             String? // vd REFUND_REQUIRED: tiền về sau khi khoản phạt đã được thu cách khác
+  createdAt        DateTime      @default(now()) @map("created_at")
+  paidAt           DateTime?     @map("paid_at")
+  expiresAt        DateTime      @map("expires_at")
+
+  user  User          @relation(fields: [userId], references: [id])
+  fines PaymentFine[]
+
+  @@index([userId, createdAt])
+  @@index([status, expiresAt])
+  @@map("payments")
+}
+
+// n-n giao dịch ↔ khoản phạt. `active` = giao dịch đang PENDING hoặc đã PAID; chỉ mục duy nhất
+// từng phần (xem migration, Prisma không biểu diễn được) đảm bảo một khoản phạt chỉ thuộc tối đa
+// một giao dịch active: không thể trả hai lần, không thể nằm trong hai giao dịch chờ.
+model PaymentFine {
+  paymentId Int     @map("payment_id")
+  fineId    Int     @map("fine_id")
+  active    Boolean @default(true)
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  fine    Fine    @relation(fields: [fineId], references: [id])
+
+  @@id([paymentId, fineId])
+  @@index([fineId])
+  @@map("payment_fines")
 }
