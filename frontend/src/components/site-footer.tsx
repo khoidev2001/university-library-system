@@ -24,13 +24,13 @@ export function SiteFooter() {
             </li>
             <li className="flex gap-2.5">
               <Mail size={16} className="mt-0.5 shrink-0 text-ink-faint" aria-hidden="true" />
-              <a href={`mailto:${SITE.email}`} className="inline-block py-1.5 hover:text-ink hover:underline">
+              <a href={`mailto:${SITE.email}`} className="inline-block py-2.5 hover:text-ink hover:underline">
                 {SITE.email}
               </a>
             </li>
             <li className="flex gap-2.5">
               <Phone size={16} className="mt-0.5 shrink-0 text-ink-faint" aria-hidden="true" />
-              <a href={`tel:${SITE.phone.replace(/\s/g, "")}`} className="inline-block py-1.5 hover:text-ink hover:underline">
+              <a href={`tel:${SITE.phone.replace(/\s/g, "")}`} className="inline-block py-2.5 hover:text-ink hover:underline">
                 {SITE.phone}
               </a>
             </li>
@@ -41,22 +41,22 @@ export function SiteFooter() {
           <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-faint">Dịch vụ</h2>
           <ul className="mt-3 space-y-0.5 text-sm text-ink-soft">
             <li>
-              <Link href="/books" className="inline-block py-1.5 hover:text-ink hover:underline">
+              <Link href="/books" className="inline-block py-2.5 hover:text-ink hover:underline">
                 Tra cứu danh mục sách
               </Link>
             </li>
             <li>
-              <Link href="/my/loans" className="inline-block py-1.5 hover:text-ink hover:underline">
+              <Link href="/my/loans" className="inline-block py-2.5 hover:text-ink hover:underline">
                 Sách đang mượn và gia hạn
               </Link>
             </li>
             <li>
-              <Link href="/my/fines" className="inline-block py-1.5 hover:text-ink hover:underline">
+              <Link href="/my/fines" className="inline-block py-2.5 hover:text-ink hover:underline">
                 Tra cứu tiền phạt
               </Link>
             </li>
             <li>
-              <Link href="/quy-dinh" className="inline-block py-1.5 hover:text-ink hover:underline">
+              <Link href="/quy-dinh" className="inline-block py-2.5 hover:text-ink hover:underline">
                 Quy định mượn trả
               </Link>
             </li>

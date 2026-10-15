@@ -92,19 +92,19 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
       <nav aria-label="Đường dẫn" className="text-sm text-ink-faint">
         <ol className="flex flex-wrap items-center gap-1.5">
           <li>
-            <Link href="/" className="hover:text-ink hover:underline">
+            <Link href="/" className="inline-block py-2.5 hover:text-ink hover:underline">
               Trang chủ
             </Link>
           </li>
           <li aria-hidden="true">/</li>
           <li>
-            <Link href="/books" className="hover:text-ink hover:underline">
+            <Link href="/books" className="inline-block py-2.5 hover:text-ink hover:underline">
               Danh mục sách
             </Link>
           </li>
           <li aria-hidden="true">/</li>
           <li>
-            <Link href={`/books?categoryId=${book.category.id}`} className="hover:text-ink hover:underline">
+            <Link href={`/books?categoryId=${book.category.id}`} className="inline-block py-2.5 hover:text-ink hover:underline">
               {book.category.name}
             </Link>
           </li>

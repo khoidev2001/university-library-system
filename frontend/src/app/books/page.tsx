@@ -73,7 +73,7 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
       <nav aria-label="Đường dẫn" className="text-sm text-ink-faint">
         <ol className="flex items-center gap-1.5">
           <li>
-            <Link href="/" className="hover:text-ink hover:underline">
+            <Link href="/" className="inline-block py-2.5 hover:text-ink hover:underline">
               Trang chủ
             </Link>
           </li>
@@ -129,7 +129,7 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
               <li>
                 <Link
                   href={buildHref({ categoryId: "" })}
-                  className={`block rounded-md px-3 py-2 text-sm transition-colors ${
+                  className={`block rounded-md px-3 py-2.5 text-sm transition-colors ${
                     !categoryId ? "bg-paper-2 font-semibold" : "hover:bg-paper-2"
                   }`}
                 >
@@ -140,7 +140,7 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
                 <li key={category.id}>
                   <Link
                     href={buildHref({ categoryId: String(category.id) })}
-                    className={`flex items-center justify-between gap-2 rounded-md px-3 py-2 text-sm transition-colors ${
+                    className={`flex min-h-10 items-center justify-between gap-2 rounded-md px-3 py-2 text-sm transition-colors ${
                       String(category.id) === categoryId ? "bg-paper-2 font-semibold" : "hover:bg-paper-2"
                     }`}
                   >

@@ -89,7 +89,7 @@ export default async function HomePage() {
               <li key={category.id}>
                 <Link
                   href={`/books?categoryId=${category.id}`}
-                  className="inline-flex items-center gap-2 rounded-full border border-line bg-white px-4 py-2 text-sm transition-colors hover:border-ink hover:bg-paper-2"
+                  className="inline-flex min-h-10 items-center gap-2 rounded-full border border-line bg-white px-4 py-2 text-sm transition-colors hover:border-ink hover:bg-paper-2"
                 >
                   {category.name}
                   {category.bookCount !== undefined && (
