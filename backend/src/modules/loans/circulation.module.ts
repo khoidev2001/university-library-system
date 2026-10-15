@@ -6,6 +6,7 @@ import { FinesService } from '../fines/fines.service';
 import { CirculationScheduler } from '../notifications/circulation.scheduler';
 import { NotificationsController } from '../notifications/notifications.controller';
 import { NotificationsService } from '../notifications/notifications.service';
+import { ReminderEmailService } from '../notifications/reminder-email.service';
 import { PoliciesModule } from '../policies/policies.module';
 import { ReservationsController } from '../reservations/reservations.controller';
 import { ReservationsService } from '../reservations/reservations.service';
@@ -34,6 +35,7 @@ import { LoansService } from './loans.service';
     ReportsService,
     ReservationsService,
     NotificationsService,
+    ReminderEmailService,
     CirculationScheduler,
     {
       provide: AiClient,
@@ -48,6 +50,7 @@ import { LoansService } from './loans.service';
     ReportsService,
     ReservationsService,
     NotificationsService,
+    ReminderEmailService,
     AiClient,
   ],
 })
