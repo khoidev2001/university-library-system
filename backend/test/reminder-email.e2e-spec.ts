@@ -258,6 +258,43 @@ describeWithDb('Email nhắc hạn trả: gửi một lần, thử lại khi l�
     expect(mailbox.to(changedMind.email)).toHaveLength(0);
   });
 
+  it('claiming is exclusive at the database level: two processes can never both claim a row, and a SENT row is never claimable', async () => {
+    const reader = await newReader();
+    const loans = [
+      await newLoan(reader.id, -4),
+      await newLoan(reader.id, -5),
+      await newLoan(reader.id, -6),
+    ];
+    await prisma.reminderEmail.createMany({
+      data: loans.map((l) => ({
+        loanId: l.id,
+        userId: reader.id,
+        kind: 'overdue',
+      })),
+    });
+    const rows = await rowsOf(reader.id);
+    const rowIds = rows.map((r) => r.id);
+    const claim = (
+      emails as unknown as {
+        claim(ids: number[], at: Date, staleBefore: Date): Promise<number[]>;
+      }
+    ).claim.bind(emails);
+    const now = new Date();
+    const stale = new Date(now.getTime() - 600_000);
+    const results = await Promise.all(
+      Array.from({ length: 6 }, () => claim(rowIds, now, stale)),
+    );
+    const claimedTotal = results.reduce((n, r) => n + r.length, 0);
+    expect(claimedTotal).toBe(rowIds.length); // mỗi dòng đúng một người giữ
+    expect(new Set(results.flat()).size).toBe(rowIds.length);
+
+    await prisma.reminderEmail.updateMany({
+      where: { id: { in: rowIds } },
+      data: { status: 'SENT', claimedAt: null },
+    });
+    expect(await claim(rowIds, now, stale)).toEqual([]);
+  });
+
   it('takes over a claim abandoned by a dead process but leaves a fresh claim alone', async () => {
     const reader = await newReader();
     const l1 = await newLoan(reader.id, -4);

@@ -338,6 +338,26 @@ describeWithDb('Quên mật khẩu và đặt lại bằng token (e2e)', () => {
     });
   });
 
+  describe('token hygiene', () => {
+    it('a successful reset also kills every other live token of that user', async () => {
+      const user = await newUser();
+      const token = await requestToken(user.email);
+      await prisma.passwordResetToken.create({
+        data: {
+          userId: user.id,
+          tokenHash: `h-${RUN}-extra`,
+          expiresAt: new Date(Date.now() + 3_600_000),
+        },
+      });
+      await resets.resetPassword(token, 'AfterReset123');
+      expect(
+        await prisma.passwordResetToken.count({
+          where: { userId: user.id, usedAt: null },
+        }),
+      ).toBe(0);
+    });
+  });
+
   describe('concurrency', () => {
     it('lets exactly one of several simultaneous resets with the same token succeed', async () => {
       const user = await newUser();
@@ -422,6 +442,8 @@ describeWithDb('Quên mật khẩu và đặt lại bằng token (e2e)', () => {
         await resets.resetPassword(token, 'LoggedNew1234');
         const blob = lines.join('\n');
         expect(blob).not.toContain(token);
+        // cả token của lần gửi lỗi (không lấy lại được từ DB) cũng không được lọt vào log
+        expect(blob).not.toMatch(/token=|reset-password/);
         expect(blob).not.toContain(user.email);
         expect(blob).not.toContain('LoggedNew1234');
         expect(blob).not.toContain(PASSWORD);
