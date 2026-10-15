@@ -66,6 +66,7 @@ model User {
   finesPaid     Fine[]         @relation("FinePaidTo")
   reservations  Reservation[]
   notifications Notification[]
+  payments      Payment[]
 
   // Tìm bạn đọc (GET /users?q=) khớp tên, email, mã bằng ILIKE '%…%'
   @@index([fullName(ops: raw("gin_trgm_ops"))], type: Gin, map: "users_full_name_trgm_idx")
@@ -195,8 +196,9 @@ model Fine {
   paidToId  Int?      @map("paid_to")
   createdAt DateTime  @default(now()) @map("created_at")
 
-  loan   Loan  @relation(fields: [loanId], references: [id])
-  paidTo User? @relation("FinePaidTo", fields: [paidToId], references: [id])
+  loan         Loan          @relation(fields: [loanId], references: [id])
+  paidTo       User?         @relation("FinePaidTo", fields: [paidToId], references: [id])
+  paymentLinks PaymentFine[]
 
   @@index([paidAt])
   @@index([loanId])
@@ -254,4 +256,52 @@ model Notification {
 
   @@index([userId, readAt, createdAt])
   @@map("notifications")
+}
+
+// ===== Thanh toán phạt trực tuyến (VNPay) =====
+enum PaymentStatus {
+  PENDING // đã tạo, chờ bạn đọc trả tiền / chờ IPN
+  PAID
+  FAILED
+  EXPIRED // quá hạn thanh toán, các khoản phạt đã được nhả
+  CANCELLED
+}
+
+// Fine.paidToId = NULL và Payment PAID cho khoản phạt thu online (thu tiền mặt thì paidToId = thủ thư).
+model Payment {
+  id               Int           @id @default(autoincrement())
+  userId           Int           @map("user_id")
+  txnRef           String        @unique @map("txn_ref") // vnp_TxnRef, ngẫu nhiên khó đoán
+  amount           Int // VND, tính ở máy chủ từ các khoản phạt; vnp_Amount = amount × 100
+  status           PaymentStatus @default(PENDING)
+  vnpTransactionNo String?       @map("vnp_transaction_no")
+  bankCode         String?       @map("bank_code")
+  responseCode     String?       @map("response_code")
+  note             String? // vd REFUND_REQUIRED: tiền về sau khi khoản phạt đã được thu cách khác
+  createdAt        DateTime      @default(now()) @map("created_at")
+  paidAt           DateTime?     @map("paid_at")
+  expiresAt        DateTime      @map("expires_at")
+
+  user  User          @relation(fields: [userId], references: [id])
+  fines PaymentFine[]
+
+  @@index([userId, createdAt])
+  @@index([status, expiresAt])
+  @@map("payments")
+}
+
+// n-n giao dịch ↔ khoản phạt. `active` = giao dịch đang PENDING hoặc đã PAID; chỉ mục duy nhất
+// từng phần (xem migration, Prisma không biểu diễn được) đảm bảo một khoản phạt chỉ thuộc tối đa
+// một giao dịch active: không thể trả hai lần, không thể nằm trong hai giao dịch chờ.
+model PaymentFine {
+  paymentId Int     @map("payment_id")
+  fineId    Int     @map("fine_id")
+  active    Boolean @default(true)
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  fine    Fine    @relation(fields: [fineId], references: [id])
+
+  @@id([paymentId, fineId])
+  @@index([fineId])
+  @@map("payment_fines")
 }
