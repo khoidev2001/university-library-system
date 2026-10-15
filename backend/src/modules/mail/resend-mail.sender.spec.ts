@@ -61,6 +61,20 @@ describe('ResendMailSender', () => {
     });
   });
 
+  it('can target another endpoint (fake server in development)', async () => {
+    const { fn, calls } = fakeFetch(() =>
+      Promise.resolve(new Response('{}', { status: 200 })),
+    );
+    const sender = new ResendMailSender({
+      apiKey: 'k',
+      from: 'x',
+      fetchFn: fn,
+      endpoint: 'http://127.0.0.1:55442/emails',
+    });
+    await sender.send(message);
+    expect(calls[0].url).toBe('http://127.0.0.1:55442/emails');
+  });
+
   it.each([
     [500, true],
     [429, true],

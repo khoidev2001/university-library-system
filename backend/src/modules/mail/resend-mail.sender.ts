@@ -16,6 +16,8 @@ export interface ResendOptions {
   /** Tiêm `fetch` giả khi test. */
   fetchFn?: typeof fetch;
   timeoutMs?: number;
+  /** Mặc định https://api.resend.com/emails; đổi để thử với máy chủ giả khi phát triển. */
+  endpoint?: string;
 }
 
 /** Gửi thư qua Resend bằng HTTPS (Render gói miễn phí chặn SMTP nên không dùng SMTP). */
@@ -25,6 +27,7 @@ export class ResendMailSender implements MailSender {
   private readonly from: string;
   private readonly fetchFn: typeof fetch;
   private readonly timeoutMs: number;
+  private readonly endpoint: string;
 
   constructor(options: ResendOptions) {
     this.apiKey = options.apiKey?.trim() || undefined;
@@ -32,6 +35,7 @@ export class ResendMailSender implements MailSender {
     this.from = options.from;
     this.fetchFn = options.fetchFn ?? fetch;
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    this.endpoint = options.endpoint?.trim() || RESEND_ENDPOINT;
   }
 
   async send(message: MailMessage): Promise<MailSendResult> {
@@ -40,7 +44,7 @@ export class ResendMailSender implements MailSender {
     }
     let response: Response;
     try {
-      response = await this.fetchFn(RESEND_ENDPOINT, {
+      response = await this.fetchFn(this.endpoint, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${this.apiKey}`,

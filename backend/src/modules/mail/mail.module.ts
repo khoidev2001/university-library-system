@@ -19,6 +19,7 @@ export const DEFAULT_MAIL_FROM = 'Thư viện MUCE <onboarding@resend.dev>';
       useFactory: (config: ConfigService) =>
         new ResendMailSender({
           apiKey: config.get<string>('RESEND_API_KEY'),
+          endpoint: config.get<string>('RESEND_API_URL'),
           from: config.get<string>('MAIL_FROM')?.trim() || DEFAULT_MAIL_FROM,
         }),
     },
