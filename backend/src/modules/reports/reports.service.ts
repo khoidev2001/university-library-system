@@ -31,6 +31,7 @@ export interface InventoryRow {
   borrowed: number;
   lost: number;
   maintenance: number;
+  held: number;
 }
 
 @Injectable()
@@ -158,6 +159,7 @@ export class ReportsService {
         borrowed: 0,
         lost: 0,
         maintenance: 0,
+        held: 0,
       });
     }
     for (const copy of copies) {
@@ -168,6 +170,7 @@ export class ReportsService {
       else if (copy.status === CopyStatus.BORROWED) row.borrowed++;
       else if (copy.status === CopyStatus.LOST) row.lost++;
       else if (copy.status === CopyStatus.MAINTENANCE) row.maintenance++;
+      else if (copy.status === CopyStatus.HELD) row.held++;
     }
     return [...rows.values()].filter((r) => r.total > 0);
   }

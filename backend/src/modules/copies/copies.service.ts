@@ -60,6 +60,20 @@ export class CopiesService {
         );
       }
     }
+    if (dto.status !== undefined && dto.status !== copy.status) {
+      if (dto.status === CopyStatus.HELD) {
+        throw new BusinessException(
+          'COPY_HELD',
+          'Trạng thái HELD chỉ được đặt khi có người đặt trước',
+        );
+      }
+      if (copy.status === CopyStatus.HELD) {
+        throw new BusinessException(
+          'COPY_HELD',
+          'Bản sao đang giữ cho bạn đọc đã đặt trước; hãy huỷ đặt trước trước khi đổi trạng thái',
+        );
+      }
+    }
     return this.prisma.bookCopy.update({ where: { id }, data: dto });
   }
 }

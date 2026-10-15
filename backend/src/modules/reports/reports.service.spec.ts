@@ -138,6 +138,7 @@ describe('ReportsService', () => {
         borrowed: 1,
         lost: 1,
         maintenance: 1,
+        held: 0,
       },
     ]);
   });

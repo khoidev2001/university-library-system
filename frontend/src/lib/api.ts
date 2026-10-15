@@ -52,6 +52,13 @@ const BUSINESS_MESSAGES: Record<string, string> = {
   BARCODE_EXISTS: "Mã vạch này đã tồn tại.",
   ISBN_EXISTS: "ISBN này đã có trong kho.",
   CATEGORY_IN_USE: "Thể loại đang có sách nên không xoá được.",
+  NO_COPIES: "Sách này hiện không có bản sao nào để đặt.",
+  BOOK_AVAILABLE: "Sách đang còn trên kệ, bạn đến quầy mượn trực tiếp.",
+  ALREADY_BORROWING: "Bạn đang mượn cuốn sách này.",
+  ALREADY_RESERVED: "Bạn đã đặt trước cuốn sách này.",
+  RESERVATION_LIMIT: "Bạn đã đặt trước đủ số cuốn tối đa cùng lúc.",
+  RESERVATION_NOT_ACTIVE: "Lượt đặt trước này không còn hiệu lực.",
+  COPY_HELD: "Bản sao này đang được giữ cho bạn đọc đã đặt trước.",
   AI_UNAVAILABLE: "Dịch vụ gợi ý tạm thời không phản hồi.",
 };
 

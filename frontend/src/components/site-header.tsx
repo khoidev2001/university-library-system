@@ -6,6 +6,7 @@ import { useState } from "react";
 import { BookOpen, LogOut, Menu, UserRound, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { SITE } from "@/lib/site";
+import { NotificationBell } from "./notification-bell";
 
 interface NavItem {
   href: string;
@@ -17,6 +18,7 @@ const NAV: NavItem[] = [
   { href: "/books", label: "Tra cứu sách", show: () => true },
   { href: "/recommendations", label: "Gợi ý cho bạn", show: (can) => can("READER") },
   { href: "/my/loans", label: "Sách của tôi", show: (can) => can("READER") },
+  { href: "/my/reservations", label: "Đặt trước", show: (can) => can("READER") },
   { href: "/librarian/desk", label: "Quầy mượn trả", show: (can) => can("LIBRARIAN") },
   { href: "/librarian/readers", label: "Bạn đọc", show: (can) => can("LIBRARIAN") },
   { href: "/reports", label: "Thống kê", show: (can) => can("LIBRARIAN") },
@@ -64,6 +66,7 @@ export function SiteHeader() {
         <div className="ml-auto flex items-center gap-2 lg:ml-0">
           {!loading && user ? (
             <div className="flex items-center gap-2">
+              <NotificationBell />
               <span className="hidden text-right text-sm leading-tight sm:block">
                 <span className="block font-medium">{user.fullName}</span>
                 <span className="block text-xs text-ink-faint">{roleLabel(user.role)}</span>

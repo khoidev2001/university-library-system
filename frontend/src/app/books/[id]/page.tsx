@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Star } from "lucide-react";
 import { AvailabilityTag, BookCover } from "@/components/book-card";
 import { RateBookPanel } from "@/components/rate-book-panel";
+import { ReserveBookPanel } from "@/components/reserve-book-panel";
 import { apiFetch } from "@/lib/api";
 import { SITE } from "@/lib/site";
 import type { BookDetail } from "@/lib/types";
@@ -123,6 +124,7 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
                 : "Tất cả bản sao đang được mượn. Vui lòng quay lại sau."}
             </p>
           </div>
+          <ReserveBookPanel bookId={book.id} available={book.copiesAvailable} />
         </div>
 
         <div>

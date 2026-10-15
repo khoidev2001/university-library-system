@@ -8,6 +8,7 @@ import {
   FolderTree,
   HandCoins,
   LayoutDashboard,
+  Bookmark,
   Library,
   ScrollText,
   Settings2,
@@ -46,6 +47,7 @@ const GROUPS: { title: string; items: NavItem[] }[] = [
     items: [
       { href: "/librarian/desk", label: "Quầy mượn trả", icon: Library, role: "LIBRARIAN" },
       { href: "/admin/loans", label: "Phiếu mượn", icon: ScrollText, role: "LIBRARIAN" },
+      { href: "/admin/reservations", label: "Đặt trước", icon: Bookmark, role: "LIBRARIAN" },
       { href: "/admin/fines", label: "Khoản phạt", icon: HandCoins, role: "LIBRARIAN" },
       { href: "/librarian/readers", label: "Bạn đọc", icon: Users, role: "LIBRARIAN" },
     ],

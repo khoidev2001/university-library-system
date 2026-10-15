@@ -15,6 +15,7 @@ const COPY_STATUS: Record<CopyStatus, { label: string; tone: "good" | "info" | "
   BORROWED: { label: "Đang mượn", tone: "info" },
   LOST: { label: "Mất", tone: "bad" },
   MAINTENANCE: { label: "Bảo trì", tone: "warn" },
+  HELD: { label: "Đang giữ cho bạn đọc", tone: "info" },
 };
 
 export function BooksAdminView() {
