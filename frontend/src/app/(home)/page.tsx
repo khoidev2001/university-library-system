@@ -94,7 +94,7 @@ export default async function HomePage() {
                     key={item.q}
                     href={`/books?q=${encodeURIComponent(item.q)}`}
                     className={`inline-flex min-h-10 items-center rounded-full bg-white/80 px-4 text-sm font-medium text-ink-soft ring-1 ring-line transition-colors hover:bg-white hover:text-primary hover:ring-primary/40 ${
-                      item.hideOnPhone ? "hidden sm:inline-flex" : ""
+                      item.hideOnPhone ? "max-sm:hidden" : ""
                     }`}
                   >
                     {item.label}

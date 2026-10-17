@@ -60,11 +60,13 @@ export function SearchForm({
       </div>
       <button
         type="submit"
+        aria-label="Tìm sách"
         className={`shrink-0 rounded-[1.25rem] bg-primary font-semibold text-white shadow-[0_8px_18px_-8px_rgb(79_70_229/0.8)] transition-[background-color,transform] duration-150 hover:bg-primary-hover active:scale-[0.97] ${
           large ? "h-12 px-6 text-base" : "h-10 rounded-xl px-5 text-sm"
         }`}
       >
-        Tìm sách
+        <span className="max-sm:hidden">Tìm sách</span>
+        <span className="sm:hidden">Tìm</span>
       </button>
     </form>
   );
