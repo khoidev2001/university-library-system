@@ -16,8 +16,8 @@ import {
   type OnDuplicate,
 } from "@/lib/import-types";
 import { uploadFile } from "@/lib/upload";
-import { Alert, Badge, Button } from "../ui";
-import { Modal, TableShell, Th } from "./admin-ui";
+import { Alert, Button } from "../ui";
+import { FilterTabs, Modal, StatusBadge, TableShell, Td, Th } from "./admin-ui";
 
 type Phase = "pick" | "analyzing" | "preview" | "importing" | "done";
 type RowFilter = "all" | "error" | "warning";
@@ -192,12 +192,14 @@ export function BookImportDialog({ onClose, onDone }: { onClose: () => void; onD
               setDragging(false);
               if (phase === "pick") choose(event.dataTransfer.files[0]);
             }}
-            className={`mt-4 flex min-h-40 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-8 text-center transition-colors focus-within:border-ink focus-within:bg-paper-2 ${
-              dragging ? "border-ink bg-paper-2" : "border-line bg-white hover:bg-paper-2"
+            className={`mt-4 flex min-h-44 cursor-pointer flex-col items-center justify-center gap-2 rounded-[1.25rem] border-2 border-dashed px-4 py-8 text-center transition-colors focus-within:border-primary focus-within:bg-primary-soft ${
+              dragging ? "border-primary bg-primary-soft" : "border-line bg-paper hover:border-primary/40 hover:bg-primary-soft/60"
             }`}
           >
-            <FileUp size={28} aria-hidden="true" className="text-ink-soft" />
-            <span className="text-sm font-medium">Kéo thả file vào đây hoặc bấm để chọn</span>
+            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-white text-primary shadow-[var(--shadow-card)]">
+              <FileUp size={24} aria-hidden="true" />
+            </span>
+            <span className="text-sm font-semibold">Kéo thả file vào đây hoặc bấm để chọn</span>
             <span className="text-xs text-ink-soft">.csv hoặc .xlsx</span>
             <input
               ref={input}
@@ -219,18 +221,18 @@ export function BookImportDialog({ onClose, onDone }: { onClose: () => void; onD
             </div>
           )}
 
-          <div className="mt-5 rounded-lg border border-line bg-white p-4">
-            <p className="text-sm font-medium">Chưa có file mẫu?</p>
+          <div className="mt-5 rounded-2xl bg-paper p-4">
+            <p className="text-sm font-semibold">Chưa có file mẫu?</p>
             <p className="mt-1 text-xs text-ink-soft">
               Mẫu có đủ cột (title, authors, category, isbn, publisher, publishedYear, price, description, coverUrl,
               copies, shelfLocation) và một dòng ví dụ. Nhiều tác giả cách nhau bằng dấu chấm phẩy.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
-              <Button type="button" variant="ghost" className="min-h-10" disabled={templateBusy} onClick={() => template("csv")}>
+              <Button type="button" variant="ghost" disabled={templateBusy} onClick={() => template("csv")}>
                 <FileSpreadsheet size={16} aria-hidden="true" />
                 Tải mẫu CSV
               </Button>
-              <Button type="button" variant="ghost" className="min-h-10" disabled={templateBusy} onClick={() => template("xlsx")}>
+              <Button type="button" variant="ghost" disabled={templateBusy} onClick={() => template("xlsx")}>
                 <FileSpreadsheet size={16} aria-hidden="true" />
                 Tải mẫu Excel
               </Button>
@@ -246,14 +248,14 @@ export function BookImportDialog({ onClose, onDone }: { onClose: () => void; onD
               <strong>{file?.name}</strong> · {preview.totalRows.toLocaleString("vi-VN")} dòng ·{" "}
               {preview.fileType === "xlsx" ? "Excel" : "CSV"}
             </p>
-            <Button type="button" variant="ghost" className="min-h-10" disabled={phase === "importing"} onClick={reset}>
+            <Button type="button" variant="ghost" disabled={phase === "importing"} onClick={reset}>
               <RotateCcw size={16} aria-hidden="true" />
               Chọn file khác
             </Button>
           </div>
 
           <fieldset className="mt-3" disabled={phase === "importing"}>
-            <legend className="text-sm font-medium">Khi ISBN đã có trong kho</legend>
+            <legend className="text-sm font-semibold">Khi ISBN đã có trong kho</legend>
             <div className="mt-1.5 flex flex-wrap gap-2">
               {(
                 [
@@ -263,8 +265,8 @@ export function BookImportDialog({ onClose, onDone }: { onClose: () => void; onD
               ).map(([value, label]) => (
                 <label
                   key={value}
-                  className={`flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border px-3 text-sm ${
-                    onDuplicate === value ? "border-ink bg-paper-2" : "border-line bg-white"
+                  className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border px-3.5 text-sm transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary ${
+                    onDuplicate === value ? "border-primary/40 bg-primary-soft font-semibold text-primary-ink" : "border-line bg-white"
                   }`}
                 >
                   <input
@@ -276,7 +278,7 @@ export function BookImportDialog({ onClose, onDone }: { onClose: () => void; onD
                       setOnDuplicate(value);
                       if (file) void analyze(file, value);
                     }}
-                    className="h-4 w-4 accent-[var(--color-ink)]"
+                    className="h-4 w-4 accent-[var(--color-primary)]"
                   />
                   {label}
                 </label>
@@ -309,36 +311,23 @@ export function BookImportDialog({ onClose, onDone }: { onClose: () => void; onD
           )}
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-            <div role="tablist" aria-label="Lọc dòng" className="flex flex-wrap gap-1 rounded-lg border border-line bg-white p-1">
-              {(
-                [
-                  ["all", `Tất cả (${rows.length})`],
-                  ["error", `Lỗi (${counts.error})`],
-                  ["warning", `Cảnh báo (${counts.warning})`],
-                ] as const
-              ).map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  role="tab"
-                  aria-selected={filter === value}
-                  onClick={() => {
-                    setFilter(value);
-                    setShown(PAGE_SIZE);
-                  }}
-                  className={`min-h-10 rounded-md px-3 text-sm ${
-                    filter === value ? "bg-ink font-medium text-paper" : "text-ink-soft hover:bg-paper-2"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            <FilterTabs
+              label="Lọc dòng"
+              value={filter}
+              items={[
+                { value: "all", label: `Tất cả (${rows.length})` },
+                { value: "error", label: `Lỗi (${counts.error})` },
+                { value: "warning", label: `Cảnh báo (${counts.warning})` },
+              ]}
+              onChange={(value) => {
+                setFilter(value);
+                setShown(PAGE_SIZE);
+              }}
+            />
             {counts.error > 0 && (
               <Button
                 type="button"
                 variant="ghost"
-                className="min-h-10"
                 onClick={() =>
                   saveBlob(
                     failedRowsCsv(
@@ -356,9 +345,9 @@ export function BookImportDialog({ onClose, onDone }: { onClose: () => void; onD
           </div>
 
           <div className="mt-3">
-            <TableShell minWidth={760} label="Bảng kết quả kiểm tra, cuộn ngang để xem hết">
+            <TableShell minWidth={760} maxHeight={420} label="Bảng kết quả kiểm tra, cuộn để xem hết">
               <caption className="sr-only">Kết quả kiểm tra từng dòng</caption>
-              <thead className="border-b border-line bg-paper-2">
+              <thead>
                 <tr>
                   <Th>Dòng</Th>
                   <Th>Trạng thái</Th>
@@ -368,26 +357,26 @@ export function BookImportDialog({ onClose, onDone }: { onClose: () => void; onD
                   <Th>Ghi chú</Th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-line">
+              <tbody>
                 {visible.slice(0, shown).map((r) => (
                   <tr key={r.row} className="align-top">
-                    <td className="px-4 py-2.5 tabular text-ink-soft">{r.row}</td>
-                    <td className="px-4 py-2.5">
-                      <Badge tone={r.status === "error" ? "bad" : r.status === "warning" ? "warn" : "good"}>
+                    <Td className="py-3 tabular-nums text-ink-soft">{r.row}</Td>
+                    <Td className="py-3">
+                      <StatusBadge tone={r.status === "error" ? "bad" : r.status === "warning" ? "warn" : "good"}>
                         {r.status === "error" ? "Lỗi" : r.status === "warning" ? "Cảnh báo" : "Hợp lệ"}
-                      </Badge>
+                      </StatusBadge>
                       <span className="mt-1 block text-xs text-ink-soft">{ACTION_LABEL[r.action]}</span>
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <span className="font-medium">{r.title || "(thiếu tiêu đề)"}</span>
-                      {r.isbn && <span className="block font-mono text-xs text-ink-faint">{r.isbn}</span>}
-                    </td>
-                    <td className="px-4 py-2.5 text-ink-soft">{r.category ?? "-"}</td>
-                    <td className="px-4 py-2.5 text-ink-soft">{r.copies ?? "-"}</td>
-                    <td className="px-4 py-2.5">
+                    </Td>
+                    <Td className="py-3">
+                      <span className="font-semibold">{r.title || "(thiếu tiêu đề)"}</span>
+                      {r.isbn && <span className="block text-xs tabular-nums text-ink-faint">{r.isbn}</span>}
+                    </Td>
+                    <Td className="py-3 text-ink-soft">{r.category ?? "-"}</Td>
+                    <Td className="py-3 tabular-nums text-ink-soft">{r.copies ?? "-"}</Td>
+                    <Td className="min-w-[13rem] py-3">
                       <ul className="space-y-0.5 text-xs">
                         {r.errors.map((issue, i) => (
-                          <li key={`e${i}`} className="text-brand">
+                          <li key={`e${i}`} className="text-danger">
                             {issue.message}
                           </li>
                         ))}
@@ -397,7 +386,7 @@ export function BookImportDialog({ onClose, onDone }: { onClose: () => void; onD
                           </li>
                         ))}
                       </ul>
-                    </td>
+                    </Td>
                   </tr>
                 ))}
               </tbody>
@@ -405,7 +394,7 @@ export function BookImportDialog({ onClose, onDone }: { onClose: () => void; onD
             {visible.length === 0 && <p className="py-6 text-center text-sm text-ink-soft">Không có dòng nào.</p>}
             {visible.length > shown && (
               <div className="mt-3 text-center">
-                <Button type="button" variant="ghost" className="min-h-10" onClick={() => setShown((n) => n + PAGE_SIZE)}>
+                <Button type="button" variant="ghost" onClick={() => setShown((n) => n + PAGE_SIZE)}>
                   Hiện thêm ({visible.length - shown} dòng)
                 </Button>
               </div>
@@ -461,28 +450,27 @@ export function BookImportDialog({ onClose, onDone }: { onClose: () => void; onD
                 <Button
                   type="button"
                   variant="ghost"
-                  className="min-h-10"
                   onClick={() => saveBlob(failedRowsCsv(report.failed), "dong-loi-nhap-sach.csv")}
                 >
                   Tải các dòng lỗi (CSV)
                 </Button>
               </div>
               <div className="mt-2">
-                <TableShell minWidth={520} label="Bảng các dòng nhập thất bại">
+                <TableShell minWidth={520} maxHeight={320} label="Bảng các dòng nhập thất bại">
                   <caption className="sr-only">Các dòng nhập thất bại</caption>
-                  <thead className="border-b border-line bg-paper-2">
+                  <thead>
                     <tr>
                       <Th>Dòng</Th>
                       <Th>Sách</Th>
                       <Th>Lý do</Th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-line">
+                  <tbody>
                     {report.failed.slice(0, 100).map((f) => (
                       <tr key={f.row} className="align-top">
-                        <td className="px-4 py-2.5 tabular text-ink-soft">{f.row}</td>
-                        <td className="px-4 py-2.5">{f.raw.title ?? "-"}</td>
-                        <td className="px-4 py-2.5 text-xs text-brand">{f.reason}</td>
+                        <Td className="py-3 tabular-nums text-ink-soft">{f.row}</Td>
+                        <Td className="py-3">{f.raw.title ?? "-"}</Td>
+                        <Td className="py-3 text-xs text-danger">{f.reason}</Td>
                       </tr>
                     ))}
                   </tbody>
@@ -511,11 +499,11 @@ export function BookImportDialog({ onClose, onDone }: { onClose: () => void; onD
 }
 
 function Stat({ label, value, tone }: { label: string; value: number; tone: "good" | "info" | "neutral" | "bad" | "warn" }) {
-  const color = { good: "text-leaf", info: "text-ink", neutral: "text-ink-soft", bad: "text-brand", warn: "text-amber" }[tone];
+  const color = { good: "text-leaf", info: "text-primary-ink", neutral: "text-ink-soft", bad: "text-danger", warn: "text-amber" }[tone];
   return (
-    <div className="rounded-lg border border-line bg-white px-3 py-2">
+    <div className="rounded-2xl bg-paper px-4 py-3">
       <dt className="text-xs text-ink-soft">{label}</dt>
-      <dd className={`text-xl font-bold tabular ${color}`}>{value.toLocaleString("vi-VN")}</dd>
+      <dd className={`mt-0.5 text-2xl font-bold tabular-nums ${color}`}>{value.toLocaleString("vi-VN")}</dd>
     </div>
   );
 }
@@ -532,7 +520,7 @@ function ProgressBar({ fraction }: { fraction: number | null }) {
       className="mt-2 h-2 w-full overflow-hidden rounded-full bg-paper-2"
     >
       <div
-        className={`h-full w-full origin-left rounded-full bg-ink ${fraction === null ? "animate-pulse" : ""}`}
+        className={`h-full w-full origin-left rounded-full bg-gradient-to-r from-primary to-mint transition-transform duration-200 ${fraction === null ? "animate-pulse" : ""}`}
         style={{ transform: `scaleX(${fraction ?? 1})` }}
       />
     </div>

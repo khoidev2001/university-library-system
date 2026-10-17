@@ -1,13 +1,33 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Plus } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import { apiFetch, formatDate } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { Page, Role, User } from "@/lib/types";
-import { Badge, Button, Field, PageHeading, Spinner, inputClass } from "../ui";
-import { Modal, Pagination, TableShell, Th, Toolbar, errorText, useNotice } from "./admin-ui";
+import { Button, EmptyState, Field, PageHeading, inputClass } from "../ui";
+import {
+  Avatar,
+  FilterTabs,
+  FormActions,
+  FormError,
+  Modal,
+  Pagination,
+  RowButton,
+  SearchInput,
+  StatusBadge,
+  TableShell,
+  TableSkeleton,
+  Td,
+  Th,
+  Toolbar,
+  Tr,
+  errorText,
+  useConfirm,
+  useNotice,
+} from "./admin-ui";
 
 const LIMIT = 15;
 
@@ -20,10 +40,17 @@ const ROLE_LABEL: Record<Role, string> = {
   ADMIN: "Quản trị viên",
 };
 
+const ROLE_ITEMS: { value: Role; label: string }[] = [
+  { value: "LIBRARIAN", label: ROLE_LABEL.LIBRARIAN },
+  { value: "ADMIN", label: ROLE_LABEL.ADMIN },
+  { value: "READER", label: ROLE_LABEL.READER },
+];
+
 export function UsersAdminView() {
   const { token, user: me } = useAuth();
   const queryClient = useQueryClient();
   const { show, node } = useNotice();
+  const { confirm, dialog: confirmDialog } = useConfirm();
 
   const [role, setRole] = useState<Role>("LIBRARIAN");
   const [search, setSearch] = useState("");
@@ -56,114 +83,131 @@ export function UsersAdminView() {
     onError: (error) => show("bad", errorText(error, "Không cập nhật được tài khoản.")),
   });
 
+  const items = users.data?.items ?? [];
+
   return (
     <div>
       <PageHeading
-        eyebrow="Hệ thống"
         title="Tài khoản"
         description="Tạo tài khoản thủ thư hoặc quản trị viên, đổi tên và khoá hoặc mở tài khoản. Bạn đọc tự đăng ký ở trang đăng ký."
-        action={<Button onClick={() => setCreating(true)}>Tạo tài khoản nhân viên</Button>}
+        action={
+          <Button onClick={() => setCreating(true)}>
+            <Plus size={18} aria-hidden="true" />
+            Tạo tài khoản nhân viên
+          </Button>
+        }
       />
       {node}
+      {confirmDialog}
 
       <Toolbar>
-        <div role="tablist" aria-label="Loại tài khoản" className="flex gap-1 rounded-lg border border-line bg-white p-1">
-          {(["LIBRARIAN", "ADMIN", "READER"] as const).map((value) => (
-            <button
-              key={value}
-              type="button"
-              role="tab"
-              aria-selected={role === value}
-              onClick={() => {
-                setRole(value);
-                setPage(1);
-              }}
-              className={`min-h-10 rounded-md px-3.5 py-1.5 text-sm ${
-                role === value ? "bg-ink font-medium text-paper" : "text-ink-soft hover:bg-paper-2"
-              }`}
-            >
-              {ROLE_LABEL[value]}
-            </button>
-          ))}
-        </div>
+        <FilterTabs
+          label="Loại tài khoản"
+          value={role}
+          items={ROLE_ITEMS}
+          onChange={(value) => {
+            setRole(value);
+            setPage(1);
+          }}
+        />
         <form
-          className="flex flex-1 gap-2"
+          className="flex min-w-[240px] flex-1 items-center gap-2"
           onSubmit={(event) => {
             event.preventDefault();
             setQuery(search.trim());
             setPage(1);
           }}
         >
-          <label htmlFor="admin-users-q" className="sr-only">Tìm tài khoản</label>
-          <input id="admin-users-q" value={search} onChange={(e) => setSearch(e.target.value)} className={`${inputClass} max-w-sm`} placeholder="Tên, email hoặc mã" />
-          <Button type="submit" variant="ghost">Tìm</Button>
+          <SearchInput id="admin-users-q" label="Tìm tài khoản" value={search} onChange={setSearch} placeholder="Tên, email hoặc mã" className="max-w-sm" />
+          <Button type="submit" variant="ghost">
+            Tìm
+          </Button>
         </form>
       </Toolbar>
 
       <div className="mt-5">
         {users.isLoading ? (
-          <Spinner />
+          <TableSkeleton rows={6} cols={4} />
+        ) : items.length === 0 ? (
+          <EmptyState
+            title="Không có tài khoản nào"
+            hint={query ? "Thử từ khoá khác hoặc chuyển sang loại tài khoản khác." : "Loại tài khoản này chưa có ai."}
+          />
         ) : (
-          <TableShell minWidth={640}>
+          <TableShell minWidth={720}>
             <caption className="sr-only">Danh sách tài khoản</caption>
-            <thead className="border-b border-line bg-paper-2">
+            <thead>
               <tr>
                 <Th>Họ tên</Th>
                 <Th>Vai trò</Th>
                 <Th>Ngày tạo</Th>
                 <Th>Trạng thái</Th>
-                <Th align="right"><span className="sr-only">Thao tác</span></Th>
+                <Th align="right">
+                  <span className="sr-only">Thao tác</span>
+                </Th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-line">
-              {(users.data?.items ?? []).map((row) => {
+            <tbody>
+              {items.map((row, index) => {
                 const isMe = row.id === me?.id;
                 return (
-                  <tr key={row.id}>
-                    <td className="px-4 py-3">
-                      <span className="font-medium">{row.fullName}</span>
-                      {isMe && <span className="ml-2 text-xs text-ink-faint">(bạn)</span>}
-                      <span className="block text-xs text-ink-faint">{row.email}</span>
-                    </td>
-                    <td className="px-4 py-3 text-ink-soft">{ROLE_LABEL[row.role]}</td>
-                    <td className="px-4 py-3 text-ink-soft">{row.createdAt ? formatDate(row.createdAt) : ""}</td>
-                    <td className="px-4 py-3">
-                      {row.isActive ? <Badge tone="good">Hoạt động</Badge> : <Badge tone="bad">Đang khoá</Badge>}
-                    </td>
-                    <td className="px-4 py-3">
+                  <Tr key={row.id} index={index}>
+                    <Td>
+                      <div className="flex items-center gap-3">
+                        <Avatar name={row.fullName} />
+                        <div className="min-w-0">
+                          <span className="font-semibold">{row.fullName}</span>
+                          {isMe && <span className="ml-2 text-xs font-medium text-primary-ink">(bạn)</span>}
+                          <span className="block truncate text-xs text-ink-faint">{row.email}</span>
+                        </div>
+                      </div>
+                    </Td>
+                    <Td className="text-ink-soft">{ROLE_LABEL[row.role]}</Td>
+                    <Td className="whitespace-nowrap text-ink-soft">{row.createdAt ? formatDate(row.createdAt) : ""}</Td>
+                    <Td>
+                      {row.isActive ? <StatusBadge tone="good">Hoạt động</StatusBadge> : <StatusBadge tone="bad">Đang khoá</StatusBadge>}
+                    </Td>
+                    <Td>
                       <div className="flex justify-end gap-2">
-                        <button type="button" aria-label={`Đổi tên ${row.fullName}`} onClick={() => setEditing(row)} className="min-h-10 rounded-md border border-line px-3 py-1.5 text-xs font-medium hover:bg-paper-2">
+                        <RowButton aria-label={`Đổi tên ${row.fullName}`} onClick={() => setEditing(row)}>
                           Đổi tên
-                        </button>
-                        <button
-                          type="button"
+                        </RowButton>
+                        <RowButton
                           aria-label={`Cấp lại mật khẩu cho ${row.fullName}`}
                           disabled={isMe}
                           title={isMe ? "Dùng chức năng đổi mật khẩu ở trang tài khoản" : undefined}
                           onClick={() => setResetting(row)}
-                          className="min-h-10 rounded-md border border-line px-3 py-1.5 text-xs font-medium hover:bg-paper-2 disabled:opacity-40"
                         >
                           Cấp mật khẩu
-                        </button>
-                        <button
-                          type="button"
+                        </RowButton>
+                        <RowButton
+                          danger={row.isActive}
                           aria-label={`${row.isActive ? "Khoá" : "Mở khoá"} tài khoản ${row.fullName}`}
                           disabled={isMe || toggle.isPending}
                           title={isMe ? "Không tự khoá tài khoản của mình" : undefined}
-                          onClick={() => toggle.mutate(row)}
-                          className="min-h-10 rounded-md border border-line px-3 py-1.5 text-xs font-medium hover:bg-paper-2 disabled:opacity-40"
+                          onClick={async () => {
+                            if (!row.isActive) {
+                              toggle.mutate(row);
+                              return;
+                            }
+                            const ok = await confirm({
+                              title: "Khoá tài khoản",
+                              message: `Khoá tài khoản ${row.fullName}? Người này sẽ không đăng nhập được cho tới khi bạn mở lại.`,
+                              confirmLabel: "Khoá tài khoản",
+                            });
+                            if (ok) toggle.mutate(row);
+                          }}
                         >
                           {row.isActive ? "Khoá" : "Mở"}
-                        </button>
+                        </RowButton>
                       </div>
-                    </td>
-                  </tr>
+                    </Td>
+                  </Tr>
                 );
               })}
             </tbody>
           </TableShell>
         )}
-        {users.data?.items.length === 0 && <p className="py-10 text-center text-sm text-ink-soft">Không có tài khoản nào.</p>}
         {users.data && <Pagination page={page} total={users.data.total} limit={LIMIT} onPage={setPage} />}
       </div>
 
@@ -217,11 +261,15 @@ function RenameModal({ user, onClose, onSaved }: { user: User; onClose: () => vo
         <Field label="Họ và tên" htmlFor="rename-name">
           <input id="rename-name" required minLength={2} maxLength={100} value={fullName} onChange={(e) => setFullName(e.target.value)} className={inputClass} />
         </Field>
-        {error && <p role="alert" className="rounded-md bg-brand-soft px-3 py-2 text-sm text-brand">{error}</p>}
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={onClose}>Huỷ</Button>
-          <Button type="submit" disabled={save.isPending}>{save.isPending ? "Đang lưu..." : "Lưu"}</Button>
-        </div>
+        {error && <FormError>{error}</FormError>}
+        <FormActions>
+          <Button type="button" variant="ghost" onClick={onClose}>
+            Huỷ
+          </Button>
+          <Button type="submit" disabled={save.isPending}>
+            {save.isPending ? "Đang lưu..." : "Lưu"}
+          </Button>
+        </FormActions>
       </form>
     </Modal>
   );
@@ -263,16 +311,20 @@ function CreateStaffModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
           <input id="staff-password" required type="password" minLength={8} maxLength={72} autoComplete="new-password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className={inputClass} />
         </Field>
         <Field label="Vai trò" htmlFor="staff-role">
-          <select id="staff-role" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as "LIBRARIAN" | "ADMIN" })} className={inputClass}>
+          <select id="staff-role" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as "LIBRARIAN" | "ADMIN" })} className={`${inputClass} pr-9`}>
             <option value="LIBRARIAN">Thủ thư (mượn trả, quản lý kho)</option>
             <option value="ADMIN">Quản trị viên (toàn quyền, cấu hình)</option>
           </select>
         </Field>
-        {error && <p role="alert" className="rounded-md bg-brand-soft px-3 py-2 text-sm text-brand">{error}</p>}
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={onClose}>Huỷ</Button>
-          <Button type="submit" disabled={save.isPending}>{save.isPending ? "Đang tạo..." : "Tạo tài khoản"}</Button>
-        </div>
+        {error && <FormError>{error}</FormError>}
+        <FormActions>
+          <Button type="button" variant="ghost" onClick={onClose}>
+            Huỷ
+          </Button>
+          <Button type="submit" disabled={save.isPending}>
+            {save.isPending ? "Đang tạo..." : "Tạo tài khoản"}
+          </Button>
+        </FormActions>
       </form>
     </Modal>
   );
