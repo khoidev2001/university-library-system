@@ -1,0 +1,63 @@
+/* Chuyển động bổ sung cho khu quầy mượn trả, xác thực và tài khoản.
+   Chỉ transform và opacity; globals.css đã ép mọi animation về gần 0 khi người dùng chọn giảm chuyển động. */
+@keyframes ux-shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
+}
+.ux-shake { animation: ux-shake 420ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+
+@keyframes ux-sheet-up {
+  from { opacity: 0; transform: translate3d(0, 28px, 0); }
+  to { opacity: 1; transform: none; }
+}
+.ux-sheet-up { animation: ux-sheet-up 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+/* Tia quét đỏ chạy qua mã vạch ở trạng thái chờ quét */
+@keyframes ux-laser {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(0, 2.6rem, 0); }
+}
+.ux-laser { animation: ux-laser 1.8s ease-in-out infinite alternate; }
+
+/* Chấm trạng thái nhấp nháy nhẹ */
+@keyframes ux-dot {
+  0% { transform: scale(1); opacity: 0.5; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+.ux-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: currentColor;
+  animation: ux-dot 1.8s ease-out infinite;
+}
+
+/* Trượt nhẹ từng dòng danh sách khi dữ liệu về */
+@keyframes ux-row-in {
+  from { opacity: 0; transform: translate3d(0, 8px, 0); }
+  to { opacity: 1; transform: none; }
+}
+.ux-row-in { animation: ux-row-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+/* Nghiêng nhẹ theo chuột cho thẻ trang trí (chỉ khi có chuột) */
+@media (hover: hover) {
+  .ux-tilt { transition: transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+  .ux-tilt:hover { transform: perspective(900px) rotateX(2deg) rotateY(-3deg) translate3d(0, -2px, 0); }
+}
+
+/* globals.css đặt border-radius 6px cho mọi :focus-visible (không nằm trong layer nên thắng cả lớp tiện ích của Tailwind):
+   ô nhập bo 1rem bị vuông góc khi focus. Khôi phục độ bo và dùng vòng sáng của ô thay cho outline. */
+.ux-field:focus-visible {
+  outline: none;
+  border-radius: 1rem;
+}
+
+/* Thanh đo đầy dần từ trái; mức cuối nằm trong biến --to (0 đến 1) */
+@keyframes ux-grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(var(--to, 1)); }
+}
+.ux-grow { transform-origin: left center; animation: ux-grow 700ms 120ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }

@@ -6,7 +6,8 @@ import { createPortal } from "react-dom";
 import { SITE } from "@/lib/site";
 import { useAuth } from "@/lib/auth";
 import type { User } from "@/lib/types";
-import { Alert, Button } from "./ui";
+import { SuccessMark } from "./forms/success-mark";
+import { Button } from "./ui";
 
 /** Chỉ in phần phiếu: mọi thành phần khác của trang bị ẩn khi in (phiếu nằm trực tiếp dưới body). */
 const PRINT_CSS = `
@@ -69,27 +70,32 @@ export function TempPasswordPanel({
 
   return (
     <div className="space-y-4">
-      <Alert tone="good">{heading}</Alert>
+      <div className="flex items-start gap-3.5 rounded-2xl bg-leaf-soft p-4">
+        <SuccessMark size={36} onSoft />
+        <p role="status" className="pt-1 text-sm font-semibold leading-relaxed text-leaf">
+          {heading}
+        </p>
+      </div>
 
-      <dl className="space-y-1.5 text-sm">
-        <div className="flex justify-between gap-3">
-          <dt className="text-ink-faint">Họ tên</dt>
-          <dd className="min-w-0 break-words text-right font-medium">{user.fullName}</dd>
+      <dl className="divide-y divide-line rounded-2xl bg-paper-2 px-4 text-sm">
+        <div className="flex justify-between gap-3 py-2.5">
+          <dt className="text-ink-soft">Họ tên</dt>
+          <dd className="min-w-0 break-words text-right font-semibold">{user.fullName}</dd>
         </div>
-        <div className="flex justify-between gap-3">
-          <dt className="text-ink-faint">Email đăng nhập</dt>
-          <dd className="min-w-0 break-all text-right font-medium">{user.email}</dd>
+        <div className="flex justify-between gap-3 py-2.5">
+          <dt className="text-ink-soft">Email đăng nhập</dt>
+          <dd className="min-w-0 break-all text-right font-semibold">{user.email}</dd>
         </div>
         {user.memberCode && (
-          <div className="flex justify-between gap-3">
-            <dt className="text-ink-faint">Mã thẻ</dt>
-            <dd className="font-medium">{user.memberCode}</dd>
+          <div className="flex justify-between gap-3 py-2.5">
+            <dt className="text-ink-soft">Mã thẻ</dt>
+            <dd className="font-semibold tabular-nums">{user.memberCode}</dd>
           </div>
         )}
       </dl>
 
-      <div className="rounded-lg border border-line bg-white p-4 text-center">
-        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-ink-faint">Mật khẩu tạm</p>
+      <div className="rounded-2xl border-2 border-dashed border-primary/30 bg-primary-soft/50 p-4 text-center">
+        <p className="text-sm font-semibold text-primary-ink">Mật khẩu tạm</p>
         <p
           data-testid="temporary-password"
           className="mt-2 select-all break-all font-mono text-2xl font-bold tracking-wider text-ink"
@@ -98,7 +104,7 @@ export function TempPasswordPanel({
         </p>
       </div>
 
-      <p className="rounded-md bg-amber-soft px-3 py-2 text-sm text-amber">
+      <p className="rounded-2xl bg-amber-soft px-4 py-3 text-sm leading-relaxed text-amber">
         Mật khẩu này chỉ hiện một lần. Hãy trao cho người dùng ngay; họ sẽ phải đổi mật khẩu ở lần đăng nhập đầu tiên.
       </p>
 
@@ -106,13 +112,13 @@ export function TempPasswordPanel({
         <Button
           type="button"
           variant="ghost"
-          className="min-h-10 flex-1"
+          className="flex-1"
           onClick={async () => setCopied((await copyText(temporaryPassword)) ? "ok" : "fail")}
         >
           {copied === "ok" ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
           {copied === "ok" ? "Đã sao chép" : "Sao chép mật khẩu"}
         </Button>
-        <Button type="button" variant="ghost" className="min-h-10 flex-1" onClick={() => window.print()}>
+        <Button type="button" variant="ghost" className="flex-1" onClick={() => window.print()}>
           <Printer size={16} aria-hidden="true" />
           In phiếu
         </Button>

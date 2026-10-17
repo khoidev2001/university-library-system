@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ApiError, apiFetch } from "@/lib/api";
-import { Alert, Button, Field, inputClass } from "./ui";
+import { useDesktopAutofocus } from "@/lib/use-desktop-autofocus";
+import { FormError, InlineSpinner, PasswordField } from "./forms/controls";
+import { SuccessMark } from "./forms/success-mark";
+import { Button, ButtonLink, Skeleton } from "./ui";
 
 /**
  * Đặt lại mật khẩu bằng token trong liên kết email. Token được đọc một lần rồi xoá khỏi thanh địa chỉ
@@ -13,9 +16,14 @@ export function ResetPasswordForm() {
   const [token, setToken] = useState<string | null | undefined>(undefined);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const confirmRef = useRef<HTMLInputElement>(null);
+  const [errors, setErrors] = useState<{ password?: string; confirm?: string }>({});
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  useDesktopAutofocus(passwordRef, !!token);
 
   // Chế độ Strict của React chạy hiệu ứng hai lần: lần hai không còn token trên thanh địa chỉ
   const read = useRef(false);
@@ -31,10 +39,13 @@ export function ResetPasswordForm() {
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
-    if (password !== confirm) {
-      setError("Hai mật khẩu nhập vào không giống nhau.");
-      return;
-    }
+    const found: typeof errors = {};
+    if (password.length < 8) found.password = "Mật khẩu mới cần tối thiểu 8 ký tự.";
+    if (!confirm) found.confirm = "Nhập lại mật khẩu mới để xác nhận.";
+    else if (password !== confirm) found.confirm = "Hai mật khẩu nhập vào không giống nhau.";
+    setErrors(found);
+    if (found.password) return passwordRef.current?.focus();
+    if (found.confirm) return confirmRef.current?.focus();
     setBusy(true);
     try {
       await apiFetch("/auth/reset-password", { method: "POST", body: { token, newPassword: password } });
@@ -46,75 +57,93 @@ export function ResetPasswordForm() {
     }
   }
 
-  if (token === undefined) return <p className="text-sm text-ink-faint">Đang tải...</p>;
+  if (token === undefined) {
+    return (
+      <div className="space-y-4" role="status" aria-label="Đang tải">
+        <Skeleton className="h-12" />
+        <Skeleton className="h-12" />
+        <Skeleton className="h-12" />
+      </div>
+    );
+  }
 
   if (done) {
     return (
-      <div className="space-y-4">
-        <Alert tone="good">Đã đặt lại mật khẩu. Các phiên đăng nhập cũ đã bị đăng xuất.</Alert>
-        <Link
-          href="/login"
-          className="inline-flex min-h-10 w-full items-center justify-center rounded-md bg-ink px-4 py-2.5 text-sm font-medium text-paper hover:bg-ink/90"
-        >
-          Đăng nhập
-        </Link>
+      <div className="space-y-5 text-center">
+        <div className="flex justify-center">
+          <SuccessMark size={64} />
+        </div>
+        <p role="status" className="text-base font-semibold leading-relaxed">
+          Đã đặt lại mật khẩu. Các phiên đăng nhập cũ đã bị đăng xuất.
+        </p>
+        <div className="flex [&>a]:w-full">
+          <ButtonLink href="/login">Đăng nhập</ButtonLink>
+        </div>
       </div>
     );
   }
 
   if (!token) {
     return (
-      <div className="space-y-4">
-        <Alert tone="bad">Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn. Hãy xin liên kết mới.</Alert>
-        <Link
-          href="/forgot-password"
-          className="inline-flex min-h-10 w-full items-center justify-center rounded-md bg-ink px-4 py-2.5 text-sm font-medium text-paper hover:bg-ink/90"
-        >
-          Xin liên kết mới
-        </Link>
+      <div className="space-y-5 text-center">
+        <div className="flex justify-center">
+          <SuccessMark tone="warn" size={64} />
+        </div>
+        <p role="alert" className="text-base font-semibold leading-relaxed">
+          Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn. Hãy xin liên kết mới.
+        </p>
+        <div className="flex [&>a]:w-full">
+          <ButtonLink href="/forgot-password">Xin liên kết mới</ButtonLink>
+        </div>
       </div>
     );
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
+    <form onSubmit={onSubmit} noValidate className="space-y-5">
       {error && (
-        <Alert tone="bad">
+        <FormError>
           {error}{" "}
           {error.includes("hết hạn") && (
-            <Link href="/forgot-password" className="font-medium underline">
+            <Link href="/forgot-password" className="font-semibold underline">
               Xin liên kết mới
             </Link>
           )}
-        </Alert>
+        </FormError>
       )}
-      <Field label="Mật khẩu mới" htmlFor="reset-password" hint="Từ 8 ký tự trở lên">
-        <input
-          id="reset-password"
-          type="password"
-          required
-          minLength={8}
-          maxLength={72}
-          autoComplete="new-password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          className={inputClass}
-        />
-      </Field>
-      <Field label="Nhập lại mật khẩu mới" htmlFor="reset-password-confirm">
-        <input
-          id="reset-password-confirm"
-          type="password"
-          required
-          minLength={8}
-          maxLength={72}
-          autoComplete="new-password"
-          value={confirm}
-          onChange={(event) => setConfirm(event.target.value)}
-          className={inputClass}
-        />
-      </Field>
-      <Button type="submit" disabled={busy} className="w-full">
+      <PasswordField
+        id="reset-password"
+        ref={passwordRef}
+        label="Mật khẩu mới"
+        hint="Từ 8 ký tự trở lên"
+        required
+        minLength={8}
+        maxLength={72}
+        autoComplete="new-password"
+        value={password}
+        error={errors.password}
+        onChange={(event) => {
+          setPassword(event.target.value);
+          if (errors.password) setErrors((e) => ({ ...e, password: undefined }));
+        }}
+      />
+      <PasswordField
+        id="reset-password-confirm"
+        ref={confirmRef}
+        label="Nhập lại mật khẩu mới"
+        required
+        minLength={8}
+        maxLength={72}
+        autoComplete="new-password"
+        value={confirm}
+        error={errors.confirm}
+        onChange={(event) => {
+          setConfirm(event.target.value);
+          if (errors.confirm) setErrors((e) => ({ ...e, confirm: undefined }));
+        }}
+      />
+      <Button type="submit" disabled={busy} aria-busy={busy} className="min-h-12 w-full text-[0.9375rem]">
+        {busy && <InlineSpinner />}
         {busy ? "Đang lưu..." : "Đặt lại mật khẩu"}
       </Button>
     </form>
