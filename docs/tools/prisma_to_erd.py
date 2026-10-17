@@ -87,7 +87,7 @@ SQL_TYPES = {"Int": "integer", "String": "varchar", "Boolean": "boolean", "DateT
 def render(models: dict, enums: dict) -> str:
     out = [
         "@startuml erd",
-        "' Sinh tự động từ backend/prisma/schema.prisma bằng docs/tools/prisma_to_erd.py — KHÔNG sửa tay",
+        "' Sinh tự động từ backend/prisma/schema.prisma bằng docs/tools/prisma_to_erd.py, không sửa tay",
         "hide circle",
         "skinparam linetype ortho",
         "skinparam entity {",
@@ -137,4 +137,4 @@ if __name__ == "__main__":
     models, enums = parse(schema_path.read_text(encoding="utf-8"))
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(render(models, enums), encoding="utf-8")
-    print(f"{len(models)} entities, {len(enums)} enums → {out_path}")
+    print(f"{len(models)} entities, {len(enums)} enums, output: {out_path}")

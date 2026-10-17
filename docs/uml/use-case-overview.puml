@@ -1,6 +1,8 @@
 @startuml use-case-overview
 ' Use Case tổng quan: Hệ thống Quản lý Thư viện Trường Đại học (ULS)
 left to right direction
+skinparam nodesep 4
+skinparam ranksep 30
 skinparam packageStyle rectangle
 skinparam actorStyle awesome
 skinparam usecase {
@@ -18,6 +20,8 @@ actor "Librarian\n(Thủ thư)" as Librarian
 actor "Admin\n(Quản trị)" as Admin
 actor "AI Service" as AI <<hệ thống>>
 actor "Google Books API" as GB <<hệ thống>>
+actor "Resend" as RS <<hệ thống>>
+actor "VNPay" as VN <<hệ thống>>
 
 Librarian -up-|> Reader
 Admin -up-|> Librarian
@@ -27,11 +31,17 @@ rectangle "Hệ thống Quản lý Thư viện (ULS)" {
     usecase "Đăng ký tài khoản" as UC01
     usecase "Đăng nhập" as UC02
   }
+  package "F11-F14 Đặt trước, thông báo,\ntài khoản, thanh toán" {
+    usecase "Đặt trước sách" as UC23
+    usecase "Nhận thông báo\nnhắc hạn" as UC24
+    usecase "Đổi / quên\nmật khẩu" as UC25
+    usecase "Thanh toán phạt\ntrực tuyến" as UC26
+  }
   package "F5 Tìm kiếm" {
     usecase "Tìm kiếm sách" as UC05
     usecase "Xem chi tiết sách" as UC06
   }
-  package "F4 Mượn – trả (Reader)" {
+  package "F4 Mượn, trả (Reader)" {
     usecase "Xem sách đang mượn\n& lịch sử" as UC10
     usecase "Gia hạn sách" as UC09
     usecase "Xem tiền phạt" as UC12a
@@ -45,12 +55,19 @@ rectangle "Hệ thống Quản lý Thư viện (ULS)" {
     usecase "Quản lý bản sao" as UC04
     usecase "Quản lý tác giả,\nthể loại" as UC20
   }
-  package "F4 Mượn – trả (Quầy)" {
+  package "F4 Mượn, trả (Quầy)" {
     usecase "Cho mượn sách" as UC07
     usecase "Nhận trả sách" as UC08
     usecase "Ghi nhận sách mất" as UC11
     usecase "Ghi nhận thu phạt" as UC12b
     usecase "Dự báo nguy cơ\ntrả trễ" as UC19
+    usecase "Quản lý hàng đợi\nđặt trước" as UC27
+    usecase "Tạo bạn đọc,\ncấp mật khẩu tạm" as UC28
+  }
+  package "F15-F16 Xuất, in, nhập" {
+    usecase "Xuất CSV / Excel" as UC29
+    usecase "In thẻ bạn đọc,\nnhãn mã vạch" as UC30
+    usecase "Nhập sách từ\nfile CSV / xlsx" as UC31
   }
   package "F3 Quản lý bạn đọc" {
     usecase "Tra cứu & khoá/mở\nthẻ bạn đọc" as UC13
@@ -75,6 +92,10 @@ Reader --> UC09
 Reader --> UC12a
 Reader --> UC17
 Reader --> UC18
+Reader --> UC23
+Reader --> UC24
+Reader --> UC25
+Reader --> UC26
 
 Librarian --> UC03
 Librarian --> UC04
@@ -85,6 +106,11 @@ Librarian --> UC11
 Librarian --> UC12b
 Librarian --> UC13
 Librarian --> UC16
+Librarian --> UC27
+Librarian --> UC28
+Librarian --> UC29
+Librarian --> UC30
+Librarian --> UC31
 
 Admin --> UC14
 Admin --> UC15
@@ -97,4 +123,7 @@ UC19 --> AI
 UC18 --> AI
 UC21 --> AI
 UC22 --> GB
+UC25 --> RS
+UC24 --> RS
+UC26 --> VN
 @enduml

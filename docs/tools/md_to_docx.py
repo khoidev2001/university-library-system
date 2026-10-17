@@ -80,9 +80,14 @@ def add_table(doc: Document, rows: list[list[str]], font_override: float | None 
     usable = section.page_width - section.left_margin - section.right_margin
     weights = []
     for j in range(ncols):
-        longest = max(len(re.sub(r"[*`]", "", (r[j] if j < len(r) else ""))) for r in rows)
+        cells = [re.sub(r"[*`]", "", (r[j] if j < len(r) else "")) for r in rows]
+        lengths = [len(c) for c in cells]
+        # Trung bình cộng với giá trị lớn nhất: một ô dài bất thường không chiếm hết bề rộng của cột
+        longest = (max(lengths) + sum(lengths) / len(lengths)) / 2
         header = len(re.sub(r"[*`]", "", rows[0][j] if j < len(rows[0]) else ""))
-        weights.append(min(max(longest * 0.95, header * 0.95, 8), 34))
+        # Từ dài nhất không được bị ngắt giữa chừng (tên bảng, tên mã lỗi, "Should", "Method")
+        longest_word = max((len(w) for c in cells for w in c.split()), default=0)
+        weights.append(min(max(longest * 0.95, header * 0.95, longest_word * 1.25, 10), 34))
     total = sum(weights)
     table.autofit = False
     for j in range(ncols):
@@ -242,8 +247,20 @@ def convert(md_path: Path, out_path: Path, style: str = "default") -> None:
         if image:
             img_path = (md_path.parent / image.group(2)).resolve()
             if img_path.exists():
-                doc.add_picture(str(img_path), width=min(Cm(16) if doc.sections[-1].page_width < doc.sections[-1].page_height else Cm(24.5), doc.sections[-1].page_width - doc.sections[-1].left_margin - doc.sections[-1].right_margin))
+                sec = doc.sections[-1]
+                width = min(Cm(16) if sec.page_width < sec.page_height else Cm(24.5), sec.page_width - sec.left_margin - sec.right_margin)
+                # Hình cao hơn một trang thì thu nhỏ theo chiều cao để không bị cắt
+                from docx.image.image import Image as DocxImage
+
+                info = DocxImage.from_file(str(img_path))
+                max_height = sec.page_height - sec.top_margin - sec.bottom_margin - Cm(2.5)
+                if width * info.px_height / info.px_width > max_height:
+                    width = int(max_height * info.px_width / info.px_height)
+                if doc.paragraphs:
+                    doc.paragraphs[-1].paragraph_format.keep_with_next = True  # đoạn dẫn không bị tách khỏi hình
+                doc.add_picture(str(img_path), width=width)
                 doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                doc.paragraphs[-1].paragraph_format.keep_with_next = True  # chú thích đi cùng hình
                 cap = doc.add_paragraph()
                 cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 run = cap.add_run(image.group(1))
@@ -254,7 +271,7 @@ def convert(md_path: Path, out_path: Path, style: str = "default") -> None:
         heading = re.match(r"^(#{1,4})\s+(.*)$", stripped)
         if heading:
             level = len(heading.group(1))
-            text = heading.group(2).strip()
+            text = heading.group(2).strip().replace("`", "")
             if level == 1 and text.startswith("TÀI LIỆU"):
                 para = doc.add_paragraph()
                 para.alignment = WD_ALIGN_PARAGRAPH.CENTER

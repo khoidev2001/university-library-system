@@ -1,0 +1,80 @@
+@startuml sequence-reservation
+' Sequence 4: Đặt trước sách, giữ bản sao khi có người trả, nhận sách, hết hạn giữ (US21, US22, US24)
+skinparam sequenceMessageAlign center
+skinparam participant {
+  BackgroundColor #F7F5F0
+  BorderColor #1B2A41
+}
+actor "Bạn đọc" as R
+actor "Thủ thư" as L
+participant "Frontend" as FE
+participant "ReservationsService" as RS
+participant "LoansService" as LS
+participant "NotificationsService" as NS
+participant "Bộ lập lịch\n(15 phút)" as SCH
+database "PostgreSQL" as DB
+
+== Đặt trước ==
+R -> FE : Bấm "Đặt trước" ở sách hết bản
+FE -> RS : POST /api/reservations {bookId}
+activate RS
+RS -> DB : Giải phóng đặt trước READY đã quá hạn (expireStale)
+RS -> DB : SELECT sách và trạng thái các bản sao
+alt không có bản sao nào đang lưu hành
+  RS --> FE : 409 NO_COPIES
+else còn bản AVAILABLE
+  RS --> FE : 409 BOOK_AVAILABLE
+end
+RS -> DB : BEGIN
+RS -> DB : SELECT ... FROM users WHERE id = bạn đọc FOR UPDATE
+note right of DB
+  Các yêu cầu đồng thời của cùng một bạn đọc
+  xếp hàng nối đuôi nhau tại khoá này.
+end note
+RS -> DB : Kiểm tra đang mượn, đã đặt, hạn mức 3, phạt chưa trả
+alt vi phạm
+  RS --> FE : 409 ALREADY_BORROWING / ALREADY_RESERVED /\nRESERVATION_LIMIT / UNPAID_FINE
+end
+RS -> DB : INSERT reservation (status = WAITING)
+RS -> DB : COMMIT
+RS --> FE : 201 {reservation}
+deactivate RS
+FE --> R : "Bạn là người thứ N trong hàng đợi"
+
+== Bản sao được trả về ==
+L -> FE : Nhận trả sách
+FE -> LS : POST /api/loans/{id}/return
+activate LS
+LS -> DB : BEGIN, chốt phiếu ACTIVE sang RETURNED
+LS -> RS : handleCopyReturned(copyId, bookId)
+RS -> DB : SELECT người xếp hàng đầu (WAITING, thẻ còn hoạt động)\nORDER BY id LIMIT 1 FOR UPDATE SKIP LOCKED
+alt có người chờ
+  RS -> DB : UPDATE copy SET status = HELD
+  RS -> DB : UPDATE reservation SET status = READY,\ncopy_id, ready_at = now, expires_at = now + 3 ngày
+  RS -> NS : notify(RESERVATION_READY, dedupeKey)
+  NS -> DB : INSERT notification ON CONFLICT DO NOTHING
+else không có người chờ
+  RS -> DB : UPDATE copy SET status = AVAILABLE
+end
+LS -> DB : COMMIT
+deactivate LS
+
+== Nhận sách tại quầy ==
+R -> L : Đến quầy trong thời hạn giữ
+L -> FE : Quét mã vạch bản sao và mã bạn đọc
+FE -> LS : POST /api/loans
+LS -> RS : fulfillHeldCopy(copyId, userId)
+RS -> DB : UPDATE reservation SET status = FULFILLED\nWHERE copy_id AND user_id AND status = READY
+alt không có dòng nào được cập nhật
+  RS --> LS : 409 COPY_HELD (không phải người đã đặt)
+else
+  LS -> DB : UPDATE copy SET status = BORROWED, INSERT loan
+  LS --> FE : 201 {loan}
+end
+
+== Quá hạn nhận sách ==
+SCH -> RS : expireStale(now)
+RS -> DB : READY có expires_at nhỏ hơn now: UPDATE sang EXPIRED
+RS -> NS : notify(RESERVATION_EXPIRED)
+RS -> DB : handleCopyReturned: chuyển bản sao cho người kế tiếp\nhoặc về AVAILABLE
+@enduml
