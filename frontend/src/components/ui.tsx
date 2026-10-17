@@ -128,7 +128,7 @@ const BUTTON_BASE =
 
 const BUTTON_VARIANTS = {
   primary:
-    "bg-primary text-white shadow-[0_6px_16px_-6px_rgb(79_70_229/0.7)] hover:bg-primary-hover disabled:bg-primary/40 disabled:shadow-none",
+    "bg-primary text-white shadow-[0_6px_16px_-6px_rgb(79_70_229/0.7)] hover:bg-primary-hover disabled:bg-paper-2 disabled:text-ink-faint disabled:shadow-none",
   soft: "bg-primary-soft text-primary-ink hover:bg-primary/15 disabled:opacity-50",
   ghost: "bg-white text-ink ring-1 ring-inset ring-line hover:bg-paper-2 disabled:text-ink-faint",
   danger: "bg-danger text-white hover:bg-danger/90 disabled:bg-danger/40",
@@ -168,11 +168,14 @@ export function Field({
   hint,
   children,
   htmlFor,
+  error,
 }: {
   label: string;
   hint?: string;
   children: React.ReactNode;
   htmlFor: string;
+  /** Lỗi tại chỗ: hiện dưới ô nhập, đọc được bằng trình đọc màn hình. */
+  error?: string | null;
 }) {
   return (
     <div>
@@ -181,6 +184,11 @@ export function Field({
       </label>
       {hint && <p className="mt-0.5 text-xs text-ink-faint">{hint}</p>}
       <div className="mt-2">{children}</div>
+      {error && (
+        <p role="alert" className="mt-1.5 text-xs font-medium text-danger">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

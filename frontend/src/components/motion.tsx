@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 
 /**
  * Bộ chuyển động dùng chung. Quy tắc để giữ 120 fps: chỉ animate transform và opacity,
@@ -109,16 +109,23 @@ export function CountUp({
 /** Tiêu đề hiện từng từ một (kiểu SplitText của React Bits). Chỉ dùng cho tiêu đề ngắn ở phần giới thiệu. */
 export function SplitWords({ text, className = "", startDelay = 0 }: { text: string; className?: string; startDelay?: number }) {
   const words = text.split(" ");
+  // Bản chữ đầy đủ nằm trong sr-only (aria-label trên thẻ span không có vai trò là không hợp lệ);
+  // khoảng trắng đặt giữa các khối inline-block, không để cuối khối vì trình duyệt sẽ bỏ nó.
   return (
-    <span className={className} aria-label={text}>
-      {words.map((word, i) => (
-        <span key={`${word}-${i}`} aria-hidden="true" className="inline-block overflow-hidden pb-[0.08em] align-bottom">
-          <span className="anim-word" style={{ animationDelay: `${startDelay + i * 70}ms` }}>
-            {word}
-            {i < words.length - 1 ? " " : ""}
-          </span>
-        </span>
-      ))}
+    <span className={className}>
+      <span className="sr-only">{text}</span>
+      <span aria-hidden="true">
+        {words.map((word, i) => (
+          <Fragment key={`${word}-${i}`}>
+            <span className="inline-block overflow-hidden pb-[0.08em] align-bottom">
+              <span className="anim-word" style={{ animationDelay: `${startDelay + i * 70}ms` }}>
+                {word}
+              </span>
+            </span>
+            {i < words.length - 1 ? " " : null}
+          </Fragment>
+        ))}
+      </span>
     </span>
   );
 }

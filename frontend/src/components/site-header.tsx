@@ -147,7 +147,7 @@ export function SiteHeader() {
         <nav
           id="menu-di-dong"
           aria-label="Điều hướng di động"
-          className="anim-pop mx-auto mt-2 max-w-6xl rounded-[1.25rem] border border-line bg-white p-2 shadow-[var(--shadow-lift)] lg:hidden"
+          className="anim-menu mx-auto mt-2 max-w-6xl rounded-[1.25rem] border border-line bg-white p-2 shadow-[var(--shadow-lift)] lg:hidden"
           style={{ transformOrigin: "top right" }}
         >
           <ul className="grid gap-0.5">

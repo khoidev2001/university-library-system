@@ -42,13 +42,13 @@ export function SiteFooter() {
               </li>
               <li className="flex gap-3">
                 <Mail size={16} className="mt-0.5 shrink-0 text-white/60" aria-hidden="true" />
-                <a href={`mailto:${SITE.email}`} className="inline-flex min-h-6 items-center hover:text-white hover:underline">
+                <a href={`mailto:${SITE.email}`} className="inline-flex min-h-10 items-center hover:text-white hover:underline">
                   {SITE.email}
                 </a>
               </li>
               <li className="flex gap-3">
                 <Phone size={16} className="mt-0.5 shrink-0 text-white/60" aria-hidden="true" />
-                <a href={`tel:${SITE.phone.replace(/\s/g, "")}`} className="inline-flex min-h-6 items-center hover:text-white hover:underline">
+                <a href={`tel:${SITE.phone.replace(/\s/g, "")}`} className="inline-flex min-h-10 items-center hover:text-white hover:underline">
                   {SITE.phone}
                 </a>
               </li>
