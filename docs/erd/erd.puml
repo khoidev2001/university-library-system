@@ -1,5 +1,5 @@
 @startuml erd
-' Sinh tự động từ backend/prisma/schema.prisma bằng docs/tools/prisma_to_erd.py, KHÔNG sửa tay
+' Sinh tự động từ backend/prisma/schema.prisma bằng docs/tools/prisma_to_erd.py, không sửa tay
 hide circle
 skinparam linetype ortho
 skinparam entity {
@@ -18,6 +18,12 @@ entity "users" as User {
     member_code : varchar <<UQ>>
   * is_active : boolean
   * created_at : timestamp
+  * email_reminders : boolean
+  * must_change_password : boolean
+    password_changed_at : timestamp
+    sessions_revoked_at : timestamp
+    last_login_at : timestamp
+    previous_login_at : timestamp
 }
 
 entity "loan_policies" as LoanPolicy {
@@ -109,6 +115,79 @@ entity "ratings" as Rating {
   .. UNIQUE(userId, bookId) ..
 }
 
+entity "reservations" as Reservation {
+  * id : integer <<PK>>
+  --
+  * user_id : integer <<FK>>
+  * book_id : integer <<FK>>
+    copy_id : integer <<FK>>
+  * status : ReservationStatus <<enum>>
+  * created_at : timestamp
+    ready_at : timestamp
+    expires_at : timestamp
+}
+
+entity "notifications" as Notification {
+  * id : integer <<PK>>
+  --
+  * user_id : integer <<FK>>
+  * type : varchar
+  * title : varchar
+  * body : varchar
+    link : varchar
+    dedupe_key : varchar <<UQ>>
+    read_at : timestamp
+  * created_at : timestamp
+}
+
+entity "password_reset_tokens" as PasswordResetToken {
+  * id : integer <<PK>>
+  --
+  * user_id : integer <<FK>>
+  * token_hash : varchar <<UQ>>
+  * expires_at : timestamp
+    used_at : timestamp
+  * created_at : timestamp
+}
+
+entity "reminder_emails" as ReminderEmail {
+  * id : integer <<PK>>
+  --
+  * loan_id : integer
+  * user_id : integer <<FK>>
+  * kind : varchar
+  * status : ReminderEmailStatus <<enum>>
+  * attempts : integer
+    claimed_at : timestamp
+    sent_at : timestamp
+    last_error : varchar
+  * created_at : timestamp
+  .. UNIQUE(loanId, kind) ..
+}
+
+entity "payments" as Payment {
+  * id : integer <<PK>>
+  --
+  * user_id : integer <<FK>>
+  * txn_ref : varchar <<UQ>>
+  * amount : integer
+  * status : PaymentStatus <<enum>>
+    vnp_transaction_no : varchar
+    bank_code : varchar
+    response_code : varchar
+    note : varchar
+  * created_at : timestamp
+    paid_at : timestamp
+  * expires_at : timestamp
+}
+
+entity "payment_fines" as PaymentFine {
+  * payment_id : integer <<PK>>
+  * fine_id : integer <<PK>>
+  --
+  * active : boolean
+}
+
 enum Role {
   READER
   LIBRARIAN
@@ -125,6 +204,7 @@ enum CopyStatus {
   BORROWED
   LOST
   MAINTENANCE
+  HELD
 }
 
 enum LoanStatus {
@@ -133,9 +213,32 @@ enum LoanStatus {
   LOST
 }
 
+enum ReservationStatus {
+  WAITING
+  READY
+  FULFILLED
+  CANCELLED
+  EXPIRED
+}
+
 enum FineType {
   OVERDUE
   LOST
+}
+
+enum ReminderEmailStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
+  CANCELLED
 }
 
 Category ||--o{ Book : categoryId
@@ -149,4 +252,13 @@ Loan ||--o{ Fine : loanId
 User |o--o{ Fine : paidToId
 User ||--o{ Rating : userId
 Book ||--o{ Rating : bookId
+User ||--o{ Reservation : userId
+Book ||--o{ Reservation : bookId
+BookCopy |o--o{ Reservation : copyId
+User ||--o{ Notification : userId
+User ||--o{ PasswordResetToken : userId
+User ||--o{ ReminderEmail : userId
+User ||--o{ Payment : userId
+Payment ||--o{ PaymentFine : paymentId
+Fine ||--o{ PaymentFine : fineId
 @enduml
