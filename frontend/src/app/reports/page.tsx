@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { ReportsView } from "@/components/reports-view";
-import { RequireRole } from "@/components/require-role";
 
 export const metadata: Metadata = {
   title: "Thống kê thư viện",
@@ -9,9 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function ReportsPage() {
-  return (
-    <RequireRole roles={["LIBRARIAN"]}>
-      <ReportsView />
-    </RequireRole>
-  );
+  return <ReportsView />;
 }

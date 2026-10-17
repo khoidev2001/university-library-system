@@ -71,7 +71,7 @@ export class RecommendationsService {
     };
   }
 
-  /** FR-AI-02: cold-start và fallback — sách được mượn nhiều nhất, trừ sách đã mượn. */
+  /** FR-AI-02: cold-start và fallback, sách được mượn nhiều nhất, trừ sách đã mượn. */
   private async popularBookIds(
     k: number,
     excluded: Set<number>,

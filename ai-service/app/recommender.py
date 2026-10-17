@@ -1,4 +1,4 @@
-"""Mô hình 1 — gợi ý sách lai (PLAN mục 6).
+"""Mô hình 1, gợi ý sách lai (PLAN mục 6).
 
 Content-based: TF-IDF trên (tiêu đề + tác giả + thể loại + mô tả) → cosine similarity.
 Collaborative: item-based trên ma trận bạn đọc × sách (lượt mượn và đánh giá >= 4).
@@ -34,7 +34,7 @@ class RecommenderMetrics:
 
 
 def build_corpus(books: list[dict[str, Any]]) -> list[str]:
-    """Mô tả có thể trống (Google Books chưa chạy) — khi đó TF-IDF dựa vào tiêu đề, tác giả, thể loại."""
+    """Mô tả có thể trống (Google Books chưa chạy), khi đó TF-IDF dựa vào tiêu đề, tác giả, thể loại."""
     return [
         " ".join(
             filter(

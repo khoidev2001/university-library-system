@@ -69,7 +69,7 @@ export class FinesService {
 
   /**
    * BR-07: phạt trễ = số ngày trễ (làm tròn lên) × fine_per_day của chính sách.
-   * Hàm thuần — không chạm DB, để tính trước khi tạo phiếu phạt và để hiển thị ước tính.
+   * Hàm thuần, không chạm DB, để tính trước khi tạo phiếu phạt và để hiển thị ước tính.
    */
   calculateOverdue(
     loan: { dueAt: Date; returnedAt: Date | null },

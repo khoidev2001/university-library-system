@@ -1,0 +1,40 @@
+/* Phần bổ sung cho khu vực công khai (trang chủ, tra cứu, chi tiết sách, khu bạn đọc).
+   Chỉ dùng transform và opacity cho chuyển động. Các animation lặp vô hạn của hệ chung được
+   tắt hẳn khi người dùng chọn giảm chuyển động (quy tắc chung chỉ rút ngắn thời lượng nên sẽ nhấp nháy). */
+
+.cover-marquee-mask {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+}
+
+/* Nét vẽ chỉ chạy khi khối đã cuộn vào màn hình */
+.draw-wait .anim-draw { animation-play-state: paused; }
+.draw-wait.is-in .anim-draw { animation-play-state: running; }
+
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-float,
+  .anim-float-rev,
+  .anim-blob,
+  .anim-marquee,
+  .anim-ring::after,
+  .skeleton-shimmer::after,
+  .animate-pulse {
+    animation: none !important;
+  }
+  .anim-draw {
+    animation: none !important;
+    stroke-dashoffset: 0 !important;
+  }
+  .cover-marquee-scroll {
+    overflow-x: auto;
+  }
+}
+
+.anim-marquee:has(:focus-visible) { animation-play-state: paused; }
+
+/* Ô tìm kiếm tự có viền focus trên cả khung (focus-within), nên bỏ viền focus riêng của ô nhập.
+   Quy tắc chung của hệ thống không nằm trong layer nên phải ghi đè bằng quy tắc không layer. */
+.search-input:focus-visible {
+  outline: none;
+}

@@ -22,7 +22,7 @@ class TrainingData:
 
 
 class BackendUnavailableError(RuntimeError):
-    """Backend không trả được dữ liệu — giữ nguyên mô hình cũ, không làm sập service."""
+    """Backend không trả được dữ liệu, giữ nguyên mô hình cũ, không làm sập service."""
 
 
 def fetch_training_data(timeout: float = 60.0) -> TrainingData:

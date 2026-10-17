@@ -1,4 +1,4 @@
-"""Mô hình 2 — dự báo nguy cơ trả trễ (PLAN mục 6).
+"""Mô hình 2, dự báo nguy cơ trả trễ (PLAN mục 6).
 
 Đặc trưng: số lần mượn trước đó, số/tỉ lệ lần trễ trước đó, số sách đang giữ,
 loại bạn đọc, thể loại sách, số ngày mượn, tháng mượn (mùa thi).

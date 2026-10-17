@@ -3,7 +3,7 @@ import { LoanPolicy, MemberType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UpdatePolicyDto } from './dto/policies.dto';
 
-/** Chính sách mặc định (SRS 3.4) — dùng khi seed và khi bảng chưa có dòng cho member_type. */
+/** Chính sách mặc định (SRS 3.4), dùng khi seed và khi bảng chưa có dòng cho member_type. */
 export const DEFAULT_POLICIES: Record<MemberType, Omit<LoanPolicy, 'id'>> = {
   STUDENT: {
     memberType: 'STUDENT',

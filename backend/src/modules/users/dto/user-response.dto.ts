@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { MemberType, Role, User } from '@prisma/client';
 
-/** Hình chiếu User an toàn — không bao giờ chứa passwordHash (NFR-SEC-01). */
+/** Hình chiếu User an toàn, không bao giờ chứa passwordHash (NFR-SEC-01). */
 export class UserResponseDto {
   @ApiProperty() id: number;
   @ApiProperty() email: string;

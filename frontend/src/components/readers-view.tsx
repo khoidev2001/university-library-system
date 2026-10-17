@@ -1,19 +1,25 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CreditCard, KeyRound, Lock, LockOpen, Printer, Search, UserPlus, Users } from "lucide-react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ApiError, apiFetch, formatCurrency } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { Page, User, UserDetail } from "@/lib/types";
-import Link from "next/link";
+import { Avatar, StatusPill } from "./avatar";
 import { ExportButtons } from "./export-buttons";
-import { TapCheckbox } from "./tap-checkbox";
-import { Alert, Badge, Button, ButtonLink, Card, PageHeading, Spinner, inputClass } from "./ui";
+import { Checkbox, fieldClass } from "./forms/controls";
+import { Alert, Button, ButtonLink, PageHeading, Skeleton } from "./ui";
+import "./ux-motion.css";
 
 // Hộp thoại chỉ cần khi thủ thư bấm nút: tải lười để trang danh sách nhẹ hơn
 const CreateReaderModal = dynamic(() => import("./create-reader-modal").then((m) => m.CreateReaderModal), { ssr: false });
 const ResetPasswordModal = dynamic(() => import("./reset-password-modal").then((m) => m.ResetPasswordModal), { ssr: false });
+
+const CARD = "rounded-[1.5rem] border border-line bg-white shadow-[var(--shadow-card)]";
+const typeLabel = (type: User["memberType"]) => (type === "LECTURER" ? "Giảng viên" : "Sinh viên");
 
 export function ReadersView() {
   const { token } = useAuth();
@@ -62,13 +68,20 @@ export function ReadersView() {
       setNotice({ tone: "bad", text: error instanceof ApiError ? error.friendlyMessage : "Không cập nhật được." }),
   });
 
+  const items = readers.data?.items ?? [];
+  const allPicked = items.length > 0 && items.every((r) => picked.has(r.id));
+
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
       <PageHeading
-        eyebrow="Nghiệp vụ thủ thư"
         title="Quản lý bạn đọc"
         description="Tra cứu theo tên, email hoặc mã thẻ. Xem tình trạng mượn, khoá thẻ, cấp mật khẩu tạm và thêm bạn đọc mới tại quầy."
-        action={<Button onClick={() => setCreating(true)}>Thêm bạn đọc</Button>}
+        action={
+          <Button onClick={() => setCreating(true)}>
+            <UserPlus size={18} aria-hidden="true" />
+            Thêm bạn đọc
+          </Button>
+        }
       />
 
       {notice && (
@@ -77,184 +90,252 @@ export function ReadersView() {
         </div>
       )}
 
-      <form
-        className="mt-6 flex max-w-xl gap-2"
-        role="search"
-        onSubmit={(event) => {
-          event.preventDefault();
-          setQuery(search.trim());
-          setSelected(null);
-        }}
-      >
-        <label htmlFor="o-tim-ban-doc" className="sr-only">
-          Tìm bạn đọc
-        </label>
-        <input
-          id="o-tim-ban-doc"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          className={inputClass}
-          placeholder="Tên, email hoặc mã sinh viên"
-        />
-        <Button type="submit">Tìm</Button>
-      </form>
-
-      <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
-        <ExportButtons dataset="readers" subject="danh sách bạn đọc" params={{ q: query }} />
-        <div className="flex flex-wrap gap-2">
-          {picked.size > 0 ? (
-            <ButtonLink href={`/librarian/readers/cards?ids=${[...picked].join(",")}`} variant="ghost">
-              In thẻ đã chọn ({picked.size})
+      {/* Thanh công cụ: tìm kiếm, xuất dữ liệu, in thẻ */}
+      <div className={`${CARD} mt-6 space-y-4 p-4 sm:p-5`}>
+        <form
+          className="flex w-full max-w-xl gap-2"
+          role="search"
+          onSubmit={(event) => {
+            event.preventDefault();
+            setQuery(search.trim());
+            setSelected(null);
+          }}
+        >
+          <label htmlFor="o-tim-ban-doc" className="sr-only">
+            Tìm bạn đọc
+          </label>
+          <div className="relative min-w-0 flex-1">
+            <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-faint" aria-hidden="true" />
+            <input
+              id="o-tim-ban-doc"
+              type="search"
+              autoComplete="off"
+              enterKeyHint="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              className={fieldClass({ extra: "pl-11" })}
+              placeholder="Tên, email hoặc mã sinh viên"
+            />
+          </div>
+          <Button type="submit" className="min-h-12">
+            Tìm
+          </Button>
+        </form>
+        <div className="flex flex-wrap items-start justify-between gap-3 border-t border-line pt-4">
+          <ExportButtons dataset="readers" subject="danh sách bạn đọc" params={{ q: query }} />
+          <div className="flex flex-wrap items-center gap-2">
+            {picked.size > 0 ? (
+              <ButtonLink href={`/librarian/readers/cards?ids=${[...picked].join(",")}`} variant="soft">
+                <Printer size={16} aria-hidden="true" />
+                In thẻ đã chọn ({picked.size})
+              </ButtonLink>
+            ) : (
+              <Button type="button" variant="ghost" disabled title="Tích chọn bạn đọc trong danh sách để in thẻ">
+                <Printer size={16} aria-hidden="true" />
+                In thẻ đã chọn
+              </Button>
+            )}
+            <ButtonLink href={`/librarian/readers/cards${query ? `?q=${encodeURIComponent(query)}` : ""}`} variant="ghost">
+              {query ? "In thẻ theo kết quả tìm" : "In thẻ tất cả bạn đọc"}
             </ButtonLink>
-          ) : (
-            <Button type="button" variant="ghost" disabled title="Tích chọn bạn đọc trong bảng để in thẻ">
-              In thẻ đã chọn
-            </Button>
-          )}
-          <ButtonLink href={`/librarian/readers/cards${query ? `?q=${encodeURIComponent(query)}` : ""}`} variant="ghost">
-            {query ? "In thẻ theo kết quả tìm" : "In thẻ tất cả bạn đọc"}
-          </ButtonLink>
+          </div>
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="relative overflow-x-auto rounded-xl border border-line bg-white">
+      <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
+        <section aria-label="Danh sách bạn đọc" className={`${CARD} overflow-hidden`}>
+          <div className="flex items-center gap-3 border-b border-line bg-paper/70 px-4 py-2.5">
+            <Checkbox
+              label="Chọn tất cả bạn đọc trên trang này"
+              checked={allPicked}
+              onChange={(checked) => {
+                const next = new Set(picked);
+                for (const r of items) {
+                  if (checked) next.add(r.id);
+                  else next.delete(r.id);
+                }
+                setPicked(next);
+              }}
+            />
+            <p className="text-sm text-ink-soft" aria-live="polite">
+              {readers.isLoading
+                ? "Đang tải danh sách..."
+                : readers.data
+                  ? `Hiển thị ${items.length} trên ${readers.data.total.toLocaleString("vi-VN")} bạn đọc`
+                  : ""}
+            </p>
+          </div>
+
           {readers.isLoading ? (
-            <Spinner />
+            <div className="space-y-2 p-4" role="status" aria-label="Đang tải danh sách bạn đọc">
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <Skeleton key={i} className="h-[4.25rem]" />
+              ))}
+            </div>
+          ) : items.length === 0 ? (
+            <div className="flex flex-col items-center px-6 py-14 text-center">
+              <span className="grid h-14 w-14 place-items-center rounded-2xl bg-primary-soft text-primary" aria-hidden="true">
+                <Users size={26} />
+              </span>
+              <p className="mt-4 text-lg font-bold">Không tìm thấy bạn đọc phù hợp.</p>
+              <p className="mt-1 max-w-sm text-sm text-ink-soft">Thử tìm bằng một phần tên, email hoặc mã sinh viên khác.</p>
+            </div>
           ) : (
-            <table className="w-full min-w-[700px] text-sm">
-              <caption className="sr-only">Danh sách bạn đọc</caption>
-              <thead className="border-b border-line bg-paper-2 text-left">
-                <tr>
-                  <th scope="col" className="w-12 px-3 py-3">
-                    <TapCheckbox
-                      label="Chọn tất cả bạn đọc trên trang này"
-                      checked={(readers.data?.items ?? []).length > 0 && (readers.data?.items ?? []).every((r) => picked.has(r.id))}
+            <ul className="divide-y divide-line">
+              {items.map((reader, index) => {
+                const active = selected === reader.id;
+                return (
+                  <li
+                    key={reader.id}
+                    className={`ux-row-in flex items-center gap-2 px-4 py-2 transition-colors sm:gap-3 ${active ? "bg-primary-soft/60" : "hover:bg-paper/70"}`}
+                    style={{ animationDelay: `${Math.min(index, 10) * 30}ms` }}
+                  >
+                    <Checkbox
+                      label={`Chọn ${reader.fullName} để in thẻ`}
+                      checked={picked.has(reader.id)}
                       onChange={(checked) => {
                         const next = new Set(picked);
-                        for (const r of readers.data?.items ?? []) {
-                          if (checked) next.add(r.id);
-                          else next.delete(r.id);
-                        }
+                        if (checked) next.add(reader.id);
+                        else next.delete(reader.id);
                         setPicked(next);
                       }}
                     />
-                  </th>
-                  <th scope="col" className="px-4 py-3 font-semibold">Họ tên</th>
-                  <th scope="col" className="hidden px-4 py-3 font-semibold sm:table-cell">Mã thẻ</th>
-                  <th scope="col" className="hidden px-4 py-3 font-semibold sm:table-cell">Đối tượng</th>
-                  <th scope="col" className="px-4 py-3 font-semibold">Thẻ</th>
-                  <th scope="col" className="px-4 py-3 font-semibold"><span className="sr-only">Thao tác</span></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {(readers.data?.items ?? []).map((reader) => (
-                  <tr key={reader.id} className={selected === reader.id ? "bg-paper-2" : undefined}>
-                    <td className="px-3 py-3">
-                      <TapCheckbox
-                        label={`Chọn ${reader.fullName} để in thẻ`}
-                        checked={picked.has(reader.id)}
-                        onChange={(checked) => {
-                          const next = new Set(picked);
-                          if (checked) next.add(reader.id);
-                          else next.delete(reader.id);
-                          setPicked(next);
-                        }}
-                      />
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="font-medium">{reader.fullName}</span>
-                      <span className="block break-all text-xs text-ink-faint">{reader.email}</span>
-                      <span className="block text-xs text-ink-faint sm:hidden">
-                        {reader.memberCode} · {reader.memberType === "LECTURER" ? "Giảng viên" : "Sinh viên"}
+                    <button
+                      type="button"
+                      onClick={() => setSelected(reader.id)}
+                      aria-label={`Xem hồ sơ ${reader.fullName}`}
+                      aria-current={active ? "true" : undefined}
+                      className="flex min-h-14 min-w-0 flex-1 items-center gap-3 rounded-xl text-left"
+                    >
+                      <Avatar name={reader.fullName} size="md" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-semibold">{reader.fullName}</span>
+                        <span className="block truncate text-xs text-ink-faint">{reader.email}</span>
+                        <span className="mt-0.5 block text-xs text-ink-soft sm:hidden">
+                          {reader.memberCode}, {typeLabel(reader.memberType)}
+                        </span>
+                        {!reader.isActive && (
+                          <span className="mt-1 block md:hidden">
+                            <StatusPill tone="bad">Đang khoá</StatusPill>
+                          </span>
+                        )}
                       </span>
-                    </td>
-                    <td className="hidden px-4 py-3 text-ink-soft sm:table-cell">{reader.memberCode}</td>
-                    <td className="hidden px-4 py-3 text-ink-soft sm:table-cell">
-                      {reader.memberType === "LECTURER" ? "Giảng viên" : "Sinh viên"}
-                    </td>
-                    <td className="px-4 py-3">
-                      {reader.isActive ? <Badge tone="good">Hoạt động</Badge> : <Badge tone="bad">Đang khoá</Badge>}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setSelected(reader.id)}
-                          aria-label={`Xem hồ sơ ${reader.fullName}`}
-                          className="inline-flex min-h-10 items-center rounded-md border border-line px-3 text-xs font-medium hover:bg-paper-2"
-                        >
-                          Xem hồ sơ
-                        </button>
-                        <Link
-                          href={`/librarian/readers/${reader.id}/card`}
-                          aria-label={`In thẻ của ${reader.fullName}`}
-                          className="inline-flex min-h-10 items-center rounded-md border border-line px-3 text-xs font-medium hover:bg-paper-2"
-                        >
-                          In thẻ
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </button>
+                    <span className="hidden w-36 shrink-0 text-sm sm:block">
+                      <span className="block font-medium tabular-nums">{reader.memberCode}</span>
+                      <span className="block text-xs text-ink-faint">{typeLabel(reader.memberType)}</span>
+                    </span>
+                    <span className="hidden shrink-0 md:block">
+                      {reader.isActive ? <StatusPill tone="good">Hoạt động</StatusPill> : <StatusPill tone="bad">Đang khoá</StatusPill>}
+                    </span>
+                    <Link
+                      href={`/librarian/readers/${reader.id}/card`}
+                      aria-label={`In thẻ của ${reader.fullName}`}
+                      title="In thẻ"
+                      className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-ink-soft transition-colors hover:bg-paper-2 hover:text-primary"
+                    >
+                      <CreditCard size={19} aria-hidden="true" />
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
           )}
-          {readers.data?.items.length === 0 && (
-            <p className="px-4 py-10 text-center text-sm text-ink-soft">Không tìm thấy bạn đọc phù hợp.</p>
-          )}
-        </div>
+        </section>
 
-        <aside aria-label="Hồ sơ bạn đọc" ref={panel} className="scroll-mt-20">
+        <aside aria-label="Hồ sơ bạn đọc" ref={panel} className="scroll-mt-24 lg:sticky lg:top-24">
           {selected === null ? (
-            <Card className="text-sm text-ink-soft">Chọn một bạn đọc để xem hồ sơ chi tiết.</Card>
+            <div className="rounded-[1.5rem] border border-dashed border-line bg-white/70 px-6 py-12 text-center">
+              <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-primary-soft text-primary" aria-hidden="true">
+                <Users size={26} />
+              </span>
+              <p className="mt-4 text-sm leading-relaxed text-ink-soft">Chọn một bạn đọc để xem hồ sơ chi tiết.</p>
+            </div>
           ) : detail.isLoading ? (
-            <Card><Spinner /></Card>
+            <div className={`${CARD} space-y-4 p-6`} role="status" aria-label="Đang tải hồ sơ">
+              <Skeleton className="h-20 w-20 rounded-[1.5rem]" />
+              <Skeleton className="h-6 w-2/3" />
+              <Skeleton className="h-24" />
+            </div>
           ) : detail.data ? (
-            <Card>
-              <h2 className="font-serif text-lg font-bold">{detail.data.fullName}</h2>
-              <p className="mt-0.5 text-sm text-ink-soft">{detail.data.email}</p>
-              <dl className="mt-4 space-y-2.5 text-sm">
-                <Row label="Mã thẻ">{detail.data.memberCode}</Row>
-                <Row label="Đối tượng">
-                  {detail.data.memberType === "LECTURER" ? "Giảng viên" : "Sinh viên"}
-                </Row>
-                <Row label="Đang mượn">{detail.data.activeLoans} cuốn</Row>
-                <Row label="Quá hạn">
-                  {detail.data.overdueLoans > 0 ? (
-                    <Badge tone="bad">{detail.data.overdueLoans} cuốn</Badge>
-                  ) : (
-                    <Badge tone="good">Không có</Badge>
-                  )}
-                </Row>
-                <Row label="Nợ phạt">
-                  {detail.data.unpaidFines > 0 ? (
-                    <span className="font-medium text-brand">{formatCurrency(detail.data.unpaidFines)}</span>
-                  ) : (
-                    "Không"
-                  )}
-                </Row>
-              </dl>
-              <Button
-                variant={detail.data.isActive ? "danger" : "primary"}
-                className="mt-5 w-full"
-                disabled={toggleLock.isPending}
-                onClick={() => toggleLock.mutate({ id: detail.data!.id, isActive: !detail.data!.isActive })}
-              >
-                {detail.data.isActive ? "Khoá thẻ bạn đọc" : "Mở thẻ bạn đọc"}
-              </Button>
-              <Button variant="ghost" className="mt-2 w-full" onClick={() => setResetting(true)}>
-                Cấp lại mật khẩu
-              </Button>
-              <p className="mt-2 text-xs text-ink-faint">
-                Dùng khi bạn đọc quên mật khẩu mà không nhận được email. Mật khẩu tạm hiện một lần để thủ thư trao lại.
-              </p>
-              <div className="mt-2 flex [&>a]:w-full">
-                <ButtonLink href={`/librarian/readers/${detail.data.id}/card`} variant="ghost">
-                  In thẻ bạn đọc
-                </ButtonLink>
+            <div key={detail.data.id} className={`${CARD} anim-sheet p-6`}>
+              <div className="flex items-start gap-4">
+                <Avatar name={detail.data.fullName} size="xl" />
+                <div className="min-w-0 pt-1">
+                  <h2 className="text-xl font-bold leading-tight tracking-tight">{detail.data.fullName}</h2>
+                  <p className="mt-1 break-all text-sm text-ink-soft">{detail.data.email}</p>
+                  <div className="mt-2.5">
+                    {detail.data.isActive ? <StatusPill tone="good">Hoạt động</StatusPill> : <StatusPill tone="bad">Đang khoá</StatusPill>}
+                  </div>
+                </div>
               </div>
-            </Card>
+
+              <dl className="mt-5 grid grid-cols-3 gap-2.5 text-center">
+                <div className="rounded-2xl bg-paper-2 px-2 py-3">
+                  <dt className="text-xs text-ink-soft">Đang mượn</dt>
+                  <dd className="mt-1 text-xl font-bold tabular-nums">
+                    {detail.data.activeLoans}
+                    <span className="ml-1 text-xs font-medium text-ink-soft">cuốn</span>
+                  </dd>
+                </div>
+                <div className={`rounded-2xl px-2 py-3 ${detail.data.overdueLoans > 0 ? "bg-danger-soft" : "bg-leaf-soft"}`}>
+                  <dt className={`text-xs ${detail.data.overdueLoans > 0 ? "text-danger" : "text-leaf"}`}>Quá hạn</dt>
+                  <dd className={`mt-1 text-xl font-bold tabular-nums ${detail.data.overdueLoans > 0 ? "text-danger" : "text-leaf"}`}>
+                    {detail.data.overdueLoans > 0 ? (
+                      <>
+                        {detail.data.overdueLoans}
+                        <span className="ml-1 text-xs font-medium">cuốn</span>
+                      </>
+                    ) : (
+                      <span className="text-base">Không có</span>
+                    )}
+                  </dd>
+                </div>
+                <div className={`rounded-2xl px-2 py-3 ${detail.data.unpaidFines > 0 ? "bg-danger-soft" : "bg-paper-2"}`}>
+                  <dt className={`text-xs ${detail.data.unpaidFines > 0 ? "text-danger" : "text-ink-soft"}`}>Nợ phạt</dt>
+                  <dd className={`mt-1 font-bold tabular-nums ${detail.data.unpaidFines > 0 ? "text-sm text-danger sm:text-base" : "text-base"}`}>
+                    {detail.data.unpaidFines > 0 ? formatCurrency(detail.data.unpaidFines) : "Không"}
+                  </dd>
+                </div>
+              </dl>
+
+              <dl className="mt-4 divide-y divide-line text-sm">
+                <div className="flex items-center justify-between gap-3 py-2.5">
+                  <dt className="text-ink-soft">Mã thẻ</dt>
+                  <dd className="font-semibold tabular-nums">{detail.data.memberCode}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-3 py-2.5">
+                  <dt className="text-ink-soft">Đối tượng</dt>
+                  <dd className="font-semibold">{typeLabel(detail.data.memberType)}</dd>
+                </div>
+              </dl>
+
+              <div className="mt-4 space-y-2">
+                <Button
+                  variant={detail.data.isActive ? "danger" : "primary"}
+                  className="w-full"
+                  disabled={toggleLock.isPending}
+                  onClick={() => toggleLock.mutate({ id: detail.data!.id, isActive: !detail.data!.isActive })}
+                >
+                  {detail.data.isActive ? <Lock size={17} aria-hidden="true" /> : <LockOpen size={17} aria-hidden="true" />}
+                  {detail.data.isActive ? "Khoá thẻ bạn đọc" : "Mở thẻ bạn đọc"}
+                </Button>
+                <Button variant="ghost" className="w-full" onClick={() => setResetting(true)}>
+                  <KeyRound size={17} aria-hidden="true" />
+                  Cấp lại mật khẩu
+                </Button>
+                <div className="flex [&>a]:w-full">
+                  <ButtonLink href={`/librarian/readers/${detail.data.id}/card`} variant="ghost">
+                    <CreditCard size={17} aria-hidden="true" />
+                    In thẻ bạn đọc
+                  </ButtonLink>
+                </div>
+              </div>
+              <p className="mt-3 text-xs leading-relaxed text-ink-faint">
+                Cấp lại mật khẩu dùng khi bạn đọc quên mật khẩu mà không nhận được email. Mật khẩu tạm hiện một lần để thủ thư
+                trao lại.
+              </p>
+            </div>
           ) : null}
         </aside>
       </div>
@@ -272,15 +353,6 @@ export function ReadersView() {
           onDone={() => queryClient.invalidateQueries({ queryKey: ["reader"] })}
         />
       )}
-    </div>
-  );
-}
-
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex items-center justify-between gap-3 border-b border-line pb-2 last:border-none">
-      <dt className="text-ink-faint">{label}</dt>
-      <dd className="text-right font-medium">{children}</dd>
     </div>
   );
 }

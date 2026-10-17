@@ -12,7 +12,7 @@ const describeWithDb = process.env.DATABASE_URL ? describe : describe.skip;
 const RUN = Date.now().toString().slice(-7);
 const DAY = 24 * 60 * 60 * 1000;
 
-describeWithDb('Sprint 2 — mượn, trả, phạt, đánh giá (e2e)', () => {
+describeWithDb('Sprint 2, mượn, trả, phạt, đánh giá (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let http: ReturnType<typeof request>;

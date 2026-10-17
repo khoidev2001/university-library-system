@@ -30,7 +30,7 @@ interface VolumeResponse {
 }
 
 /**
- * Tích hợp ngoài duy nhất của hệ thống (SDD 2.4). Không gọi khi tra cứu — chỉ ở seed và FR-BOOK-05.
+ * Tích hợp ngoài duy nhất của hệ thống (SDD 2.4). Không gọi khi tra cứu, chỉ ở seed và FR-BOOK-05.
  * Có key thì gửi key (1.000 req/ngày); không key vẫn chạy nhưng bị giới hạn chặt hơn.
  */
 @Injectable()

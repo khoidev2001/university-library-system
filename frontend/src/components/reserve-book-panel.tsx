@@ -30,7 +30,7 @@ export function ReserveBookPanel({ bookId, available }: { bookId: number; availa
   const error = reserve.error instanceof ApiError ? reserve.error.friendlyMessage : reserve.error ? "Không đặt được." : null;
 
   return (
-    <div className="mt-3 space-y-3 rounded-xl border border-line bg-white p-4">
+    <div className="mt-4 space-y-3 rounded-2xl bg-white p-4 shadow-[var(--shadow-card)]">
       {existing ? (
         <>
           <p className="text-sm font-medium">
@@ -38,7 +38,7 @@ export function ReserveBookPanel({ bookId, available }: { bookId: number; availa
               ? `Sách đang giữ cho bạn tới ${existing.expiresAt ? formatDate(existing.expiresAt) : "..."}.`
               : `Bạn đang xếp hàng thứ ${existing.queuePosition} cho cuốn này.`}
           </p>
-          <Link href="/my/reservations" className="text-sm text-brand hover:underline">
+          <Link href="/my/reservations" className="link-underline inline-flex min-h-10 items-center text-sm font-semibold text-primary">
             Xem đặt trước của tôi
           </Link>
         </>

@@ -126,7 +126,7 @@ for i in (1, 2):
 s, b = call("POST", "/loans", {"barcode": barcodes[3], "memberCode": MEMBER_CODE}, token=librarian)
 expect("cuốn thứ 4 → 409", s, 409, b, "LOAN_LIMIT_REACHED")
 
-print("\n--- Quá hạn (BR-03, BR-09) — lùi hạn phiếu 3 ngày bằng SQL")
+print("\n--- Quá hạn (BR-03, BR-09), lùi hạn phiếu 3 ngày bằng SQL")
 sql(f"UPDATE loans SET due_at = NOW() - INTERVAL '3 days' WHERE id = {loan_id}")
 s, b = call("GET", "/loans/me?status=ACTIVE", token=reader)
 expect("bạn đọc thấy phiếu quá hạn", s, 200)

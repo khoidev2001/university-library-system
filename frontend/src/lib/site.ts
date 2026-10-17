@@ -1,5 +1,5 @@
 export const SITE = {
-  name: "Thư viện Trường Đại học Xây dựng Miền Trung",
+  name: "Thư viện MUCE",
   shortName: "Thư viện MUCE",
   university: "Trường Đại học Xây dựng Miền Trung",
   description:

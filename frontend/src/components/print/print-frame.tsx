@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Printer } from "lucide-react";
+import { ArrowLeft, Info, Printer } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "../ui";
@@ -68,53 +68,60 @@ export function PrintFrame({
   const { box, inner, fit } = useFitScale(sheetWidthMm);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 print:max-w-none print:p-0 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 py-8 print:max-w-none print:p-0 sm:px-6 sm:py-10">
       {/* @page chỉ khai báo được một lần cho cả tài liệu nên đặt theo lựa chọn hiện tại */}
       <style>{`@page { size: ${pageSize}; margin: 0; } @media print { html, body { background: #fff !important; } }`}</style>
 
       <div className="print:hidden">
         <Link
           href={backHref}
-          className="inline-flex min-h-10 items-center gap-1.5 text-sm text-ink-soft hover:text-ink hover:underline"
+          className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-white px-4 text-sm font-semibold text-ink-soft ring-1 ring-inset ring-line transition-colors hover:bg-paper-2 hover:text-ink"
         >
           <ArrowLeft size={16} aria-hidden="true" />
           Quay lại
         </Link>
-        <h1 className="mt-2 font-serif text-2xl font-bold sm:text-3xl">{title}</h1>
-        <p className="mt-2 max-w-2xl text-sm text-ink-soft">{description}</p>
+        <h1 className="mt-4 text-2xl font-bold tracking-tight sm:text-[2rem] sm:leading-[1.15]">{title}</h1>
+        <p className="mt-2 max-w-2xl text-[0.9375rem] leading-relaxed text-ink-soft">{description}</p>
 
-        {options && <div className="mt-5 rounded-xl border border-line bg-white p-4">{options}</div>}
+        {options && (
+          <div className="mt-6 rounded-[1.5rem] border border-line bg-white p-5 shadow-[var(--shadow-card)] sm:p-6">{options}</div>
+        )}
 
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <Button type="button" disabled={printDisabled} onClick={() => window.print()} className="min-h-10">
-            <Printer size={16} aria-hidden="true" />
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <Button type="button" disabled={printDisabled} onClick={() => window.print()} className="min-h-12 px-7 text-[0.9375rem]">
+            <Printer size={18} aria-hidden="true" />
             In
           </Button>
           {summary && (
-            <p role="status" className="text-sm text-ink-soft">
+            <p role="status" className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-ink-soft ring-1 ring-inset ring-line">
               {summary}
             </p>
           )}
         </div>
-        <p className="mt-3 max-w-2xl text-xs text-ink-faint">
-          Trong hộp thoại in: chọn tỉ lệ 100% (không chọn &quot;Vừa trang&quot;), lề &quot;Không có&quot;, bật &quot;Đồ họa nền&quot;.
-          In thử một tờ giấy thường trước khi in lên giấy decal hoặc thẻ.
+        <p className="mt-4 flex max-w-2xl items-start gap-2.5 rounded-2xl bg-primary-soft px-4 py-3 text-sm leading-relaxed text-primary-ink">
+          <Info size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
+          <span>
+            Trong hộp thoại in: chọn tỉ lệ 100% (không chọn &quot;Vừa trang&quot;), lề &quot;Không có&quot;, bật &quot;Đồ họa nền&quot;.
+            In thử một tờ giấy thường trước khi in lên giấy decal hoặc thẻ.
+          </span>
         </p>
       </div>
 
-      {/* Vùng xem trước: thu nhỏ bằng transform trên màn hình, trả về nguyên kích thước khi in */}
-      <div
-        ref={box}
-        className="mt-6 w-full overflow-hidden rounded-xl bg-paper-2 p-0 print:mt-0 print:overflow-visible print:rounded-none print:bg-transparent"
-        style={{ ["--fit-h" as string]: `${fit.height}px`, ["--fit-s" as string]: String(fit.scale) }}
-      >
-        <div className="h-[var(--fit-h)] print:h-auto">
-          <div
-            ref={inner}
-            className="mx-auto origin-top-left scale-[var(--fit-s)] print:mx-0 print:scale-100"
-            style={{ width: `${sheetWidthMm}mm` }}
-          >
-            {children}
+      {/* Vùng xem trước: nền chấm như bàn làm việc, giấy nổi lên bằng bóng đổ. Khi in, mọi trang trí biến mất */}
+      <div className="mt-7 rounded-[1.5rem] bg-paper-2 p-3 [background-image:radial-gradient(rgb(92_100_134/0.22)_1px,transparent_1px)] [background-size:18px_18px] print:mt-0 print:rounded-none print:bg-transparent print:bg-none print:p-0 sm:p-5">
+        <div
+          ref={box}
+          className="w-full overflow-hidden print:overflow-visible"
+          style={{ ["--fit-h" as string]: `${fit.height}px`, ["--fit-s" as string]: String(fit.scale) }}
+        >
+          <div className="h-[var(--fit-h)] print:h-auto">
+            <div
+              ref={inner}
+              className="mx-auto origin-top-left scale-[var(--fit-s)] print:mx-0 print:scale-100"
+              style={{ width: `${sheetWidthMm}mm` }}
+            >
+              {children}
+            </div>
           </div>
         </div>
       </div>
@@ -136,7 +143,7 @@ export function PaperSheet({
 }) {
   return (
     <section
-      className={`relative overflow-hidden bg-white shadow-sm print:shadow-none ${last ? "" : "mb-4 print:mb-0 print:break-after-page"}`}
+      className={`relative overflow-hidden bg-white shadow-[0_12px_32px_-14px_rgb(21_26_51/0.4)] print:shadow-none ${last ? "" : "mb-4 print:mb-0 print:break-after-page"}`}
       style={{ width: `${widthMm}mm`, height: `${heightMm}mm` }}
     >
       {children}

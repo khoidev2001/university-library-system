@@ -9,8 +9,28 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ExportButtons } from "../export-buttons";
 import { TapCheckbox } from "../tap-checkbox";
-import { Badge, Button, ButtonLink, Field, PageHeading, Spinner, inputClass } from "../ui";
-import { Modal, Pagination, TableShell, Th, Toolbar, errorText, useNotice } from "./admin-ui";
+import { Plus, X } from "lucide-react";
+import { Button, ButtonLink, EmptyState, Field, PageHeading, inputClass } from "../ui";
+import {
+  BookThumb,
+  FormActions,
+  FormError,
+  Modal,
+  Pagination,
+  RowButton,
+  SearchInput,
+  StatusBadge,
+  TableShell,
+  TableSkeleton,
+  Td,
+  Th,
+  Toolbar,
+  Tr,
+  errorText,
+  rowButtonClass,
+  useConfirm,
+  useNotice,
+} from "./admin-ui";
 
 // Hộp thoại nhập file chỉ nạp khi thủ thư bấm "Nhập từ file", không làm nặng trang danh sách sách
 const BookImportDialog = dynamic(() => import("./book-import-dialog").then((m) => m.BookImportDialog), { ssr: false });
@@ -29,6 +49,7 @@ export function BooksAdminView() {
   const { token, can } = useAuth();
   const queryClient = useQueryClient();
   const { show, node } = useNotice();
+  const { confirm, dialog: confirmDialog } = useConfirm();
 
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
@@ -71,10 +92,12 @@ export function BooksAdminView() {
     onError: (error) => show("bad", errorText(error, "Không xoá được sách.")),
   });
 
+  const filtered = query !== "" || categoryId !== "";
+  const items = books.data?.items ?? [];
+
   return (
     <div>
       <PageHeading
-        eyebrow="Kho sách"
         title="Sách và bản sao"
         description="Thêm, sửa, xoá đầu sách và quản lý từng bản sao trên kệ."
         action={
@@ -87,33 +110,26 @@ export function BooksAdminView() {
             <Button variant="ghost" onClick={() => setImportingFile(true)}>
               Nhập từ file
             </Button>
-            <Button onClick={() => setEditing("new")}>Thêm sách</Button>
+            <Button onClick={() => setEditing("new")}>
+              <Plus size={18} aria-hidden="true" />
+              Thêm sách
+            </Button>
           </div>
         }
       />
       {node}
+      {confirmDialog}
 
       <Toolbar>
         <form
-          className="flex flex-1 flex-wrap items-end gap-3"
+          className="flex flex-1 flex-wrap items-center gap-3"
           onSubmit={(event) => {
             event.preventDefault();
             setQuery(search.trim());
             setPage(1);
           }}
         >
-          <div className="min-w-[220px] flex-1">
-            <label htmlFor="admin-books-q" className="sr-only">
-              Tìm sách
-            </label>
-            <input
-              id="admin-books-q"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              className={inputClass}
-              placeholder="Tiêu đề, tác giả hoặc ISBN"
-            />
-          </div>
+          <SearchInput id="admin-books-q" label="Tìm sách" value={search} onChange={setSearch} placeholder="Tiêu đề, tác giả hoặc ISBN" />
           <div>
             <label htmlFor="admin-books-category" className="sr-only">
               Lọc theo thể loại
@@ -125,7 +141,7 @@ export function BooksAdminView() {
                 setCategoryId(event.target.value);
                 setPage(1);
               }}
-              className={inputClass}
+              className={`${inputClass} pr-9`}
             >
               <option value="">Mọi thể loại</option>
               {(categories.data ?? []).map((category) => (
@@ -142,7 +158,7 @@ export function BooksAdminView() {
       <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
         <ExportButtons dataset="books" subject="danh mục sách" params={{ q: query, categoryId }} />
         {picked.size > 0 ? (
-          <ButtonLink href={`/librarian/labels?bookIds=${[...picked].join(",")}`} variant="ghost">
+          <ButtonLink href={`/librarian/labels?bookIds=${[...picked].join(",")}`} variant="soft">
             In nhãn mã vạch ({picked.size} sách)
           </ButtonLink>
         ) : (
@@ -154,19 +170,45 @@ export function BooksAdminView() {
 
       <div className="mt-5">
         {books.isLoading ? (
-          <Spinner />
+          <TableSkeleton rows={8} cols={5} />
+        ) : items.length === 0 ? (
+          <EmptyState
+            title={filtered ? "Không có sách nào khớp" : "Kho sách còn trống"}
+            hint={
+              filtered
+                ? "Thử bớt từ khoá hoặc chọn thể loại khác để thấy nhiều kết quả hơn."
+                : "Thêm đầu sách đầu tiên hoặc nhập cả danh mục từ file để bắt đầu."
+            }
+            action={
+              filtered ? (
+                <Button
+                  variant="soft"
+                  onClick={() => {
+                    setSearch("");
+                    setQuery("");
+                    setCategoryId("");
+                    setPage(1);
+                  }}
+                >
+                  Xoá bộ lọc
+                </Button>
+              ) : (
+                <Button onClick={() => setEditing("new")}>Thêm sách</Button>
+              )
+            }
+          />
         ) : (
-          <TableShell minWidth={820}>
+          <TableShell minWidth={860}>
             <caption className="sr-only">Danh sách đầu sách</caption>
-            <thead className="border-b border-line bg-paper-2">
+            <thead>
               <tr>
-                <th scope="col" className="w-12 px-3 py-3">
+                <th scope="col" className="sticky top-0 w-12 border-b border-line bg-paper px-4 py-3">
                   <TapCheckbox
                     label="Chọn tất cả sách trên trang này"
-                    checked={(books.data?.items ?? []).length > 0 && (books.data?.items ?? []).every((b) => picked.has(b.id))}
+                    checked={items.length > 0 && items.every((b) => picked.has(b.id))}
                     onChange={(checked) => {
                       const next = new Set(picked);
-                      for (const b of books.data?.items ?? []) {
+                      for (const b of items) {
                         if (checked) next.add(b.id);
                         else next.delete(b.id);
                       }
@@ -183,10 +225,10 @@ export function BooksAdminView() {
                 </Th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-line">
-              {(books.data?.items ?? []).map((book) => (
-                <tr key={book.id}>
-                  <td className="px-3 py-3">
+            <tbody>
+              {items.map((book, index) => (
+                <Tr key={book.id} index={index}>
+                  <Td className="w-12">
                     <TapCheckbox
                       label={`Chọn ${book.title} để in nhãn`}
                       checked={picked.has(book.id)}
@@ -197,23 +239,28 @@ export function BooksAdminView() {
                         setPicked(next);
                       }}
                     />
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="font-medium">{book.title}</span>
-                    <span className="block text-xs text-ink-faint">
-                      {book.authors.map((author) => author.name).join(", ") || "Chưa có tác giả"}
-                      {book.isbn ? ` · ISBN ${book.isbn}` : ""}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-ink-soft">{book.category.name}</td>
-                  <td className="px-4 py-3 text-ink-soft">{formatCurrency(book.price)}</td>
-                  <td className="px-4 py-3">
-                    <Badge tone={book.copiesAvailable > 0 ? "good" : "warn"}>
+                  </Td>
+                  <Td>
+                    <div className="flex max-w-[24rem] items-center gap-3">
+                      <BookThumb coverUrl={book.coverUrl} title={book.title} />
+                      <div className="min-w-0">
+                        <span className="line-clamp-2 font-semibold">{book.title}</span>
+                        <span className="block truncate text-xs text-ink-faint">
+                          {book.authors.map((author) => author.name).join(", ") || "Chưa có tác giả"}
+                          {book.isbn ? ` · ISBN ${book.isbn}` : ""}
+                        </span>
+                      </div>
+                    </div>
+                  </Td>
+                  <Td className="whitespace-nowrap text-ink-soft">{book.category.name}</Td>
+                  <Td className="whitespace-nowrap text-ink-soft">{formatCurrency(book.price)}</Td>
+                  <Td>
+                    <StatusBadge tone={book.copiesAvailable > 0 ? "good" : "warn"}>
                       {book.copiesAvailable}/{book.copiesTotal}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex justify-end gap-2">
+                    </StatusBadge>
+                  </Td>
+                  <Td>
+                    <div className="flex justify-end gap-1.5">
                       <RowButton aria-label={`Bản sao của ${book.title}`} onClick={() => setCopiesOf(book)}>
                         Bản sao
                       </RowButton>
@@ -224,23 +271,23 @@ export function BooksAdminView() {
                         danger
                         aria-label={`Xoá ${book.title}`}
                         disabled={remove.isPending}
-                        onClick={() => {
-                          if (window.confirm(`Xoá sách "${book.title}" cùng toàn bộ bản sao và đánh giá?`)) {
-                            remove.mutate(book);
-                          }
+                        onClick={async () => {
+                          const ok = await confirm({
+                            title: "Xoá đầu sách",
+                            message: `Xoá sách "${book.title}" cùng toàn bộ bản sao và đánh giá? Thao tác này không hoàn tác được.`,
+                            confirmLabel: "Xoá sách",
+                          });
+                          if (ok) remove.mutate(book);
                         }}
                       >
                         Xoá
                       </RowButton>
                     </div>
-                  </td>
-                </tr>
+                  </Td>
+                </Tr>
               ))}
             </tbody>
           </TableShell>
-        )}
-        {books.data?.items.length === 0 && (
-          <p className="px-4 py-10 text-center text-sm text-ink-soft">Không có sách nào khớp điều kiện lọc.</p>
         )}
         {books.data && <Pagination page={page} total={books.data.total} limit={LIMIT} onPage={setPage} />}
       </div>
@@ -284,24 +331,6 @@ export function BooksAdminView() {
         />
       )}
     </div>
-  );
-}
-
-function RowButton({
-  children,
-  danger = false,
-  ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & { danger?: boolean }) {
-  return (
-    <button
-      type="button"
-      {...props}
-      className={`inline-flex min-h-10 items-center rounded-md border px-3 text-xs font-medium disabled:opacity-50 ${
-        danger ? "border-brand/30 text-brand hover:bg-brand-soft" : "border-line hover:bg-paper-2"
-      }`}
-    >
-      {children}
-    </button>
   );
 }
 
@@ -392,7 +421,7 @@ function BookFormModal({
         <Field label="Tiêu đề" htmlFor="bf-title">
           <input id="bf-title" required maxLength={300} value={form.title} onChange={(e) => set("title", e.target.value)} className={inputClass} />
         </Field>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid items-end gap-4 sm:grid-cols-2">
           <Field label="Thể loại" htmlFor="bf-category">
             <select id="bf-category" required value={form.categoryId} onChange={(e) => set("categoryId", e.target.value)} className={inputClass}>
               <option value="">Chọn thể loại</option>
@@ -434,19 +463,15 @@ function BookFormModal({
         </Field>
         <AuthorPicker selected={form.authors} onChange={(authors) => set("authors", authors)} />
 
-        {error && (
-          <p role="alert" className="rounded-md bg-brand-soft px-3 py-2 text-sm text-brand">
-            {error}
-          </p>
-        )}
-        <div className="flex justify-end gap-2 pt-2">
+        {error && <FormError>{error}</FormError>}
+        <FormActions>
           <Button type="button" variant="ghost" onClick={onClose}>
             Huỷ
           </Button>
           <Button type="submit" disabled={save.isPending}>
             {save.isPending ? "Đang lưu..." : "Lưu"}
           </Button>
-        </div>
+        </FormActions>
       </form>
     </Modal>
   );
@@ -476,22 +501,22 @@ function AuthorPicker({ selected, onChange }: { selected: Author[]; onChange: (a
 
   return (
     <div>
-      <label htmlFor="bf-author" className="block text-sm font-medium">
+      <label htmlFor="bf-author" className="block text-sm font-semibold">
         Tác giả
       </label>
       <p className="mt-0.5 text-xs text-ink-faint">Gõ tên để tìm, chưa có thì thêm mới ngay tại đây.</p>
       {selected.length > 0 && (
         <ul className="mt-2 flex flex-wrap gap-2">
           {selected.map((author) => (
-            <li key={author.id} className="inline-flex items-center gap-1.5 rounded-full bg-paper-2 py-1 pl-3 pr-1.5 text-sm">
+            <li key={author.id} className="inline-flex items-center gap-1 rounded-full bg-primary-soft py-0.5 pl-3.5 pr-1 text-sm font-medium text-primary-ink">
               {author.name}
               <button
                 type="button"
                 aria-label={`Bỏ tác giả ${author.name}`}
                 onClick={() => onChange(selected.filter((s) => s.id !== author.id))}
-                className="rounded-full px-1.5 text-ink-faint hover:bg-white hover:text-brand"
+                className="grid h-9 w-9 place-items-center rounded-full text-primary-ink/70 transition-colors hover:bg-white hover:text-danger"
               >
-                ×
+                <X size={14} aria-hidden="true" />
               </button>
             </li>
           ))}
@@ -499,17 +524,17 @@ function AuthorPicker({ selected, onChange }: { selected: Author[]; onChange: (a
       )}
       <input id="bf-author" value={text} onChange={(e) => setText(e.target.value)} className={`${inputClass} mt-2`} placeholder="Tìm tác giả..." autoComplete="off" />
       {trimmed && (
-        <ul className="mt-1 divide-y divide-line overflow-hidden rounded-md border border-line bg-white text-sm">
+        <ul className="mt-2 divide-y divide-line overflow-hidden rounded-xl border border-line bg-white text-sm shadow-[var(--shadow-card)]">
           {available.map((author) => (
             <li key={author.id}>
-              <button type="button" onClick={() => { onChange([...selected, author]); setText(""); }} className="block w-full px-3 py-2 text-left hover:bg-paper-2">
+              <button type="button" onClick={() => { onChange([...selected, author]); setText(""); }} className="block min-h-11 w-full px-4 py-2.5 text-left transition-colors hover:bg-paper">
                 {author.name}
               </button>
             </li>
           ))}
           {!exact && (
             <li>
-              <button type="button" disabled={create.isPending} onClick={() => create.mutate(trimmed)} className="block w-full px-3 py-2 text-left text-brand hover:bg-paper-2">
+              <button type="button" disabled={create.isPending} onClick={() => create.mutate(trimmed)} className="block min-h-11 w-full px-4 py-2.5 text-left font-semibold text-primary-ink transition-colors hover:bg-primary-soft">
                 Thêm tác giả mới &quot;{trimmed}&quot;
               </button>
             </li>
@@ -568,7 +593,7 @@ function CopiesModal({ book, onClose, onChanged }: { book: BookSummary; onClose:
     <Modal title={`Bản sao: ${book.title}`} onClose={onClose} wide>
       {node}
       <form
-        className="mt-1 flex flex-wrap items-end gap-3"
+        className="flex flex-wrap items-end gap-3 rounded-2xl bg-paper p-4"
         onSubmit={(event) => {
           event.preventDefault();
           add.mutate();
@@ -591,22 +616,24 @@ function CopiesModal({ book, onClose, onChanged }: { book: BookSummary; onClose:
 
       <div className="mt-5">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm text-ink-soft">{copies.data ? `${copies.data.length} bản sao` : ""}</p>
+          <p className="text-sm font-semibold text-ink-soft">{copies.data ? `${copies.data.length} bản sao` : ""}</p>
           <Link
             href={`/librarian/labels?bookIds=${book.id}`}
             target="_blank"
             rel="noopener"
-            className="inline-flex min-h-10 items-center rounded-md border border-line bg-white px-4 text-sm font-medium hover:bg-paper-2"
+            className={rowButtonClass()}
           >
             In nhãn mã vạch tất cả bản sao
           </Link>
         </div>
         {copies.isLoading ? (
-          <Spinner />
+          <TableSkeleton rows={4} cols={4} />
+        ) : (copies.data ?? []).length === 0 ? (
+          <EmptyState title="Đầu sách này chưa có bản sao" hint="Nhập mã vạch ở trên để thêm bản sao đầu tiên lên kệ." />
         ) : (
-          <TableShell minWidth={620}>
+          <TableShell minWidth={620} maxHeight={380} label="Danh sách bản sao, cuộn để xem hết">
             <caption className="sr-only">Danh sách bản sao</caption>
-            <thead className="border-b border-line bg-paper-2">
+            <thead>
               <tr>
                 <Th>Mã vạch</Th>
                 <Th>Vị trí kệ</Th>
@@ -616,7 +643,7 @@ function CopiesModal({ book, onClose, onChanged }: { book: BookSummary; onClose:
                 </Th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-line">
+            <tbody>
               {(copies.data ?? []).map((copy) => (
                 <CopyRow
                   key={copy.id}
@@ -628,8 +655,7 @@ function CopiesModal({ book, onClose, onChanged }: { book: BookSummary; onClose:
             </tbody>
           </TableShell>
         )}
-        {copies.data?.length === 0 && <p className="py-6 text-center text-sm text-ink-soft">Đầu sách này chưa có bản sao.</p>}
-        <p className="mt-3 text-xs text-ink-faint">
+        <p className="mt-3 text-xs leading-relaxed text-ink-faint">
           Bản sao đang được mượn đổi trạng thái qua quầy mượn trả. Đánh dấu Mất hoặc Bảo trì ở đây khi cần gỡ khỏi kệ.
         </p>
       </div>
@@ -650,8 +676,8 @@ function CopyRow({
   const borrowed = copy.status === "BORROWED";
   return (
     <tr>
-      <td className="px-4 py-2.5 font-mono text-xs">{copy.barcode}</td>
-      <td className="px-4 py-2.5">
+      <Td className="whitespace-nowrap py-2.5 font-semibold tabular-nums">{copy.barcode}</Td>
+      <Td className="py-2.5">
         <input
           aria-label={`Vị trí kệ của ${copy.barcode}`}
           value={shelf}
@@ -661,17 +687,17 @@ function CopyRow({
           }}
           className={`${inputClass} min-h-10`}
         />
-      </td>
-      <td className="px-4 py-2.5">
+      </Td>
+      <Td className="py-2.5">
         {borrowed ? (
-          <Badge tone="info">{COPY_STATUS.BORROWED.label}</Badge>
+          <StatusBadge tone="info">{COPY_STATUS.BORROWED.label}</StatusBadge>
         ) : (
           <select
             aria-label={`Trạng thái của ${copy.barcode}`}
             value={copy.status}
             disabled={pending}
             onChange={(e) => onSave({ status: e.target.value as CopyStatus })}
-            className={`${inputClass} min-h-10`}
+            className={`${inputClass} min-h-10 pr-9`}
           >
             {(["AVAILABLE", "MAINTENANCE", "LOST"] as const).map((status) => (
               <option key={status} value={status}>
@@ -680,18 +706,18 @@ function CopyRow({
             ))}
           </select>
         )}
-      </td>
-      <td className="px-4 py-2.5 text-right">
+      </Td>
+      <Td align="right" className="py-2.5">
         <Link
           href={`/librarian/labels?copyIds=${copy.id}`}
           target="_blank"
           rel="noopener"
           aria-label={`In nhãn của ${copy.barcode}`}
-          className="inline-flex min-h-10 items-center rounded-md border border-line px-3 text-xs font-medium hover:bg-paper-2"
+          className={rowButtonClass()}
         >
           In nhãn
         </Link>
-      </td>
+      </Td>
     </tr>
   );
 }
@@ -718,21 +744,21 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
 
   return (
     <Modal title="Nhập sách theo ISBN" onClose={onClose}>
-      <p className="text-sm text-ink-soft">
+      <p className="text-sm leading-relaxed text-ink-soft">
         Mỗi ISBN một dòng (tối đa 100). Hệ thống lấy thông tin từ Google Books, bỏ qua ISBN đã có trong kho.
       </p>
       <label htmlFor="import-isbns" className="sr-only">
         Danh sách ISBN
       </label>
-      <textarea id="import-isbns" rows={6} value={text} onChange={(e) => setText(e.target.value)} className={`${inputClass} mt-3 font-mono`} placeholder={"9780439023481\n9780061120084"} />
+      <textarea id="import-isbns" rows={6} value={text} onChange={(e) => setText(e.target.value)} className={`${inputClass} mt-3 tabular-nums`} placeholder={"9780439023481\n9780061120084"} />
       {error && (
-        <p role="alert" className="mt-3 rounded-md bg-brand-soft px-3 py-2 text-sm text-brand">
-          {error}
-        </p>
+        <div className="mt-3">
+          <FormError>{error}</FormError>
+        </div>
       )}
       {report && (
-        <div className="mt-4 space-y-2 text-sm">
-          <p className="font-medium text-leaf">Đã thêm {report.created.length} đầu sách.</p>
+        <div className="mt-4 space-y-2 rounded-2xl bg-paper p-4 text-sm">
+          <p className="font-semibold text-leaf">Đã thêm {report.created.length} đầu sách.</p>
           {report.skipped.length > 0 && (
             <ul className="space-y-1 text-ink-soft">
               {report.skipped.map((item) => (
@@ -744,7 +770,7 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
           )}
         </div>
       )}
-      <div className="mt-5 flex justify-end gap-2">
+      <div className="mt-5 flex flex-wrap justify-end gap-2">
         <Button variant="ghost" onClick={onClose}>
           Đóng
         </Button>

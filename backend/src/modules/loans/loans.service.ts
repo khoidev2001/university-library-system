@@ -45,7 +45,7 @@ const loanInclude = {
 
 export type LoanRow = Prisma.LoanGetPayload<{ include: typeof loanInclude }>;
 
-/** Phiếu mượn kèm hai trường dẫn xuất (BR-09) — không lưu trong DB. */
+/** Phiếu mượn kèm hai trường dẫn xuất (BR-09), không lưu trong DB. */
 export interface LoanView extends LoanRow {
   isOverdue: boolean;
   overdueDays: number;
@@ -107,7 +107,7 @@ export class LoansService {
         `Không tìm thấy bản sao có mã vạch ${dto.barcode}`,
       );
     // Bản sao HELD đã quá hạn nhận sách thì giải phóng ngay (cho người kế tiếp hoặc về kệ),
-    // không đợi lượt quét định kỳ — instance miễn phí có thể đang ngủ nên lượt quét không chạy.
+    // không đợi lượt quét định kỳ, instance miễn phí có thể đang ngủ nên lượt quét không chạy.
     if (copy.status === CopyStatus.HELD) {
       await this.reservations.expireStale(at);
       copy = (await findCopy()) ?? copy;
@@ -159,7 +159,7 @@ export class LoansService {
       );
     }
 
-    // FR-LOAN-02: AI chỉ là thông tin thêm — chậm/chết thì vẫn cho mượn.
+    // FR-LOAN-02: AI chỉ là thông tin thêm, chậm/chết thì vẫn cho mượn.
     const [priorLoans, priorOverdue] = await Promise.all([
       this.prisma.loan.count({ where: { userId: reader.id } }),
       this.prisma.loan.count({
@@ -327,7 +327,7 @@ export class LoansService {
     return this.findOne(loanId, at);
   }
 
-  /** FR-LOAN-06, BR-08: báo mất — phạt = giá bìa + phạt trễ tính đến ngày báo. */
+  /** FR-LOAN-06, BR-08: báo mất, phạt = giá bìa + phạt trễ tính đến ngày báo. */
   async reportLost(
     loanId: number,
     at: Date = new Date(),

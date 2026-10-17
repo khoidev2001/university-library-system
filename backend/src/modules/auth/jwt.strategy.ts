@@ -29,7 +29,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   /**
    * Token còn hạn chưa đủ: tài khoản phải còn tồn tại và chưa bị khoá (FR-AUTH-05),
-   * và vai trò lấy từ DB chứ không tin token — hạ quyền / khoá thẻ có hiệu lực ngay.
+   * và vai trò lấy từ DB chứ không tin token, hạ quyền / khoá thẻ có hiệu lực ngay.
    */
   async validate(payload: JwtPayload): Promise<JwtUser> {
     const user = await this.prisma.user.findUnique({

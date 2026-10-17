@@ -63,39 +63,45 @@ export function NotificationBell() {
         aria-expanded={open}
         aria-haspopup="true"
         aria-label={unread > 0 ? `Thông báo, ${unread} chưa đọc` : "Thông báo"}
-        className="relative inline-flex h-10 w-10 items-center justify-center rounded-md border border-line text-ink-soft transition-colors hover:bg-paper-2 hover:text-ink"
+        className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl text-ink-soft ring-1 ring-inset ring-line transition-colors hover:bg-paper-2 hover:text-ink"
       >
         <Bell size={16} aria-hidden="true" />
         {unread > 0 && (
-          <span className="absolute -right-1.5 -top-1.5 grid min-w-[18px] place-items-center rounded-full bg-brand px-1 text-[10px] font-bold leading-[18px] text-white">
+          <span className="absolute -right-1.5 -top-1.5 grid min-w-5 place-items-center rounded-full bg-primary px-1 text-[11px] font-bold leading-5 tabular-nums text-white ring-2 ring-white">
             {unread > 9 ? "9+" : unread}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="anim-pop absolute right-0 z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-line bg-white shadow-lg">
+        <div className="anim-sheet fixed inset-x-3 top-[5rem] z-50 overflow-hidden rounded-[1.25rem] border border-line bg-white shadow-[var(--shadow-lift)] sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:mt-3 sm:w-[22rem]">
           <div className="flex items-center justify-between border-b border-line px-4 py-3">
-            <h2 className="text-sm font-bold">Thông báo</h2>
+            <h2 className="text-base font-bold">Thông báo</h2>
             <button
               type="button"
               disabled={unread === 0 || readAll.isPending}
               onClick={() => readAll.mutate()}
-              className="text-xs text-brand hover:underline disabled:text-ink-faint disabled:no-underline"
+              className="inline-flex min-h-10 items-center rounded-lg px-2 text-sm font-semibold text-primary hover:bg-primary-soft disabled:text-ink-faint disabled:hover:bg-transparent"
             >
               Đọc tất cả
             </button>
           </div>
           {items.length === 0 ? (
-            <p className="px-4 py-8 text-center text-sm text-ink-faint">Chưa có thông báo nào.</p>
+            <div className="px-4 py-10 text-center">
+              <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-primary-soft text-primary" aria-hidden="true">
+                <Bell size={20} />
+              </span>
+              <p className="mt-3 text-sm font-semibold">Chưa có thông báo nào</p>
+              <p className="mt-1 text-xs text-ink-faint">Nhắc hạn trả và tin từ thư viện sẽ hiện ở đây.</p>
+            </div>
           ) : (
-            <ul className="max-h-96 divide-y divide-line overflow-y-auto overscroll-contain">
+            <ul className="max-h-[26rem] divide-y divide-line overflow-y-auto overscroll-contain">
               {items.map((item) => {
                 const content = (
                   <>
                     <span className="flex items-start justify-between gap-2">
                       <span className={`text-sm ${item.readAt ? "text-ink-soft" : "font-semibold"}`}>{item.title}</span>
-                      {!item.readAt && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand" aria-label="Chưa đọc" />}
+                      {!item.readAt && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" aria-label="Chưa đọc" />}
                     </span>
                     <span className="mt-0.5 block text-xs leading-relaxed text-ink-soft">{item.body}</span>
                     <span className="mt-1 block text-[11px] text-ink-faint">{formatDate(item.createdAt)}</span>
@@ -108,11 +114,11 @@ export function NotificationBell() {
                 return (
                   <li key={item.id}>
                     {item.link ? (
-                      <Link href={item.link} onClick={onOpen} className="block px-4 py-3 hover:bg-paper-2">
+                      <Link href={item.link} onClick={onOpen} className={`block px-4 py-3 hover:bg-paper-2 ${item.readAt ? "" : "bg-primary-soft/40"}`}>
                         {content}
                       </Link>
                     ) : (
-                      <button type="button" onClick={onOpen} className="block w-full px-4 py-3 text-left hover:bg-paper-2">
+                      <button type="button" onClick={onOpen} className={`block w-full px-4 py-3 text-left hover:bg-paper-2 ${item.readAt ? "" : "bg-primary-soft/40"}`}>
                         {content}
                       </button>
                     )}

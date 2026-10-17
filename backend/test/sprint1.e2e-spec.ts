@@ -11,7 +11,7 @@ import { PrismaService } from '../src/prisma/prisma.service';
 const describeWithDb = process.env.DATABASE_URL ? describe : describe.skip;
 const RUN = Date.now().toString().slice(-7);
 
-describeWithDb('Sprint 1 — auth, catalog, users, policies (e2e)', () => {
+describeWithDb('Sprint 1, auth, catalog, users, policies (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let http: ReturnType<typeof request>;

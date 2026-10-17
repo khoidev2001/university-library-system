@@ -1,7 +1,7 @@
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 /**
- * Múi giờ thư viện (phút so với UTC). Mặc định +07:00 — giờ Việt Nam.
+ * Múi giờ thư viện (phút so với UTC). Mặc định +07:00, giờ Việt Nam.
  * Phạt tính theo NGÀY LỊCH địa phương, nên mốc này quyết định ranh giới ngày.
  */
 export const LIBRARY_UTC_OFFSET_MINUTES = Number(
