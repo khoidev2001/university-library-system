@@ -202,10 +202,10 @@ export function MyLoansView() {
           </h2>
           <ul className="mt-4 divide-y divide-line overflow-hidden rounded-[1.25rem] border border-line bg-white shadow-[var(--shadow-card)]">
             {history.data!.items.map((loan) => (
-              <li key={loan.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 text-sm">
+              <li key={loan.id} className="flex flex-wrap items-center justify-between gap-x-3 px-5 py-1 text-sm">
                 <span className="flex min-w-0 items-center gap-3">
                   <CircleCheck size={18} className="shrink-0 text-leaf" aria-hidden="true" />
-                  <Link href={`/books/${loan.copy.book.id}`} className="truncate font-semibold hover:text-primary">
+                  <Link href={`/books/${loan.copy.book.id}`} className="block truncate py-3 font-semibold hover:text-primary">
                     {loan.copy.book.title}
                   </Link>
                 </span>

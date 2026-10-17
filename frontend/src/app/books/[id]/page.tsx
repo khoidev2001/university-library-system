@@ -142,7 +142,7 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
         <div className="min-w-0">
           <Link
             href={`/books?categoryId=${book.category.id}`}
-            className="inline-flex min-h-8 items-center rounded-full bg-primary-soft px-3.5 text-sm font-semibold text-primary-ink hover:bg-primary/15"
+            className="inline-flex min-h-10 items-center rounded-full bg-primary-soft px-4 text-sm font-semibold text-primary-ink hover:bg-primary/15"
           >
             {book.category.name}
           </Link>
@@ -216,7 +216,7 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
             <h2 id="tieu-de-thong-tin" className="text-xl font-bold">
               Thông tin xuất bản
             </h2>
-            <dl className="mt-4 grid grid-cols-[repeat(auto-fit,minmax(10.5rem,1fr))] gap-3">
+            <dl className="mt-4 grid grid-cols-[repeat(auto-fit,minmax(11.5rem,1fr))] gap-3">
               <Fact icon={<Layers size={18} />} label="Thể loại">
                 <Link href={`/books?categoryId=${book.category.id}`} className="text-primary hover:underline">
                   {book.category.name}
@@ -234,7 +234,7 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
               )}
               {book.isbn && (
                 <Fact icon={<Barcode size={18} />} label="ISBN">
-                  <span className="tabular-nums">{book.isbn}</span>
+                  <span className="whitespace-nowrap tabular-nums">{book.isbn}</span>
                 </Fact>
               )}
               <Fact icon={<Library size={18} />} label="Tổng số bản">
