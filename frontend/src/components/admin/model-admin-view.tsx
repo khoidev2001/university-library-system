@@ -83,7 +83,7 @@ export function ModelAdminView() {
       {confirmDialog}
 
       {metrics.isLoading ? (
-        <div className="mt-6 grid gap-4 lg:grid-cols-2" role="status" aria-label="Đang tải số đo mô hình">
+        <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2" role="status" aria-label="Đang tải số đo mô hình">
           <Skeleton className="h-80 rounded-[1.25rem]" />
           <Skeleton className="h-80 rounded-[1.25rem]" />
         </div>
@@ -95,7 +95,7 @@ export function ModelAdminView() {
           </Alert>
         </div>
       ) : (
-        <div className="mt-6 grid gap-4 lg:grid-cols-2">
+        <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Reveal>
             <Card className="h-full">
               <h2 className="text-lg font-bold">Gợi ý sách cho bạn đọc</h2>

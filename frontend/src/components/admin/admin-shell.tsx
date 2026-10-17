@@ -88,7 +88,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       <aside aria-label="Menu quản trị" className="min-w-0 max-lg:contents lg:sticky lg:top-24 lg:self-start">
         {/* Điện thoại và máy tính bảng: thanh chip cuộn ngang, dính dưới thanh đầu trang */}
         <nav
-          className="sticky top-[4.75rem] z-30 -mx-4 bg-paper/95 px-4 py-2 sm:-mx-6 sm:px-6 lg:hidden"
+          className="sticky top-[4.75rem] z-30 -mx-4 bg-paper px-4 py-2 sm:-mx-6 sm:px-6 lg:hidden"
           aria-label="Điều hướng quản trị"
         >
           <ul

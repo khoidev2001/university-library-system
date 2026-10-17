@@ -194,7 +194,7 @@ export function DashboardView() {
           </Card>
         </Reveal>
 
-        <div className="grid gap-4 xl:col-span-4">
+        <div className="grid grid-cols-1 gap-4 xl:col-span-4">
           <Reveal delay={80}>
             <Card className="h-full">
               <h2 className="text-lg font-bold">Bản sao còn trên kệ</h2>

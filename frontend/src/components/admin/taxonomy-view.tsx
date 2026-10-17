@@ -30,7 +30,7 @@ export function TaxonomyView() {
         description="Thể loại hoặc tác giả đang gắn với sách thì không xoá được, hãy chuyển sách sang mục khác trước."
       />
       {node}
-      <div className="mt-6 grid gap-4 xl:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
         <CategoriesPanel notify={show} />
         <AuthorsPanel notify={show} />
       </div>
@@ -94,7 +94,7 @@ function CategoriesPanel({ notify }: { notify: Notify }) {
                 <FolderTree size={18} />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate font-semibold">{category.name}</span>
+                <span className="line-clamp-2 font-semibold">{category.name}</span>
                 <span className="block truncate text-xs text-ink-faint">
                   {category.slug} · {(category.bookCount ?? 0).toLocaleString("vi-VN")} sách
                 </span>
@@ -265,7 +265,7 @@ function AuthorsPanel({ notify }: { notify: Notify }) {
             >
               <Avatar name={author.name} size={40} />
               <span className="min-w-0 flex-1">
-                <span className="block truncate font-semibold">{author.name}</span>
+                <span className="line-clamp-2 font-semibold">{author.name}</span>
                 <span className="block text-xs text-ink-faint">{(author.bookCount ?? 0).toLocaleString("vi-VN")} sách</span>
               </span>
               <RowButton aria-label={`Sửa tác giả ${author.name}`} onClick={() => setEditing(author)}>

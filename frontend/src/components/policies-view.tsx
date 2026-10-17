@@ -36,7 +36,7 @@ export function PoliciesView() {
       />
       {node}
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         {isLoading
           ? [0, 1].map((i) => <Skeleton key={i} className="h-[34rem] rounded-[1.25rem]" />)
           : (data ?? []).map((policy, index) => (
@@ -97,7 +97,7 @@ function PolicyCard({
         <h2 className="text-lg font-bold">{label(policy.memberType)}</h2>
       </div>
       <form
-        className="mt-5 grid gap-4 sm:grid-cols-2"
+        className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2"
         onSubmit={(event) => {
           event.preventDefault();
           save.mutate(policy.memberType);

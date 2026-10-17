@@ -373,7 +373,7 @@ export function BookImportDialog({ onClose, onDone }: { onClose: () => void; onD
                     </Td>
                     <Td className="py-3 text-ink-soft">{r.category ?? "-"}</Td>
                     <Td className="py-3 tabular-nums text-ink-soft">{r.copies ?? "-"}</Td>
-                    <Td className="py-3">
+                    <Td className="min-w-[13rem] py-3">
                       <ul className="space-y-0.5 text-xs">
                         {r.errors.map((issue, i) => (
                           <li key={`e${i}`} className="text-danger">

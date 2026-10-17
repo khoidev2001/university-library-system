@@ -98,7 +98,7 @@ export function ReportsView() {
         </Reveal>
       </section>
 
-      <div className="mt-4 grid gap-4 xl:grid-cols-12">
+      <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-12">
         <Reveal className="xl:col-span-6">
           <Card className="flex h-full flex-col">
             <h2 className="text-lg font-bold">Lượt mượn theo tháng</h2>
@@ -120,7 +120,7 @@ export function ReportsView() {
         </Reveal>
       </div>
 
-      <div className="mt-4 grid gap-4 xl:grid-cols-12">
+      <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-12">
         <Reveal className="xl:col-span-4">
           <Card className="h-full">
             <h2 className="text-lg font-bold">Sách được mượn nhiều nhất</h2>
