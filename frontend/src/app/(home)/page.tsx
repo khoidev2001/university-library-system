@@ -56,7 +56,9 @@ export default async function HomePage() {
         <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-10 px-4 pb-10 pt-10 sm:px-6 sm:pt-14 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:gap-6 lg:pb-14 lg:pt-16">
           <div>
             <h1 className="text-[2.5rem] font-bold leading-[1.08] tracking-tight sm:text-6xl">
-              <SplitTitle text="Tìm sách nhanh, biết ngay" />{" "}
+              <SplitTitle text="Tìm sách nhanh," />
+              <br />
+              <SplitTitle text="biết ngay" startDelay={280} />{" "}
               <span className="relative inline-block whitespace-nowrap text-primary">
                 <SplitTitle text="còn trên kệ" startDelay={420} />
                 <svg
