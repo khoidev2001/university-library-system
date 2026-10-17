@@ -17,7 +17,7 @@ const beVietnam = Be_Vietnam_Pro({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
   title: {
-    default: `${SITE.name} | Tra cứu và mượn sách trực tuyến`,
+    default: SITE.name,
     template: `%s | ${SITE.name}`,
   },
   description: SITE.description,
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     locale: "vi_VN",
     url: SITE.url,
     siteName: SITE.name,
-    title: `${SITE.name} | Tra cứu và mượn sách trực tuyến`,
+    title: SITE.name,
     description: SITE.description,
   },
   twitter: {

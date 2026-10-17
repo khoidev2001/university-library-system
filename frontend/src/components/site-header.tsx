@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { BookOpen, LogOut, Menu, UserRound, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { LogOut, Menu, UserRound, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { SITE } from "@/lib/site";
+import { Logo } from "./logo";
 import { NotificationBell } from "./notification-bell";
 
 interface NavItem {
@@ -32,70 +33,99 @@ export function SiteHeader() {
   const { user, logout, can, loading } = useAuth();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [raised, setRaised] = useState(false);
+
+  // Đóng menu di động khi đổi trang
+  useEffect(() => setOpen(false), [pathname]);
+
+  // Thanh đầu trang đổ bóng khi cuộn: một lần đọc scrollY mỗi khung, không ép bố cục lại
+  useEffect(() => {
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        setRaised(window.scrollY > 8);
+        ticking = false;
+      });
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const items = NAV.filter((item) => item.show(can, !!user));
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-paper print:hidden">
-      <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3 sm:px-6">
-        <Link href="/" className="flex min-h-10 min-w-10 shrink-0 items-center gap-2.5" aria-label={`Trang chủ ${SITE.shortName}`}>
-          <span className="grid h-9 w-9 place-items-center rounded-md bg-ink text-paper">
-            <BookOpen size={18} aria-hidden="true" />
-          </span>
+    <header className="sticky top-0 z-40 px-3 pt-3 print:hidden sm:px-4">
+      <div
+        className={`mx-auto flex max-w-6xl items-center gap-3 rounded-[1.25rem] border bg-white/95 px-3 py-2 transition-shadow duration-300 sm:px-4 ${
+          raised ? "border-line shadow-[0_10px_30px_-12px_rgb(21_26_51/0.22)]" : "border-line/70 shadow-[var(--shadow-card)]"
+        }`}
+      >
+        <Link href="/" className="flex min-h-11 shrink-0 items-center gap-3 rounded-xl pr-2" aria-label={`Trang chủ ${SITE.shortName}`}>
+          <Logo size={36} />
           <span className="hidden leading-tight sm:block">
-            <span className="block font-serif text-base font-bold">Thư viện MUCE</span>
+            <span className="block text-[0.95rem] font-bold tracking-tight">{SITE.shortName}</span>
             <span className="block text-xs text-ink-faint">Đại học Xây dựng Miền Trung</span>
           </span>
         </Link>
 
         <nav aria-label="Điều hướng chính" className="ml-auto hidden items-center gap-1 lg:flex">
-          {items.filter((item) => !item.mobileOnly).map((item) => {
-            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={active ? "page" : undefined}
-                className={`rounded-md px-3 py-2 text-sm transition-colors ${
-                  active ? "bg-paper-2 font-semibold text-ink" : "text-ink-soft hover:bg-paper-2 hover:text-ink"
-                }`}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
+          {items
+            .filter((item) => !item.mobileOnly)
+            .map((item) => {
+              const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  className={`inline-flex min-h-10 items-center rounded-xl px-3.5 text-sm font-medium transition-colors ${
+                    active ? "bg-primary-soft text-primary-ink" : "text-ink-soft hover:bg-paper-2 hover:text-ink"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
         </nav>
 
         <div className="ml-auto flex items-center gap-2 lg:ml-0">
           {!loading && user ? (
-            <div className="flex items-center gap-2">
+            <>
               <NotificationBell />
               <Link
                 href="/account"
                 aria-label={`Tài khoản của ${user.fullName}`}
                 aria-current={pathname === "/account" ? "page" : undefined}
-                className="hidden max-w-[11rem] rounded-md px-2 py-1 text-right text-sm leading-tight transition-colors hover:bg-paper-2 sm:block"
+                className="hidden min-h-10 max-w-[12rem] items-center gap-2.5 rounded-xl py-1 pl-1 pr-3 transition-colors hover:bg-paper-2 sm:flex"
               >
-                <span className="block truncate font-medium">{user.fullName}</span>
-                <span className="block text-xs text-ink-faint">{roleLabel(user.role)}</span>
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary text-xs font-bold text-white" aria-hidden="true">
+                  {initials(user.fullName)}
+                </span>
+                <span className="min-w-0 text-left text-sm leading-tight">
+                  <span className="block truncate font-semibold">{user.fullName}</span>
+                  <span className="block text-xs text-ink-faint">{roleLabel(user.role)}</span>
+                </span>
               </Link>
               <button
                 type="button"
                 onClick={logout}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-line text-ink-soft transition-colors hover:bg-paper-2 hover:text-ink"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-ink-soft ring-1 ring-inset ring-line transition-colors hover:bg-paper-2 hover:text-ink"
                 aria-label="Đăng xuất"
                 title="Đăng xuất"
               >
                 <LogOut size={16} aria-hidden="true" />
               </button>
-            </div>
+            </>
           ) : (
             !loading && (
               <Link
                 href="/login"
-                className="inline-flex items-center gap-1.5 rounded-md bg-ink px-3.5 py-2 text-sm font-medium text-paper transition-colors hover:bg-ink/90"
+                className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-white shadow-[0_6px_16px_-6px_rgb(79_70_229/0.7)] transition-colors hover:bg-primary-hover"
               >
-                <UserRound size={15} aria-hidden="true" />
+                <UserRound size={16} aria-hidden="true" />
                 Đăng nhập
               </Link>
             )
@@ -103,7 +133,7 @@ export function SiteHeader() {
           <button
             type="button"
             onClick={() => setOpen((value) => !value)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-line text-ink-soft lg:hidden"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-ink-soft ring-1 ring-inset ring-line transition-colors hover:bg-paper-2 lg:hidden"
             aria-expanded={open}
             aria-controls="menu-di-dong"
             aria-label={open ? "Đóng menu" : "Mở menu"}
@@ -114,24 +144,41 @@ export function SiteHeader() {
       </div>
 
       {open && (
-        <nav id="menu-di-dong" aria-label="Điều hướng di động" className="border-t border-line bg-paper lg:hidden">
-          <ul className="mx-auto max-w-6xl px-4 py-2 sm:px-6">
-            {items.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  onClick={() => setOpen(false)}
-                  className="block rounded-md px-2 py-2.5 text-sm text-ink-soft hover:bg-paper-2 hover:text-ink"
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
+        <nav
+          id="menu-di-dong"
+          aria-label="Điều hướng di động"
+          className="anim-pop mx-auto mt-2 max-w-6xl rounded-[1.25rem] border border-line bg-white p-2 shadow-[var(--shadow-lift)] lg:hidden"
+          style={{ transformOrigin: "top right" }}
+        >
+          <ul className="grid gap-0.5">
+            {items.map((item) => {
+              const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    aria-current={active ? "page" : undefined}
+                    className={`flex min-h-11 items-center rounded-xl px-4 text-sm font-medium ${
+                      active ? "bg-primary-soft text-primary-ink" : "text-ink-soft hover:bg-paper-2 hover:text-ink"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         </nav>
       )}
     </header>
   );
+}
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  const last = parts[parts.length - 1] ?? "";
+  const first = parts.length > 1 ? parts[0] : "";
+  return ((first[0] ?? "") + (last[0] ?? "")).toUpperCase() || "?";
 }
 
 function roleLabel(role: string): string {
