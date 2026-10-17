@@ -222,6 +222,7 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
         <div>
           {result && result.items.length > 0 ? (
             <>
+              <h2 className="sr-only">Kết quả tra cứu</h2>
               <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 xl:grid-cols-4">
                 {result.items.map((book) => (
                   <li key={book.id}>

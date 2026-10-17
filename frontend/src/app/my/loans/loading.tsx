@@ -1,4 +1,4 @@
-import { MyLoansSkeleton } from "@/components/my-loans-view";
+import { MyLoansSkeleton } from "@/components/public/reader-skeletons";
 
 export default function MyLoansLoading() {
   return <MyLoansSkeleton />;

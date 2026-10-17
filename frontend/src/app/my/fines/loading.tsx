@@ -1,4 +1,4 @@
-import { MyFinesSkeleton } from "@/components/my-fines-view";
+import { MyFinesSkeleton } from "@/components/public/reader-skeletons";
 
 export default function MyFinesLoading() {
   return <MyFinesSkeleton />;

@@ -99,7 +99,7 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
-      <nav aria-label="Đường dẫn" className="text-sm text-ink-faint">
+      <nav aria-label="Đường dẫn" className="relative z-10 text-sm text-ink-faint">
         <ol className="flex flex-wrap items-center gap-1.5">
           <li>
             <Link href="/" className="inline-flex min-h-10 items-center hover:text-ink hover:underline">
@@ -124,12 +124,12 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
         </ol>
       </nav>
 
-      <article className="mt-3 grid grid-cols-1 gap-8 lg:grid-cols-[21rem_minmax(0,1fr)] lg:gap-14">
+      <article className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-[21rem_minmax(0,1fr)] lg:gap-14">
         <div className="relative">
-          <div className="relative mx-auto w-full max-w-[17rem] lg:max-w-none lg:sticky lg:top-24">
+          <div className="relative mx-auto w-full max-w-[13.5rem] sm:max-w-[16rem] lg:max-w-none lg:sticky lg:top-24">
             <div
               aria-hidden="true"
-              className="anim-blob absolute -inset-5 rounded-[2.5rem] bg-primary-soft"
+              className="anim-blob absolute -inset-4 rounded-[2.5rem] bg-primary-soft"
             />
             <TiltCover className="relative">
               <div className="aspect-[2/3] overflow-hidden rounded-2xl bg-paper-2 shadow-[0_40px_60px_-26px_rgb(21_26_51/0.6)] ring-1 ring-ink/5">
@@ -207,7 +207,7 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
               <Library size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
               {inStock
                 ? "Mang thẻ bạn đọc tới quầy thủ thư để mượn cuốn này."
-                : "Tất cả bản sao đang được mượn. Bạn có thể đặt trước để được giữ sách khi có người trả."}
+                : "Tất cả bản sao đang được mượn. Vui lòng quay lại sau."}
             </p>
             <ReserveBookPanel bookId={book.id} available={book.copiesAvailable} />
           </section>
@@ -216,7 +216,7 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
             <h2 id="tieu-de-thong-tin" className="text-xl font-bold">
               Thông tin xuất bản
             </h2>
-            <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <dl className="mt-4 grid grid-cols-[repeat(auto-fit,minmax(10.5rem,1fr))] gap-3">
               <Fact icon={<Layers size={18} />} label="Thể loại">
                 <Link href={`/books?categoryId=${book.category.id}`} className="text-primary hover:underline">
                   {book.category.name}

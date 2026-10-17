@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { BookCheck, Layers } from "lucide-react";
 import { BookCard } from "@/components/book-card";
-import { CountUp, Reveal, SplitWords } from "@/components/motion";
+import { CountUp, Reveal } from "@/components/motion";
 import { CoverMarquee } from "@/components/public/cover-marquee";
 import { DrawOnView } from "@/components/public/draw-on-view";
 import { HeroArt } from "@/components/public/hero-art";
 import { HomeActions, HomeCtaTile } from "@/components/public/home-actions";
 import { ShelfArt } from "@/components/public/shelf-art";
+import { SplitTitle } from "@/components/public/split-title";
 import { SpotlightCard } from "@/components/public/spotlight-card";
 import { SearchForm } from "@/components/search-form";
 import { ButtonLink } from "@/components/ui";
@@ -55,9 +56,9 @@ export default async function HomePage() {
         <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-10 px-4 pb-10 pt-10 sm:px-6 sm:pt-14 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:gap-6 lg:pb-14 lg:pt-16">
           <div>
             <h1 className="text-[2.5rem] font-bold leading-[1.08] tracking-tight sm:text-6xl">
-              <SplitWords text="Tìm sách nhanh, biết ngay" />{" "}
+              <SplitTitle text="Tìm sách nhanh, biết ngay" />{" "}
               <span className="relative inline-block whitespace-nowrap text-primary">
-                <SplitWords text="còn trên kệ" startDelay={420} />
+                <SplitTitle text="còn trên kệ" startDelay={420} />
                 <svg
                   viewBox="0 0 300 14"
                   preserveAspectRatio="none"

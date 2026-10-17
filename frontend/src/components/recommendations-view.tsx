@@ -4,23 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import { Sparkles, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { BookCard } from "./book-card";
-import { BookGridSkeleton, HeadingSkeleton } from "./public/skeletons";
+import { RecommendationsSkeleton } from "./public/reader-skeletons";
 import { Reveal } from "./motion";
 import { ButtonLink, EmptyState, PageHeading } from "./ui";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { RecommendationResult } from "@/lib/types";
-
-export function RecommendationsSkeleton() {
-  return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10" role="status" aria-label="Đang chọn sách phù hợp với bạn">
-      <HeadingSkeleton />
-      <div className="mt-8">
-        <BookGridSkeleton count={12} className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-6" />
-      </div>
-    </div>
-  );
-}
 
 export function RecommendationsView() {
   const { token } = useAuth();
@@ -85,25 +74,28 @@ export function RecommendationsView() {
           />
         </div>
       ) : (
-        <ul className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-6">
-          {items.map((item, index) => (
-            <li key={item.id}>
-              <Reveal delay={(index % 6) * 50} className="h-full">
-                <BookCard
-                  book={{
-                    id: item.id,
-                    title: item.title,
-                    coverUrl: item.coverUrl,
-                    authors: item.authors,
-                    copiesAvailable: item.copiesAvailable,
-                    copiesTotal: item.copiesAvailable,
-                    category: item.category,
-                  }}
-                />
-              </Reveal>
-            </li>
-          ))}
-        </ul>
+        <>
+          <h2 className="sr-only">Danh sách sách gợi ý</h2>
+          <ul className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-6">
+            {items.map((item, index) => (
+              <li key={item.id}>
+                <Reveal delay={(index % 6) * 50} className="h-full">
+                  <BookCard
+                    book={{
+                      id: item.id,
+                      title: item.title,
+                      coverUrl: item.coverUrl,
+                      authors: item.authors,
+                      copiesAvailable: item.copiesAvailable,
+                      copiesTotal: item.copiesAvailable,
+                      category: item.category,
+                    }}
+                  />
+                </Reveal>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
 
       <p className="mt-10 text-sm text-ink-soft">

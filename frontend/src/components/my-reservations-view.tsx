@@ -6,23 +6,11 @@ import Link from "next/link";
 import { useState } from "react";
 import { BookCover } from "./book-card";
 import { Reveal } from "./motion";
-import { HeadingSkeleton, ListRowSkeleton } from "./public/skeletons";
+import { MyReservationsSkeleton } from "./public/reader-skeletons";
 import { Alert, Badge, Button, ButtonLink, EmptyState, PageHeading } from "./ui";
 import { ApiError, apiFetch, formatDate } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { Reservation } from "@/lib/types";
-
-export function MyReservationsSkeleton() {
-  return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10" role="status" aria-label="Đang tải sách đã đặt trước">
-      <HeadingSkeleton />
-      <div className="mt-8 space-y-4">
-        <ListRowSkeleton />
-        <ListRowSkeleton />
-      </div>
-    </div>
-  );
-}
 
 export function MyReservationsView() {
   const { token } = useAuth();

@@ -56,7 +56,8 @@ export function BookCover({
   /** Ảnh nằm ngay màn hình đầu: tải sớm thay vì tải lười. */
   priority?: boolean;
 }) {
-  const original = coverUrl ?? "";
+  // Goodreads trả ảnh "chưa có bìa" dạng hình xám: coi như thiếu ảnh để dùng bìa vẽ sẵn đẹp hơn
+  const original = coverUrl && !coverUrl.includes("/nophoto/") ? coverUrl : "";
   const wanted = hiRes && original ? upgradeCoverUrl(original) : original;
   const [src, setSrc] = useState(wanted);
   const [failed, setFailed] = useState(false);

@@ -6,28 +6,13 @@ import Link from "next/link";
 import { useState } from "react";
 import { BookCover } from "./book-card";
 import { Reveal } from "./motion";
-import { HeadingSkeleton, ListRowSkeleton, StatRowSkeleton } from "./public/skeletons";
+import { MyLoansSkeleton } from "./public/reader-skeletons";
 import { Alert, Badge, Button, ButtonLink, EmptyState, PageHeading, StatCard } from "./ui";
 import { ApiError, apiFetch, describeDueDate, formatCurrency, formatDate } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { Fine, Loan, Page } from "@/lib/types";
 
 const DAY = 86_400_000;
-
-export function MyLoansSkeleton() {
-  return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10" role="status" aria-label="Đang tải sách đang mượn">
-      <HeadingSkeleton />
-      <div className="mt-6">
-        <StatRowSkeleton count={3} />
-      </div>
-      <div className="mt-8 space-y-4">
-        <ListRowSkeleton />
-        <ListRowSkeleton />
-      </div>
-    </div>
-  );
-}
 
 /** Thanh thời gian đã qua của một phiếu: co giãn bằng transform nên không ép bố cục lại. */
 function DueBar({ loan }: { loan: Loan }) {

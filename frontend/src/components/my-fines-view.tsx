@@ -8,24 +8,11 @@ import { useAuth } from "@/lib/auth";
 import type { CreatedPayment, Fine, Page, Payment, PaymentConfig, PaymentStatus } from "@/lib/types";
 import { PAYMENT_STATUS_LABEL, PAYMENT_STATUS_TONE } from "./payment-status";
 import { CircleCheck, Wallet } from "lucide-react";
-import { HeadingSkeleton, Shimmer } from "./public/skeletons";
+import { MyFinesSkeleton } from "./public/reader-skeletons";
+import { Shimmer } from "./public/skeletons";
 import { Alert, Badge, Button, EmptyState, PageHeading } from "./ui";
 
 const CARD = "rounded-[1.25rem] border border-line bg-white shadow-[var(--shadow-card)]";
-
-export function MyFinesSkeleton() {
-  return (
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-10" role="status" aria-label="Đang tải tiền phạt">
-      <HeadingSkeleton />
-      <Shimmer className="mt-6 h-28 rounded-[1.5rem]" />
-      <div className="mt-6 space-y-3">
-        <Shimmer className="h-16 rounded-[1.25rem]" />
-        <Shimmer className="h-16 rounded-[1.25rem]" />
-        <Shimmer className="h-16 rounded-[1.25rem]" />
-      </div>
-    </div>
-  );
-}
 
 function SmallSpinner() {
   return (
