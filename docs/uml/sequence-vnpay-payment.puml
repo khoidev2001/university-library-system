@@ -1,0 +1,61 @@
+@startuml sequence-vnpay-payment
+' Sequence 5: Thanh toán phạt trực tuyến qua VNPay, IPN và return đều chốt giao dịch một cách idempotent (US30, US31)
+skinparam sequenceMessageAlign center
+skinparam participant {
+  BackgroundColor #F7F5F0
+  BorderColor #1B2A41
+}
+actor "Bạn đọc" as R
+participant "Frontend" as FE
+participant "PaymentsService" as PS
+participant "Cổng VNPay" as VN
+database "PostgreSQL" as DB
+
+== Tạo giao dịch ==
+R -> FE : Chọn khoản phạt, bấm "Thanh toán"
+FE -> PS : POST /api/payments {fineIds?}
+activate PS
+PS -> PS : Đọc cấu hình VNPay\n(thiếu thì 503 PAYMENT_NOT_CONFIGURED)
+PS -> DB : Nhả khoản phạt của giao dịch PENDING đã quá hạn của bạn đọc
+PS -> DB : BEGIN
+PS -> DB : SELECT khoản phạt ... ORDER BY id FOR UPDATE
+PS -> DB : Kiểm tra: của chính bạn đọc, chưa trả,\nchưa nằm trong giao dịch hoạt động khác
+PS -> PS : amount = tổng số tiền đọc từ DB (không nhận từ client)\nvà nằm trong khoảng 5.000 đến 999.999.999 đồng
+PS -> DB : INSERT payment (PENDING, txn_ref ngẫu nhiên, expires_at = now + 15 phút)\nINSERT payment_fines (active = true)
+PS -> DB : COMMIT
+PS -> PS : Dựng URL, ký HMAC-SHA512 trên các tham số vnp_*
+PS --> FE : 201 {paymentUrl, paymentId, txnRef, amount}
+deactivate PS
+FE -> VN : Chuyển hướng trình duyệt tới paymentUrl
+R -> VN : Nhập thẻ, xác thực OTP
+
+== Chốt giao dịch (hai đường, cùng hàm settle) ==
+VN -> PS : GET /api/payments/vnpay/ipn?vnp_...  (máy chủ gọi máy chủ)
+activate PS
+PS -> PS : Kiểm tra chữ ký (sai thì RspCode 97)
+PS -> DB : BEGIN, SELECT payment FOR UPDATE, so vnp_Amount với amount x 100
+PS -> DB : SELECT các khoản phạt FOR UPDATE
+alt thành công (vnp_ResponseCode = 00)
+  PS -> DB : UPDATE fines SET paid_at, paid_to = NULL\nUPDATE payment SET status = PAID
+else thất bại hoặc bạn đọc huỷ (24)
+  PS -> DB : payment FAILED / CANCELLED, nhả payment_fines
+end
+PS -> DB : COMMIT
+PS --> VN : {"RspCode":"00","Message":"Confirm Success"}\n(đã xử lý: 02, sai số tiền: 04, không thấy đơn: 01)
+deactivate PS
+
+VN -> FE : Trình duyệt quay về GET /api/payments/vnpay/return?vnp_...
+FE -> PS : (qua rewrite) kiểm tra chữ ký, settle() lần hai
+PS --> FE : 302 tới APP_PUBLIC_URL/my/payments/result?paymentId=...
+FE -> PS : GET /api/payments/{id} (làm mới đến khi hết PENDING)
+PS --> FE : {status: PAID, fines: [...]}
+FE --> R : "Thanh toán thành công"
+
+== Tiền về muộn ==
+note over PS, DB
+  Giao dịch đã hết hạn, bị huỷ hoặc ghi hỏng mà IPN thành công đến sau:
+  nếu mọi khoản phạt còn trống thì nhận tiền (PAID);
+  nếu khoản phạt đã được thu cách khác thì không thu hai lần,
+  giao dịch gắn cờ needsRefund để thủ thư hoàn tiền thủ công trên cổng VNPay.
+end note
+@enduml

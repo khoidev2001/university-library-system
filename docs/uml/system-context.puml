@@ -23,6 +23,8 @@ rectangle "Backend API\nNestJS · Prisma · JWT · Swagger\n(Render)" as BE
 rectangle "AI Service\nFastAPI · scikit-learn\n(Render)" as AI
 database "PostgreSQL 16\n(Neon)" as DB
 cloud "Google Books API" as GB
+cloud "Resend\n(gửi email)" as RS
+cloud "VNPay\n(thanh toán phạt)" as VN
 
 User --> Browser
 Browser --> FE : HTTPS
@@ -31,6 +33,9 @@ BE --> DB : Prisma
 BE --> AI : GET /recommend\nPOST /predict-overdue\nPOST /train
 AI --> BE : GET /internal/training-data\n(X-Internal-Key)
 BE ..> GB : HTTPS\nnạp dữ liệu / nhập sách theo ISBN
+BE ..> RS : HTTPS\nquên mật khẩu, nhắc hạn, chào mừng
+VN ..> BE : IPN (GET, ký HMAC)\nvà return URL
+Browser ..> VN : chuyển hướng\nthanh toán
 
 note right of AI
   Không kết nối trực tiếp DB.

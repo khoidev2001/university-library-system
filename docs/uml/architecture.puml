@@ -37,6 +37,10 @@ node "Backend: NestJS (Modular Monolith)" as BE {
   [Users\n(Bạn đọc)] as Users
   [Loans - Fines\nPolicies] as Loans
   [Ratings] as Ratings
+  [Reservations\nNotifications\nScheduler 15 phút] as Resv
+  [Payments\n(VNPay)] as Pay
+  [Exports - Import\nCSV / Excel] as Exp
+  [Mail\n(Resend)] as Mail
   [Reports] as Reports
   [Recommendations] as Rec
   [Internal\n(training-data)] as Internal
@@ -52,6 +56,8 @@ node "AI Service: FastAPI" as AI {
 
 database "PostgreSQL 16\n(Neon)" as DB
 cloud "Google Books API" as GB
+cloud "Resend (email)" as RS
+cloud "VNPay" as VN
 
 User --> FE
 FE --> GW : HTTPS / REST-JSON
@@ -63,6 +69,11 @@ Auth --> Loans
 Auth --> Ratings
 Auth --> Reports
 Auth --> Rec
+Auth --> Resv
+Auth --> Pay
+Auth --> Exp
+Resv --> Mail
+Auth --> Mail
 Rec --> Recm : GET /recommend
 Loans --> Ovd : POST /predict-overdue\n(timeout 2s, fallback)
 DC --> Internal : GET /internal/training-data\nX-Internal-Key
@@ -71,9 +82,15 @@ Users --> Prisma
 Loans --> Prisma
 Ratings --> Prisma
 Reports --> Prisma
+Resv --> Prisma
+Pay --> Prisma
+Exp --> Prisma
 Internal --> Prisma
 Prisma --> DB
 Books ..> GB : lookup ISBN\n(seed - nhập hàng loạt)
+Mail ..> RS : HTTPS
+Pay ..> VN : URL ký HMAC-SHA512
+VN ..> Pay : IPN / return
 
 note bottom of AI
   Không kết nối DB.
