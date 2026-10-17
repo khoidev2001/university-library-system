@@ -71,7 +71,7 @@ Sau đó AI Service tự huấn luyện khi khởi động; nếu muốn ép nga
    | `BACKEND_PUBLIC_URL` | `https://uls-backend.onrender.com` (không có `/api`, không có dấu `/` cuối) |
    | `AI_PUBLIC_URL` | `https://uls-ai.onrender.com` |
    | `API_URL` | `https://uls-backend.onrender.com/api` |
-   | `NEXT_PUBLIC_SITE_URL` | địa chỉ Vercel, ví dụ `https://uls-library.vercel.app` |
+   | `NEXT_PUBLIC_SITE_URL` | địa chỉ Vercel, ví dụ `https://muce-library.vercel.app` |
 
 4. Deploy. Sau đó quay lại Render, điền `CORS_ORIGINS` của `uls-backend` bằng địa chỉ Vercel.
 
@@ -98,9 +98,9 @@ Không bắt buộc: thiếu cấu hình thì nút thanh toán online tự ẩn.
 ```bash
 curl https://uls-backend.onrender.com/api/health        # database: ok
 curl https://uls-ai.onrender.com/health                 # models: ready (sau khi huấn luyện xong)
-curl https://uls-library.vercel.app/health              # frontend ok
-curl https://uls-library.vercel.app/api/health          # đi qua rewrite sang Render
-python backend/test/smoke-sprint1.py https://uls-library.vercel.app/api
+curl https://muce-library.vercel.app/health              # frontend ok
+curl https://muce-library.vercel.app/api/health          # đi qua rewrite sang Render
+python backend/test/smoke-sprint1.py https://muce-library.vercel.app/api
 ```
 
 ## Hạn chế của gói miễn phí (ghi vào báo cáo)
