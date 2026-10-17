@@ -31,23 +31,23 @@ export function SiteFooter() {
 
           <section>
             <h2 className="text-base font-semibold">Liên hệ</h2>
-            <ul className="mt-4 space-y-3 text-sm text-white/80">
-              <li className="flex gap-3">
-                <MapPin size={16} className="mt-0.5 shrink-0 text-white/60" aria-hidden="true" />
+            <ul className="mt-3 space-y-1 text-sm text-white/80">
+              <li className="flex min-h-10 items-center gap-3">
+                <MapPin size={16} className="shrink-0 text-white/60" aria-hidden="true" />
                 <span>{SITE.address}</span>
               </li>
-              <li className="flex gap-3">
-                <Clock size={16} className="mt-0.5 shrink-0 text-white/60" aria-hidden="true" />
+              <li className="flex min-h-10 items-center gap-3">
+                <Clock size={16} className="shrink-0 text-white/60" aria-hidden="true" />
                 <span>{SITE.openingHours}</span>
               </li>
-              <li className="flex gap-3">
-                <Mail size={16} className="mt-0.5 shrink-0 text-white/60" aria-hidden="true" />
+              <li className="flex min-h-10 items-center gap-3">
+                <Mail size={16} className="shrink-0 text-white/60" aria-hidden="true" />
                 <a href={`mailto:${SITE.email}`} className="inline-flex min-h-10 items-center hover:text-white hover:underline">
                   {SITE.email}
                 </a>
               </li>
-              <li className="flex gap-3">
-                <Phone size={16} className="mt-0.5 shrink-0 text-white/60" aria-hidden="true" />
+              <li className="flex min-h-10 items-center gap-3">
+                <Phone size={16} className="shrink-0 text-white/60" aria-hidden="true" />
                 <a href={`tel:${SITE.phone.replace(/\s/g, "")}`} className="inline-flex min-h-10 items-center hover:text-white hover:underline">
                   {SITE.phone}
                 </a>
@@ -57,7 +57,7 @@ export function SiteFooter() {
 
           <section>
             <h2 className="text-base font-semibold">Dịch vụ</h2>
-            <ul className="mt-3 text-sm">
+            <ul className="mt-3 space-y-1 text-sm">
               {SERVICES.map((item) => (
                 <li key={item.href}>
                   <Link href={item.href} className={`${linkClass} !text-white/80 hover:!text-white`}>
