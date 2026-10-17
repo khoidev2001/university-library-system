@@ -7,15 +7,40 @@ import { ApiError, apiFetch, formatCurrency, formatDate, formatDateTime } from "
 import { useAuth } from "@/lib/auth";
 import type { CreatedPayment, Fine, Page, Payment, PaymentConfig, PaymentStatus } from "@/lib/types";
 import { PAYMENT_STATUS_LABEL, PAYMENT_STATUS_TONE } from "./payment-status";
-import { Alert, Badge, Button, EmptyState, PageHeading, Spinner } from "./ui";
+import { CircleCheck, Wallet } from "lucide-react";
+import { HeadingSkeleton, Shimmer } from "./public/skeletons";
+import { Alert, Badge, Button, EmptyState, PageHeading } from "./ui";
 
-const CARD = "rounded-xl border border-line bg-white";
+const CARD = "rounded-[1.25rem] border border-line bg-white shadow-[var(--shadow-card)]";
+
+export function MyFinesSkeleton() {
+  return (
+    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-10" role="status" aria-label="Đang tải tiền phạt">
+      <HeadingSkeleton />
+      <Shimmer className="mt-6 h-28 rounded-[1.5rem]" />
+      <div className="mt-6 space-y-3">
+        <Shimmer className="h-16 rounded-[1.25rem]" />
+        <Shimmer className="h-16 rounded-[1.25rem]" />
+        <Shimmer className="h-16 rounded-[1.25rem]" />
+      </div>
+    </div>
+  );
+}
+
+function SmallSpinner() {
+  return (
+    <div className="mt-4 space-y-3" role="status" aria-label="Đang tải">
+      <Shimmer className="h-16 rounded-[1.25rem]" />
+    </div>
+  );
+}
 
 export function MyFinesView() {
   const { token } = useAuth();
   const queryClient = useQueryClient();
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [notice, setNotice] = useState<string | null>(null);
+  const [showAllPaid, setShowAllPaid] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["my-fines"],
@@ -64,14 +89,20 @@ export function MyFinesView() {
     },
   });
 
-  if (isLoading) return <Spinner />;
+  if (isLoading) return <MyFinesSkeleton />;
 
-  const items = data?.items ?? [];
+  const allItems = data?.items ?? [];
+  // Khoản chưa trả lên trước; khoản đã trả thu gọn để danh sách dài không che mất việc cần làm
+  const owing = allItems.filter((f) => !f.paidAt);
+  const settled = allItems.filter((f) => f.paidAt);
+  const PAID_PREVIEW = 6;
+  const items = [...owing, ...(showAllPaid ? settled : settled.slice(0, PAID_PREVIEW))];
+  const hiddenPaid = settled.length - Math.min(settled.length, showAllPaid ? settled.length : PAID_PREVIEW);
   const unpaid = data?.unpaidTotal ?? 0;
   const online = config.data?.online === true;
   const minAmount = config.data?.minAmount ?? 5000;
 
-  const payable = items.filter((f) => !f.paidAt && f.onlinePayment?.status !== "PENDING");
+  const payable = allItems.filter((f) => !f.paidAt && f.onlinePayment?.status !== "PENDING");
   const payableTotal = payable.reduce((sum, f) => sum + f.amount, 0);
   const selectedFines = payable.filter((f) => selected.has(f.id));
   const selectedTotal = selectedFines.reduce((sum, f) => sum + f.amount, 0);
@@ -93,21 +124,35 @@ export function MyFinesView() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
+    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-10">
       <PageHeading
-        eyebrow="Tài khoản của tôi"
         title="Tiền phạt"
         description="Phạt phát sinh khi trả sách trễ hoặc báo mất sách. Bạn có thể thanh toán trực tuyến qua VNPay hoặc nộp tiền mặt tại quầy thủ thư."
       />
 
       <div className="mt-6 space-y-3">
         {unpaid > 0 ? (
-          <Alert tone="bad">
-            Tổng còn nợ: <strong>{formatCurrency(unpaid)}</strong>. Thư viện tạm dừng cho mượn và gia hạn
-            cho tới khi bạn thanh toán.
-          </Alert>
+          <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 rounded-[1.5rem] border border-danger/15 bg-danger-soft p-6 sm:p-7">
+            <div>
+              <p className="text-sm font-medium text-danger">Tổng còn nợ</p>
+              <p className="mt-1 text-4xl font-bold tracking-tight tabular-nums text-danger sm:text-5xl">
+                {formatCurrency(unpaid)}
+              </p>
+            </div>
+            <p className="max-w-sm text-sm leading-relaxed text-ink-soft">
+              Thư viện tạm dừng cho mượn và gia hạn cho tới khi bạn thanh toán.
+            </p>
+          </div>
         ) : (
-          <Alert tone="good">Bạn không còn khoản phạt nào chưa thanh toán.</Alert>
+          <div className="flex items-center gap-4 rounded-[1.5rem] border border-leaf/15 bg-leaf-soft p-6 sm:p-7">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white text-leaf" aria-hidden="true">
+              <CircleCheck size={24} />
+            </span>
+            <div>
+              <p className="text-lg font-bold text-leaf">Bạn không còn khoản phạt nào chưa thanh toán</p>
+              <p className="mt-0.5 text-sm text-ink-soft">Trả sách đúng hạn để giữ nguyên tình trạng này.</p>
+            </div>
+          </div>
         )}
         {notice && <Alert tone="info">{notice}</Alert>}
         {pending && (
@@ -127,7 +172,7 @@ export function MyFinesView() {
               </Button>
               <Link
                 href={`/my/payments/result?paymentId=${pending.id}`}
-                className="inline-flex min-h-10 items-center rounded-md border border-line bg-white px-4 text-sm font-medium hover:bg-paper-2"
+                className="inline-flex min-h-10 items-center rounded-xl bg-white px-4 text-sm font-semibold ring-1 ring-inset ring-line hover:bg-paper-2"
               >
                 Kiểm tra kết quả
               </Link>
@@ -137,10 +182,15 @@ export function MyFinesView() {
       </div>
 
       {payable.length > 0 && (
-        <section aria-labelledby="online-pay" className={`${CARD} mt-6 p-5`}>
-          <h2 id="online-pay" className="font-serif text-lg font-bold">
-            Thanh toán trực tuyến
-          </h2>
+        <section aria-labelledby="online-pay" className={`${CARD} mt-6 p-5 sm:p-6`}>
+          <div className="flex items-center gap-3">
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary-soft text-primary" aria-hidden="true">
+              <Wallet size={18} />
+            </span>
+            <h2 id="online-pay" className="text-lg font-bold">
+              Thanh toán trực tuyến
+            </h2>
+          </div>
           {config.isLoading ? (
             <p className="mt-2 text-sm text-ink-faint">Đang kiểm tra cổng thanh toán...</p>
           ) : online ? (
@@ -152,7 +202,7 @@ export function MyFinesView() {
                 Số tiền cuối cùng do hệ thống tính lại khi tạo giao dịch.
               </p>
               {tooSmall && (
-                <p className="mt-2 text-sm text-brand">
+                <p className="mt-2 text-sm font-medium text-danger">
                   VNPay yêu cầu tối thiểu {formatCurrency(minAmount)} mỗi giao dịch. Hãy chọn thêm khoản phạt hoặc nộp tại
                   quầy.
                 </p>
@@ -189,7 +239,7 @@ export function MyFinesView() {
         </section>
       )}
 
-      {items.length === 0 ? (
+      {allItems.length === 0 ? (
         <div className="mt-8">
           <EmptyState title="Chưa có khoản phạt nào" hint="Trả sách đúng hạn để giữ nguyên tình trạng này." />
         </div>
@@ -217,7 +267,7 @@ export function MyFinesView() {
           <div className={`${CARD} relative mt-8 hidden overflow-x-auto sm:block`}>
             <table className="w-full min-w-[640px] text-sm">
               <caption className="sr-only">Danh sách khoản phạt của tôi</caption>
-              <thead className="border-b border-line bg-paper-2 text-left">
+              <thead className="border-b border-line bg-paper text-left text-ink-soft">
                 <tr>
                   <th scope="col" className="w-12 px-3 py-3">
                     <span className="sr-only">Chọn</span>
@@ -239,7 +289,7 @@ export function MyFinesView() {
                     <td className="whitespace-nowrap px-4 py-3 text-ink-soft">{fine.type === "LOST" ? "Báo mất sách" : "Trả trễ"}</td>
                     <td className="whitespace-nowrap px-4 py-3 font-medium">{formatCurrency(fine.amount)}</td>
                     <td className="px-4 py-3 text-ink-soft">{formatDate(fine.createdAt)}</td>
-                    <td className="px-4 py-3">
+                    <td className="whitespace-nowrap px-4 py-3">
                       <FineStatus fine={fine} />
                     </td>
                   </tr>
@@ -247,15 +297,22 @@ export function MyFinesView() {
               </tbody>
             </table>
           </div>
+          {(hiddenPaid > 0 || (showAllPaid && settled.length > PAID_PREVIEW)) && (
+            <div className="mt-4 flex justify-center">
+              <Button variant="ghost" onClick={() => setShowAllPaid((value) => !value)}>
+                {showAllPaid ? "Thu gọn các khoản đã thanh toán" : `Xem thêm ${hiddenPaid} khoản đã thanh toán`}
+              </Button>
+            </div>
+          )}
         </>
       )}
 
       <section aria-labelledby="pay-history" className="mt-10">
-        <h2 id="pay-history" className="font-serif text-xl font-bold">
+        <h2 id="pay-history" className="text-xl font-bold">
           Lịch sử thanh toán trực tuyến
         </h2>
         {history.isLoading ? (
-          <Spinner />
+          <SmallSpinner />
         ) : (history.data?.items ?? []).length === 0 ? (
           <p className="mt-3 text-sm text-ink-soft">Bạn chưa có giao dịch trực tuyến nào.</p>
         ) : (
@@ -276,7 +333,7 @@ export function MyFinesView() {
                   <Badge tone={PAYMENT_STATUS_TONE[p.status as PaymentStatus]}>{PAYMENT_STATUS_LABEL[p.status]}</Badge>
                   <Link
                     href={`/my/payments/result?paymentId=${p.id}`}
-                    className="inline-flex min-h-10 items-center rounded-md border border-line px-3 text-sm font-medium hover:bg-paper-2"
+                    className="inline-flex min-h-10 items-center rounded-xl px-3.5 text-sm font-semibold ring-1 ring-inset ring-line hover:bg-paper-2"
                   >
                     Chi tiết
                   </Link>
@@ -312,7 +369,7 @@ function SelectBox({
         type="checkbox"
         checked={checked}
         onChange={() => onToggle(fine.id)}
-        className="h-5 w-5 accent-[var(--color-ink)]"
+        className="h-5 w-5 accent-[var(--color-primary)]"
         aria-label={`Chọn thanh toán ${fine.loan?.copy.book.title ?? `phiếu ${fine.loanId}`}, ${formatCurrency(fine.amount)}`}
       />
     </label>
