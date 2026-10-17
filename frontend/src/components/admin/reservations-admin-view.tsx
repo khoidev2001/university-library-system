@@ -117,11 +117,11 @@ export function ReservationsAdminView() {
             <tbody>
               {items.map((item, index) => (
                 <Tr key={item.id} index={index}>
-                  <Td className="whitespace-nowrap">
+                  <Td card="title" className="whitespace-nowrap">
                     <span className="font-semibold">{item.user.fullName}</span>
                     <span className="block text-xs tabular-nums text-ink-faint">{item.user.memberCode}</span>
                   </Td>
-                  <Td>
+                  <Td card="full">
                     <div className="flex items-center gap-3">
                       <BookThumb coverUrl={item.book.coverUrl ?? null} title={item.book.title} />
                       <div className="min-w-0">
@@ -139,7 +139,7 @@ export function ReservationsAdminView() {
                       )}
                     </span>
                   </Td>
-                  <Td>
+                  <Td card="actions">
                     <div className="flex justify-end">
                       {(item.status === "WAITING" || item.status === "READY") && (
                         <RowButton

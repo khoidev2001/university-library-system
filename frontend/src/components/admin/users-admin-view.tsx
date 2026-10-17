@@ -152,7 +152,7 @@ export function UsersAdminView() {
                 const isMe = row.id === me?.id;
                 return (
                   <Tr key={row.id} index={index}>
-                    <Td>
+                    <Td card="title">
                       <div className="flex items-center gap-3">
                         <Avatar name={row.fullName} />
                         <div className="min-w-0">
@@ -167,7 +167,7 @@ export function UsersAdminView() {
                     <Td>
                       {row.isActive ? <StatusBadge tone="good">Hoạt động</StatusBadge> : <StatusBadge tone="bad">Đang khoá</StatusBadge>}
                     </Td>
-                    <Td>
+                    <Td card="actions">
                       <div className="flex justify-end gap-2">
                         <RowButton aria-label={`Đổi tên ${row.fullName}`} onClick={() => setEditing(row)}>
                           Đổi tên

@@ -10,7 +10,7 @@ import type { InventoryRow, MonthCount, OverdueRow, TopBookRow } from "@/lib/typ
 import { ExportButtons } from "./export-buttons";
 import { CountUp, Reveal } from "./motion";
 import { ButtonLink, Card, ChartSkeleton, EmptyState, PageHeading, Skeleton, StatCard } from "./ui";
-import { GrowBar, InlineSkeleton, StatusBadge, Td, Th } from "./admin/admin-ui";
+import { GrowBar, InlineSkeleton, StatusBadge, TableShell, Td, Th } from "./admin/admin-ui";
 
 const MonthlyBarChart = dynamic(() => import("./charts").then((m) => m.MonthlyBarChart), {
   ssr: false,
@@ -183,8 +183,8 @@ export function ReportsView() {
                   <EmptyState title="Không có bạn đọc nào quá hạn" hint="Danh sách sẽ hiện ở đây khi có phiếu quá hạn." />
                 </div>
               ) : (
-                <div className="relative overflow-x-auto">
-                  <table className="w-full min-w-[640px] text-sm [&_tbody>tr+tr]:border-t [&_tbody>tr+tr]:border-line/80 [&_tbody>tr:hover]:bg-paper/90">
+                <div>
+                  <TableShell variant="plain" minWidth={640}>
                     <caption className="sr-only">Bạn đọc đang giữ sách quá hạn</caption>
                     <thead>
                       <tr>
@@ -198,7 +198,7 @@ export function ReportsView() {
                     <tbody>
                       {overdueRows.slice(0, OVERDUE_SHOWN).map((row) => (
                         <tr key={row.loanId}>
-                          <Td className="whitespace-nowrap">
+                          <Td card="title" className="whitespace-nowrap">
                             <span className="font-semibold">{row.user.fullName}</span>
                             <span className="block text-xs tabular-nums text-ink-faint">{row.user.memberCode}</span>
                           </Td>
@@ -215,7 +215,7 @@ export function ReportsView() {
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                  </TableShell>
                   {overdueRows.length > OVERDUE_SHOWN && (
                     <p className="px-5 pb-5 pt-3 text-xs text-ink-faint sm:px-6">
                       Hiển thị {OVERDUE_SHOWN} trên {overdueRows.length.toLocaleString("vi-VN")} phiếu quá hạn.

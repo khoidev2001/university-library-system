@@ -183,11 +183,11 @@ export function LoansAdminView() {
             <tbody>
               {rows.map((loan, index) => (
                 <Tr key={loan.id} index={index}>
-                  <Td className="whitespace-nowrap">
+                  <Td card="title" className="whitespace-nowrap">
                     <span className="font-semibold">{loan.user.fullName}</span>
                     <span className="block text-xs tabular-nums text-ink-faint">{loan.user.memberCode}</span>
                   </Td>
-                  <Td>
+                  <Td card="full">
                     <div className="flex items-center gap-3">
                       <BookThumb coverUrl={loan.copy.book.coverUrl} title={loan.copy.book.title} />
                       <div className="min-w-0">
@@ -201,7 +201,7 @@ export function LoansAdminView() {
                   <Td>
                     <LoanStatusCell loan={loan} />
                   </Td>
-                  <Td>
+                  <Td card="actions">
                     <div className="flex justify-end gap-2">
                       {loan.status === "ACTIVE" && (
                         <>
