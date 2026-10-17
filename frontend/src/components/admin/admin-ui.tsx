@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertTriangle, BookOpen, CheckCircle2, ChevronLeft, ChevronRight, Search, X, XCircle } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ApiError } from "@/lib/api";
 import { Button, inputClass } from "../ui";
 
@@ -372,11 +372,51 @@ export function Pagination({
 /* Bảng                                                                */
 /* ------------------------------------------------------------------ */
 
+/** Chạy trước khi vẽ để nhãn thẻ có ngay ở khung hình đầu; phía máy chủ dùng useEffect cho khỏi cảnh báo. */
+const useBeforePaint = typeof window !== "undefined" ? useLayoutEffect : useEffect;
+
+/**
+ * Chuẩn bị bảng cho giao diện thẻ trên điện thoại (xem khối `.table-cards` trong globals.css).
+ * - Chép chữ tiêu đề cột vào `data-label` của từng ô, ô nào cũng có nhãn dù bảng vẽ lại hay đổi trang.
+ * - Gán vai trò ARIA tường minh: khi CSS đổi display của bảng, một số trình đọc màn hình sẽ bỏ ngữ nghĩa bảng,
+ *   có role thì vẫn đọc là bảng có hàng và cột.
+ */
+function prepareTableCards(table: HTMLTableElement) {
+  table.setAttribute("role", "table");
+  const headRows = table.tHead ? [...table.tHead.rows] : [];
+  const labels: string[] = [];
+  const headRow = headRows[headRows.length - 1];
+  if (headRow) {
+    for (const cell of headRow.cells) {
+      const text = (cell.textContent ?? "").replace(/\s+/g, " ").trim();
+      for (let i = 0; i < Math.max(1, cell.colSpan); i++) labels.push(text);
+    }
+  }
+  for (const group of [table.tHead, ...table.tBodies, table.tFoot]) group?.setAttribute("role", "rowgroup");
+  for (const row of table.rows) {
+    row.setAttribute("role", "row");
+    let column = 0;
+    for (const cell of row.cells) {
+      const isHead = cell.tagName === "TH";
+      cell.setAttribute("role", isHead ? "columnheader" : "cell");
+      const label = cell.colSpan > 1 ? "" : (labels[column] ?? "");
+      column += Math.max(1, cell.colSpan);
+      if (!isHead && cell.getAttribute("data-label") !== label) cell.setAttribute("data-label", label);
+    }
+  }
+}
+
+/**
+ * Khung bảng dữ liệu. Từ 640px trở lên là bảng cuộn ngang như thường; dưới 640px mỗi hàng thành một thẻ dọc
+ * (CSS `.table-cards`), vẫn là các thẻ table/tr/td nên trình đọc màn hình đọc đúng là bảng.
+ * `variant="plain"` dùng khi bảng nằm trong một thẻ (Card) có sẵn viền và nền.
+ */
 export function TableShell({
   children,
   minWidth = 640,
   label,
   maxHeight,
+  variant = "card",
 }: {
   children: React.ReactNode;
   minWidth?: number;
@@ -384,16 +424,32 @@ export function TableShell({
   label?: string;
   /** Giới hạn chiều cao (px) để bảng dài cuộn bên trong, tiêu đề cột dính trên cùng. */
   maxHeight?: number;
+  variant?: "card" | "plain";
 }) {
   const scrollable = !!label || !!maxHeight;
+  const table = useRef<HTMLTableElement>(null);
+
+  useBeforePaint(() => {
+    const node = table.current;
+    if (!node) return;
+    prepareTableCards(node);
+    // Hàng mới (đổi trang, tải lại, thêm dòng) có thể do thành phần con vẽ, nên theo dõi cả nhánh con.
+    const observer = new MutationObserver(() => prepareTableCards(node));
+    observer.observe(node, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div
-      className="relative overflow-auto rounded-[1.25rem] border border-line bg-white shadow-[var(--shadow-card)]"
+      className={`table-cards-shell relative overflow-auto ${
+        variant === "plain" ? "table-cards-tinted" : "rounded-[1.25rem] border border-line bg-white shadow-[var(--shadow-card)]"
+      }`}
       style={maxHeight ? { maxHeight } : undefined}
       {...(scrollable ? { role: "region", "aria-label": label ?? "Bảng dữ liệu, cuộn để xem hết", tabIndex: 0 } : {})}
     >
       <table
-        className="w-full text-sm [&_tbody>tr+tr]:border-t [&_tbody>tr+tr]:border-line/80 [&_tbody>tr]:transition-colors [&_tbody>tr:hover]:bg-paper/90"
+        ref={table}
+        className="table-cards w-full text-sm [&_tbody>tr+tr]:border-t [&_tbody>tr+tr]:border-line/80 [&_tbody>tr]:transition-colors [&_tbody>tr:hover]:bg-paper/90"
         style={{ minWidth }}
       >
         {children}
@@ -402,10 +458,28 @@ export function TableShell({
   );
 }
 
-export function Th({ children, align = "left" }: { children?: React.ReactNode; align?: "left" | "right" }) {
+/**
+ * Cách một ô hiện trên điện thoại (dưới 640px), không đổi gì ở màn hình rộng:
+ * - `title`: dòng chính của thẻ, không nhãn, lên đầu thẻ;
+ * - `actions`: hàng nút bấm rộng hết thẻ ở cuối thẻ;
+ * - `full`: nhãn nằm trên, nội dung chiếm hết chiều rộng thẻ;
+ * - `select`: ô chọn dòng, nằm góc trên bên phải thẻ.
+ */
+export type CardRole = "title" | "actions" | "full" | "select";
+
+export function Th({
+  children,
+  align = "left",
+  card,
+}: {
+  children?: React.ReactNode;
+  align?: "left" | "right";
+  card?: CardRole;
+}) {
   return (
     <th
       scope="col"
+      data-card={card}
       className={`sticky top-0 z-[1] whitespace-nowrap border-b border-line bg-paper px-4 py-3 text-xs font-semibold text-ink-faint ${
         align === "right" ? "text-right" : "text-left"
       }`}
@@ -419,11 +493,12 @@ export function Td({
   children,
   align = "left",
   className = "",
+  card,
   ...props
-}: React.TdHTMLAttributes<HTMLTableCellElement> & { align?: "left" | "right" }) {
+}: React.TdHTMLAttributes<HTMLTableCellElement> & { align?: "left" | "right"; card?: CardRole }) {
   return (
-    <td {...props} className={`px-4 py-3.5 align-middle ${align === "right" ? "text-right" : "text-left"} ${className}`}>
-      {children}
+    <td {...props} data-card={card} className={`px-4 py-3.5 align-middle ${align === "right" ? "text-right" : "text-left"} ${className}`}>
+      <div className="td-body">{children}</div>
     </td>
   );
 }
@@ -446,17 +521,20 @@ export function TableSkeleton({ rows = 8, cols = 5 }: { rows?: number; cols?: nu
     <div
       role="status"
       aria-label="Đang tải dữ liệu"
-      className="overflow-hidden rounded-[1.25rem] border border-line bg-white shadow-[var(--shadow-card)]"
+      className="overflow-hidden rounded-[1.25rem] border border-line bg-white shadow-[var(--shadow-card)] max-sm:space-y-3 max-sm:overflow-visible max-sm:border-0 max-sm:bg-transparent max-sm:shadow-none"
     >
-      <div className="flex gap-6 border-b border-line bg-paper px-4 py-3.5">
+      <div className="flex gap-6 border-b border-line bg-paper px-4 py-3.5 max-sm:hidden">
         {Array.from({ length: cols }).map((_, i) => (
           <div key={i} className="skeleton-shimmer h-3 flex-1 rounded-full bg-paper-2" />
         ))}
       </div>
       {Array.from({ length: rows }).map((_, r) => (
-        <div key={r} className="flex items-center gap-6 border-b border-line/70 px-4 py-4 last:border-b-0">
+        <div
+          key={r}
+          className="flex items-center gap-6 border-b border-line/70 px-4 py-4 last:border-b-0 max-sm:flex-col max-sm:items-stretch max-sm:gap-3 max-sm:rounded-[1.25rem] max-sm:border max-sm:border-line max-sm:bg-white max-sm:p-4"
+        >
           {Array.from({ length: cols }).map((_, c) => (
-            <div key={c} className={`skeleton-shimmer h-4 flex-1 rounded-full bg-paper-2 ${c === 0 ? "max-w-[34%]" : ""}`} />
+            <div key={c} className={`skeleton-shimmer h-4 flex-1 rounded-full bg-paper-2 max-sm:flex-none ${c === 0 ? "max-w-[34%] max-sm:max-w-[60%]" : ""}`} />
           ))}
         </div>
       ))}
