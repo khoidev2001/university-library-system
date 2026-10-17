@@ -4,15 +4,33 @@ Hệ thống Quản lý Thư viện Trường Đại học: Đề tài 8, môn C
 
 Ứng dụng web quản lý sách, bạn đọc, mượn/trả, tìm kiếm, thống kê; tích hợp AI gợi ý sách và dự báo nguy cơ trả trễ.
 
+Địa chỉ triển khai: <https://muce-library.vercel.app> (Swagger tại `/api/docs`). Địa chỉ cũ `uls-library.vercel.app` chuyển hướng sang địa chỉ này.
+
+## Tính năng
+
+| Nhóm | Nội dung |
+|---|---|
+| Danh mục | Sách, tác giả, thể loại, bản sao vật lý (mã vạch, vị trí kệ), tìm kiếm theo tiêu đề, tác giả, ISBN |
+| Mượn trả | Cho mượn bằng mã vạch, trả, gia hạn, báo mất, phạt trả trễ theo ngày lịch (UTC+7), chính sách theo loại bạn đọc |
+| Đặt trước | Hàng đợi cho sách hết bản, giữ sách 3 ngày khi có người trả, tối đa 3 đặt trước mỗi bạn đọc |
+| Thông báo | Chuông trong web, nhắc sắp đến hạn và quá hạn, email nhắc hạn qua Resend (bạn đọc tắt được) |
+| Tài khoản | Đổi mật khẩu, quên và đặt lại mật khẩu qua email, thủ thư tạo bạn đọc tại quầy, mật khẩu tạm |
+| Thanh toán phạt | Nộp phạt trực tuyến qua VNPay (IPN và return idempotent), thu tiền mặt tại quầy |
+| Báo cáo | Dashboard, 4 báo cáo thống kê, xuất CSV hoặc Excel 7 loại dữ liệu |
+| In ấn và nhập liệu | In thẻ bạn đọc (Code 128, QR), in nhãn mã vạch bản sao, nhập sách hàng loạt từ CSV hoặc xlsx có xem trước, nhập theo ISBN qua Google Books |
+| AI | Gợi ý sách (TF-IDF và item-based CF) và dự báo nguy cơ trả trễ khi cho mượn |
+
 ## Tài liệu
 
 | Tài liệu | Đường dẫn |
 |---|---|
 | Kế hoạch tổng thể | [docs/PLAN.md](docs/PLAN.md) |
-| SRS (IEEE 830), LAB 1 | [docs/srs/SRS.md](docs/srs/SRS.md) · [SRS.docx](docs/srs/SRS.docx) |
-| Tài liệu thiết kế (SDD), LAB 2 | [docs/design/SDD.md](docs/design/SDD.md) · [SDD.docx](docs/design/SDD.docx), kiến trúc, UML, ERD, đặc tả API |
-| Biểu đồ UML (PlantUML + PNG) | [docs/uml/](docs/uml/), use case, class, 3 sequence, activity, architecture |
-| ERD + DDL (sinh từ Prisma) | [docs/erd/](docs/erd/) |
+| SRS (IEEE 830), LAB 1, bản 2.0 | [docs/srs/SRS.md](docs/srs/SRS.md) · [SRS.docx](docs/srs/SRS.docx) |
+| Tài liệu thiết kế (SDD), LAB 2, bản 2.0 | [docs/design/SDD.md](docs/design/SDD.md) · [SDD.docx](docs/design/SDD.docx), kiến trúc, UML, ERD, đặc tả API, bảng mã lỗi, bảo mật, ADR |
+| Hướng dẫn sử dụng API | [docs/api/README.md](docs/api/README.md), xác thực, lỗi, phân trang, giới hạn tần suất, bảng endpoint |
+| Hướng dẫn triển khai | [docs/deploy/DEPLOY.md](docs/deploy/DEPLOY.md), Vercel + Render + Neon, CI/CD, biến môi trường |
+| Biểu đồ UML (PlantUML + PNG) | [docs/uml/](docs/uml/), use case, class, 5 sequence (mượn, trả và phạt, gợi ý, đặt trước, thanh toán VNPay), activity, architecture, system context |
+| ERD + DDL (sinh từ Prisma, 16 bảng) | [docs/erd/](docs/erd/) |
 | Brief slide thuyết trình | [LAB 1](docs/report/LAB1_slides_brief.md) · [LAB 2](docs/report/LAB2_slides_brief.md) |
 | Báo cáo 4 LAB (mẫu của GV) | [docs/report/LAB_Report.docx](docs/report/LAB_Report.docx) |
 | Kế hoạch quản lý dự án, EVA | [docs/pm/](docs/pm/) |
@@ -23,13 +41,17 @@ Hệ thống Quản lý Thư viện Trường Đại học: Đề tài 8, môn C
 ```
 Browser → Frontend (Next.js 15) → Backend API (NestJS + Prisma + PostgreSQL)
                                        ├→ AI Service (FastAPI + scikit-learn)
-                                       └→ Google Books API (chỉ khi nạp dữ liệu)
+                                       ├→ Google Books API (nạp dữ liệu, nhập theo ISBN)
+                                       ├→ Resend (email: đặt lại mật khẩu, chào mừng, nhắc hạn)
+                                       └← VNPay (IPN và return của thanh toán phạt)
 ```
+
+Việc định kỳ chạy trong tiến trình Backend mỗi 15 phút: huỷ giữ sách quá hạn nhận, nhắc hạn (web và email), nhả khoản phạt của giao dịch VNPay quá hạn. Mọi việc đều idempotent; các thao tác chạm tới bản sao HELD hoặc giao dịch quá hạn cũng tự giải phóng trước khi xét, nên Render gói miễn phí ngủ không làm sai kết quả.
 
 | Thành phần | Thư mục | Công nghệ |
 |---|---|---|
-| Backend | `backend/` | NestJS 10, Prisma, PostgreSQL 16, JWT, Swagger, Jest |
-| Frontend | `frontend/` | Next.js 15, TypeScript, TailwindCSS, TanStack Query |
+| Backend | `backend/` | NestJS 10, Prisma, PostgreSQL 16 (pg_trgm), JWT, Swagger, Jest, exceljs |
+| Frontend | `frontend/` | Next.js 15, TypeScript, TailwindCSS 4, TanStack Query, recharts, Be Vietnam Pro |
 | AI Service | `ai-service/` | FastAPI, scikit-learn, pandas, pytest |
 | Gateway (local) | `gateway/` | Nginx |
 
@@ -70,13 +92,15 @@ GOOGLE_BOOKS_API_KEY=... python backend/prisma/seed/prepare_goodbooks.py --googl
 
 ## Kiểm thử
 
+Quy mô (đếm theo mã nguồn, không phải kết quả một lần chạy; số ca chạy và kết quả xem ở CI): backend có 33 tệp unit (`*.spec.ts`, khoảng 285 ca) và 20 tệp e2e (`backend/test/*.e2e-spec.ts`, khoảng 200 ca, gồm 12 ca đua trong `concurrency.e2e-spec.ts`); AI service có 26 ca pytest. CI GitHub Actions chạy bốn job `backend`, `ai-service`, `frontend`, `compose-smoke` rồi mới `deploy` trên nhánh `main`.
+
 ```bash
-pnpm --dir backend test:cov                       # unit, mock Prisma, ngưỡng 80%
+pnpm --dir backend test:cov                       # unit, mock Prisma; ngưỡng 80% dòng, 75% nhánh (5 service nặng SQL có e2e riêng)
 DATABASE_URL=... pnpm --dir backend test:e2e      # supertest trên Postgres thật
 python backend/test/smoke-sprint1.py http://localhost:8080/api   # 48 lời gọi API: auth, catalog, users, policies
 python backend/test/smoke-sprint2.py http://localhost:8080/api uls-postgres-1   # 36 lời gọi: mượn/trả/phạt/đánh giá/báo cáo
 python backend/test/smoke-sprint3.py http://localhost:8080/api http://localhost:8080/ai uls-postgres-1   # 16 lời gọi: AI gợi ý + dự báo
-pytest --rootdir ai-service ai-service                            # 23 test AI, ngưỡng coverage 80%
+pytest --rootdir ai-service ai-service                            # test AI, ngưỡng coverage 80%
 ```
 
 Hai script smoke chạy trên hệ thống **đang chạy** với dữ liệu seed, đây là bằng chứng mức "chạy thật" cho phần đụng cơ sở dữ liệu và tiền.
@@ -88,9 +112,18 @@ Hai script smoke chạy trên hệ thống **đang chạy** với dữ liệu se
 | Trang chủ, tra cứu, chi tiết sách, quy định | `/`, `/books`, `/books/[id]`, `/quy-dinh` | Công khai, dựng phía máy chủ cho SEO |
 | Đăng nhập, đăng ký, quên mật khẩu | `/login`, `/register`, `/forgot-password`, `/reset-password` | Công khai |
 | Tài khoản của tôi (hồ sơ, đổi mật khẩu, nhắc hạn qua email) | `/account` | Mọi vai trò |
-| Sách của tôi, tiền phạt, gợi ý | `/my/loans`, `/my/fines`, `/recommendations` | Bạn đọc |
-| Quầy mượn trả, quản lý bạn đọc (thêm bạn đọc, cấp mật khẩu tạm), thống kê | `/librarian/desk`, `/librarian/readers`, `/reports` | Thủ thư |
-| Chính sách mượn | `/admin/policies` | Quản trị |
+| Sách của tôi, đặt trước, tiền phạt và thanh toán, gợi ý | `/my/loans`, `/my/reservations`, `/my/fines`, `/my/payments/result`, `/recommendations` | Bạn đọc |
+| Quầy mượn trả, quản lý bạn đọc (thêm bạn đọc, cấp mật khẩu tạm), in thẻ và nhãn | `/librarian/desk`, `/librarian/readers`, `/librarian/readers/cards`, `/librarian/readers/[id]/card`, `/librarian/labels` | Thủ thư |
+| Khu quản trị: bảng điều khiển, sách và bản sao, tác giả và thể loại, phiếu mượn, đặt trước, khoản phạt, mô hình gợi ý, thống kê | `/admin`, `/admin/books`, `/admin/taxonomy`, `/admin/loans`, `/admin/reservations`, `/admin/fines`, `/admin/model`, `/reports` | Thủ thư, Quản trị |
+| Tài khoản nhân viên, chính sách mượn | `/admin/users`, `/admin/policies` | Quản trị |
+
+**Hệ thiết kế.** Giao diện sáng, nền xanh xám rất nhạt, thẻ trắng bo góc lớn, một màu nhấn chàm (`#4F46E5`), logo trường MUCE, phông Be Vietnam Pro. Màu và bo góc là biến `@theme` trong `frontend/src/app/globals.css`. Khu quản trị có khung riêng (thanh điều hướng theo nhóm, tiêu đề trang, bảng và hộp thoại dùng chung).
+
+**Responsive.** Bố cục được kiểm ở 390, 768 và 1440 px, không cuộn ngang (lưới dùng `minmax(0, 1fr)`, bảng rộng cuộn trong khung riêng).
+
+**Khả năng tiếp cận (WCAG AA).** Mọi cặp chữ và nền đạt tương phản AA (đã đo); viền focus rõ cho bàn phím; hộp thoại giữ focus, Tab quay vòng, Esc đóng, trả focus khi đóng; vùng bấm tối thiểu 40 px; nút trong hàng bảng có tên đầy đủ; hoạt ảnh tắt khi chọn giảm chuyển động.
+
+**Hiệu năng.** Hoạt ảnh chỉ dùng `transform` và `opacity`; biểu đồ recharts và các hộp thoại nặng nạp theo yêu cầu (`next/dynamic`), nên trang `/admin` giảm từ 255 kB xuống 147 kB và `/reports` từ 263 kB xuống 144 kB; danh sách dài dùng `content-visibility: auto`; có preconnect tới máy chủ ảnh bìa.
 
 SEO: tiêu đề và mô tả riêng từng trang, canonical, Open Graph, dữ liệu có cấu trúc schema.org (`Library` kèm `SearchAction`, `Book` kèm `aggregateRating` và tình trạng còn sách, `FAQPage` cho trang quy định), `sitemap.xml` và `robots.txt` sinh tự động, khu vực tài khoản bị chặn khỏi chỉ mục.
 
@@ -128,6 +161,28 @@ Backend gửi thư bằng HTTP tới Resend (Render gói miễn phí chặn SMTP
 | `MAIL_SEND_INTERVAL_MS` | Nghỉ giữa hai thư nhắc hạn, mặc định 600 ms (Resend giới hạn 2 yêu cầu/giây) |
 
 Khi test, e2e luôn thay cổng gửi thư bằng hộp thư trong bộ nhớ (`InMemoryMailSender`), không bao giờ gọi Resend.
+
+## Đặt trước sách và thông báo
+
+| Chức năng | API | Giao diện |
+|---|---|---|
+| Đặt trước sách hết bản | `POST /api/reservations` (READER) | Trang chi tiết sách, `/my/reservations` |
+| Vị trí hàng đợi, huỷ đặt trước | `GET /api/reservations/me`, `DELETE /api/reservations/:id` | `/my/reservations` |
+| Hàng đợi cho thủ thư | `GET /api/reservations` | `/admin/reservations` |
+| Thông báo trong web | `GET /api/notifications/me`, `POST /api/notifications/read-all`, `POST /api/notifications/:id/read` | Chuông ở thanh đầu trang (làm mới mỗi 60 giây) |
+
+- **Điều kiện đặt trước**: sách còn ít nhất một bản đang lưu hành (AVAILABLE, BORROWED, HELD) nhưng không còn bản AVAILABLE; bạn đọc chưa mượn hoặc chưa đặt cuốn đó, còn dưới 3 đặt trước, không còn phạt chưa trả, thẻ không khoá. Mã lỗi: `NO_COPIES`, `BOOK_AVAILABLE`, `ALREADY_BORROWING`, `ALREADY_RESERVED`, `RESERVATION_LIMIT`, `UNPAID_FINE`.
+- **Giữ sách**: khi một bản sao được trả, hệ thống chọn người đứng đầu hàng đợi (thẻ còn hoạt động, `FOR UPDATE SKIP LOCKED`), chuyển bản sao sang `HELD` và đặt trước sang `READY` với hạn nhận 3 ngày, cùng giao dịch với việc trả sách. Chỉ người đặt trước mượn được bản `HELD`, người khác nhận `409 COPY_HELD`.
+- **Hết hạn nhận**: đặt trước `READY` quá hạn chuyển `EXPIRED`, bạn đọc nhận thông báo, bản sao chuyển cho người kế tiếp hoặc về `AVAILABLE`. Chạy trong việc định kỳ 15 phút và khi có ai chạm tới đặt trước hoặc bản `HELD`.
+- **Nhắc hạn trong web**: "sắp đến hạn" khi hạn trả còn trong 2 ngày, "quá hạn" khi sang ngày sau hạn; mỗi phiếu và loại chỉ một thông báo (`dedupe_key`). Thông báo đặt trước sẵn sàng và hết hạn cũng hiện ở chuông.
+
+## Độ tin cậy và hiệu năng
+
+- **Chống đua**: mượn, trả, gia hạn, báo mất, thu phạt, đặt trước, thanh toán dùng khoá hàng bạn đọc (`FOR UPDATE`), cập nhật có điều kiện, `SKIP LOCKED` khi chọn người đứng đầu hàng đợi, khoá advisory khi nhập sách và chỉ mục duy nhất từng phần cho khoản phạt. `backend/test/concurrency.e2e-spec.ts` bắn yêu cầu song song trên Postgres thật (ví dụ năm bạn đọc mượn cùng một bản sao: đúng một phiếu).
+- **Tài khoản bị khoá hoặc hạ quyền có hiệu lực ngay**: JWT được đối chiếu với cơ sở dữ liệu ở mọi yêu cầu.
+- **Chỉ mục và truy vấn**: GIN pg_trgm cho tìm sách, tác giả, bạn đọc; chỉ mục btree cho các khoá ngoại và cột lọc; tìm sách dùng UNION ba chỉ mục. Đo trên cơ sở dữ liệu tổng hợp 50.000 sách, 600.000 phiếu mượn, 1.000.000 đánh giá: tìm theo từ khoá hiếm 258 ms xuống 9,6 ms. Báo cáo gộp bằng SQL theo múi giờ UTC+7; báo cáo quá hạn tối đa 5.000 dòng kèm `X-Total-Count`.
+- **Giới hạn tần suất** theo IP: chung 100/phút, đăng nhập 10, đổi mật khẩu 5, quên mật khẩu 5, đặt lại mật khẩu 10, thủ thư tạo bạn đọc và cấp mật khẩu tạm 30, tạo giao dịch thanh toán 30. IPN và return của VNPay không giới hạn (xác thực bằng chữ ký).
+
 ## Xuất dữ liệu, in thẻ / nhãn, nhập sách từ file
 
 Dành cho thủ thư (Admin kế thừa). Tài liệu API đầy đủ ở Swagger (`/api/docs`, nhóm `exports` và `books`).
@@ -235,7 +290,7 @@ VNPAY_HASH_SECRET=bi-mat-cuc-bo pnpm --dir backend vnpay:callback <txnRef> <số
 # 00 = thành công, 24 = bạn đọc huỷ, 51 = không đủ số dư; đổi `return` thành `ipn` để gọi IPN bằng curl
 ```
 
-**Chưa kiểm chứng với VNPay thật:** chữ ký tạo URL đã được đối chiếu với HMAC-SHA512 tính độc lập bằng Python (`vnpay.util.spec.ts`), nhưng tài liệu VNPay không công bố bộ vector kiểm thử, nên cần một lần chạy thật trên sandbox bằng `TmnCode` thật trước khi dùng.
+**Mức kiểm chứng:** chữ ký tạo URL đã được đối chiếu với HMAC-SHA512 tính độc lập bằng Python (`vnpay.util.spec.ts`), luồng IPN, return, hết hạn và các ca đua có e2e trên Postgres thật (`payments.e2e-spec.ts`, `payments-concurrency.e2e-spec.ts`). Nhóm đã chạy thanh toán trên sandbox VNPay bằng `TmnCode` thật của dự án; repo không lưu biên bản lần chạy đó. Tài liệu VNPay không công bố bộ vector kiểm thử cho chữ ký. Môi trường thật (production) của VNPay chưa được cấu hình.
 
 ## Công cụ tài liệu
 
@@ -243,7 +298,11 @@ VNPAY_HASH_SECRET=bi-mat-cuc-bo pnpm --dir backend vnpay:callback <txnRef> <số
 # Render UML
 docker run --rm -v "$PWD/docs/uml:/data" plantuml/plantuml -tpng -charset UTF-8 "/data/*.puml"
 # ERD từ Prisma schema (chạy lại sau mỗi lần đổi schema)
-python docs/tools/prisma_to_erd.py && cp backend/prisma/migrations/*/migration.sql docs/erd/ddl.sql
+python docs/tools/prisma_to_erd.py
+# ddl.sql gom các migration theo thứ tự thời gian (có nhiều migration nên không dùng cp)
+for f in backend/prisma/migrations/*/migration.sql; do printf -- "-- ===== Migration %s =====\n" "$(basename "$(dirname "$f")")"; cat "$f"; echo; done > docs/erd/ddl.sql
+# Render ERD (chạy docker từ Git Bash trên Windows thì thêm MSYS_NO_PATHCONV=1)
+docker run --rm -v "$PWD/docs/erd:/data" plantuml/plantuml -tpng -charset UTF-8 "/data/erd.puml"
 # SRS.md / SDD.md → .docx
 python docs/tools/md_to_docx.py docs/design/SDD.md docs/design/SDD.docx
 python docs/tools/md_to_docx.py docs/srs/SRS.md docs/srs/SRS.docx
