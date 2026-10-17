@@ -19,7 +19,7 @@
 
 @@C|
 @@C|Mã nguồn: https://github.com/khoidev2001/university-library-system
-@@C|Hệ thống chạy thật: https://uls-library.vercel.app
+@@C|Hệ thống chạy thật: https://muce-library.vercel.app
 @@C|Năm 2026
 
 \pagebreak
@@ -104,7 +104,7 @@
 
 ## 1.1. Giới thiệu đề tài
 
-Đề tài xuyên suốt của nhóm là **Phần mềm Quản lý Thư viện Trường Đại học (ULS)**: một hệ thống web quản lý sách, bạn đọc, mượn trả, tìm kiếm và thống kê cho thư viện, kèm gợi ý sách và dự báo nguy cơ trả trễ. Phần mềm đã được xây dựng và chạy thật tại https://uls-library.vercel.app (Backend NestJS, Frontend Next.js, dịch vụ AI FastAPI; 48 API, 160 kiểm thử tự động đạt 100%). Trong báo cáo này, dự án được **mô phỏng dưới dạng một dự án 16 tuần, 4 vai trò, đơn giá 50.000 đồng/giờ** để thực hành lập kế hoạch, ước lượng, lập lịch, rủi ro, EVA và chất lượng. Số liệu phần mềm thật (kiểm thử, kiến trúc) được dùng khi có; số liệu chi phí, giờ công và EVA là mô phỏng và được ghi rõ.
+Đề tài xuyên suốt của nhóm là **Phần mềm Quản lý Thư viện Trường Đại học (ULS)**: một hệ thống web quản lý sách, bạn đọc, mượn trả, tìm kiếm và thống kê cho thư viện, kèm gợi ý sách và dự báo nguy cơ trả trễ. Phần mềm đã được xây dựng và chạy thật tại https://muce-library.vercel.app (Backend NestJS, Frontend Next.js, dịch vụ AI FastAPI; 48 API, 160 kiểm thử tự động đạt 100%). Trong báo cáo này, dự án được **mô phỏng dưới dạng một dự án 16 tuần, 4 vai trò, đơn giá 50.000 đồng/giờ** để thực hành lập kế hoạch, ước lượng, lập lịch, rủi ro, EVA và chất lượng. Số liệu phần mềm thật (kiểm thử, kiến trúc) được dùng khi có; số liệu chi phí, giờ công và EVA là mô phỏng và được ghi rõ.
 
 **Nhất quán dữ liệu.** Tên các gói công việc ở mục 1.5 (WBS) được dùng nguyên văn ở sơ đồ mạng và Gantt (mục 2.3), ở EVA (mục 3.2) và ở đường cơ sở (mục 3.3). Mỗi gói công việc có một mã WBS và một mã mạng (chữ cái) để đối chiếu.
 

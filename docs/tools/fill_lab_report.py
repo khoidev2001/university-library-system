@@ -178,7 +178,7 @@ def fill(template: Path, output: Path) -> None:
         "1. Trần Đình Khôi - MSSV: 23Q74802012006 (Nhóm trưởng)\n2. Nguyễn Như Quỳnh - MSSV: 21DQ4802011003",
     )
     set_cell(cover.cell(3, 1), f"GitHub: {REPO_URL}")
-    set_cell(cover.cell(4, 1), "Demo Web: https://uls-library.vercel.app")
+    set_cell(cover.cell(4, 1), "Demo Web: https://muce-library.vercel.app")
 
     # Part I
     set_text(paragraphs[7], PROJECT_SUMMARY)

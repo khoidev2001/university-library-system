@@ -25,7 +25,7 @@ PB = BS + "pagebreak"
 LAND = BS + "landscape"
 PORT = BS + "portrait"
 REPO = "https://github.com/khoidev2001/university-library-system"
-LIVE = "https://uls-library.vercel.app"
+LIVE = "https://muce-library.vercel.app"
 
 pts = {p.week: p for p in m.eva_points()}
 BAC_H = m.bac_hours()

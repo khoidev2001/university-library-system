@@ -112,7 +112,7 @@ Dùng file này để tự làm slide bằng công cụ khác (PowerPoint, Canva
 - Ba bài học: (1) có nguồn dữ liệu dự phòng ngay từ đầu; (2) theo dõi SPI hằng tuần thay vì mỗi 4 tuần; (3) chạy thật luồng liên quan tiền, không chỉ test có mock.
 - Hạn chế: EV, AC và tài chính là mô phỏng; 2 nhân sự là giả định; chưa đo p95.
 - Demo 30 giây (nếu có thời gian): mở địa chỉ trực tuyến, đăng nhập thủ thư, mượn và trả một cuốn, xem bảng điều khiển quản trị.
-- Địa chỉ web: https://uls-library.vercel.app. Mã nguồn: https://github.com/khoidev2001/university-library-system.
+- Địa chỉ web: https://muce-library.vercel.app. Mã nguồn: https://github.com/khoidev2001/university-library-system.
 
 ## Câu hỏi giảng viên có thể hỏi và gợi ý trả lời
 

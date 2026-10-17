@@ -51,7 +51,7 @@ DEPLOY_INTRO = (
 )
 
 DEPLOY_URL_PLACEHOLDERS = [
-    "URL Web Application: https://uls-library.vercel.app",
+    "URL Web Application: https://muce-library.vercel.app",
     "URL API Swagger Docs: https://uls-backend-bo6w.onrender.com/api/docs",
 ]
 
