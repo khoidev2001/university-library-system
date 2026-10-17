@@ -6,6 +6,8 @@ import { ApiError, apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Alert } from "./ui";
 
+const SCORE_WORDS = ["", "Chưa hay", "Tạm được", "Khá hay", "Hay", "Rất hay"];
+
 /** Bạn đọc chấm điểm sách đã mượn và trả (US17). Ẩn với người chưa đăng nhập. */
 export function RateBookPanel({ bookId }: { bookId: number }) {
   const { token, can } = useAuth();
@@ -33,33 +35,45 @@ export function RateBookPanel({ bookId }: { bookId: number }) {
     }
   }
 
+  const shown = hover || score;
+
   return (
-    <section className="mt-8 rounded-xl border border-line bg-white p-5" aria-labelledby="tieu-de-danh-gia">
-      <h2 id="tieu-de-danh-gia" className="font-serif text-lg font-bold">
+    <section
+      className="mt-8 rounded-[1.5rem] border border-line bg-white p-5 shadow-[var(--shadow-card)] sm:p-6"
+      aria-labelledby="tieu-de-danh-gia"
+    >
+      <h2 id="tieu-de-danh-gia" className="text-xl font-bold">
         Đánh giá cuốn này
       </h2>
-      <p className="mt-1 text-sm text-ink-soft">
+      <p className="mt-1 text-sm leading-relaxed text-ink-soft">
         Bạn chấm điểm được sau khi đã mượn và trả cuốn sách. Điểm của bạn giúp gợi ý sát hơn.
       </p>
-      <div className="mt-3 flex items-center gap-1" role="group" aria-label="Chọn số sao">
-        {[1, 2, 3, 4, 5].map((value) => (
-          <button
-            key={value}
-            type="button"
-            disabled={saving}
-            onClick={() => submit(value)}
-            onMouseEnter={() => setHover(value)}
-            onMouseLeave={() => setHover(0)}
-            aria-label={`${value} sao`}
-            className="rounded p-1 transition-transform hover:scale-110 disabled:opacity-50"
-          >
-            <Star
-              size={26}
-              className={value <= (hover || score) ? "fill-amber text-amber" : "text-line"}
-              aria-hidden="true"
-            />
-          </button>
-        ))}
+      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div className="-ml-1 flex items-center" role="group" aria-label="Chọn số sao">
+          {[1, 2, 3, 4, 5].map((value) => (
+            <button
+              key={value}
+              type="button"
+              disabled={saving}
+              onClick={() => submit(value)}
+              onMouseEnter={() => setHover(value)}
+              onMouseLeave={() => setHover(0)}
+              onFocus={() => setHover(value)}
+              onBlur={() => setHover(0)}
+              aria-label={`${value} sao`}
+              className="grid h-11 w-11 place-items-center rounded-xl transition-transform duration-150 hover:scale-110 active:scale-95 disabled:opacity-50"
+            >
+              <Star
+                size={28}
+                className={`transition-colors ${value <= shown ? "fill-[#f59e0b] text-[#d97706]" : "text-[#c3c8de]"}`}
+                aria-hidden="true"
+              />
+            </button>
+          ))}
+        </div>
+        <span className="min-h-5 text-sm font-semibold text-ink-soft" aria-hidden="true">
+          {SCORE_WORDS[shown]}
+        </span>
       </div>
       {status && (
         <div className="mt-3">
