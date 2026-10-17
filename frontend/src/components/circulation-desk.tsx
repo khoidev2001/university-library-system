@@ -298,7 +298,7 @@ export function CirculationDesk() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="flex items-center gap-2 text-sm font-bold text-leaf">
-                    <SuccessMark size={26} />
+                    <SuccessMark size={30} onSoft />
                     Đã cho mượn thành công
                   </p>
                   <p className="mt-2 line-clamp-2 font-semibold leading-snug">{borrowOutcome.data.loan.copy.book.title}</p>
@@ -366,7 +366,7 @@ export function CirculationDesk() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className={`flex items-center gap-2 text-sm font-bold ${returnOutcome.data.fine ? "text-danger" : "text-leaf"}`}>
-                    <SuccessMark size={26} tone={returnOutcome.data.fine ? "warn" : "good"} />
+                    <SuccessMark size={30} onSoft tone={returnOutcome.data.fine ? "warn" : "good"} />
                     {returnOutcome.data.fine ? "Đã nhận trả, có phát sinh phạt" : "Đã nhận trả đúng hạn"}
                   </p>
                   <p className="mt-2 line-clamp-2 font-semibold leading-snug">{returnOutcome.data.loan.copy.book.title}</p>

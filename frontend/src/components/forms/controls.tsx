@@ -179,12 +179,12 @@ export function Switch({
   description?: string;
 }) {
   return (
-    <label htmlFor={id} className={`flex min-h-12 items-start justify-between gap-5 ${disabled ? "cursor-wait" : "cursor-pointer"}`}>
+    <label htmlFor={id} className={`flex min-h-12 justify-between gap-5 ${description ? "items-start" : "items-center"} ${disabled ? "cursor-wait" : "cursor-pointer"}`}>
       <span className="min-w-0 text-sm">
         <span className="block font-semibold">{label}</span>
         {description && <span className="mt-1 block leading-relaxed text-ink-soft">{description}</span>}
       </span>
-      <span className="relative mt-0.5 shrink-0">
+      <span className={`relative shrink-0 ${description ? "mt-0.5" : ""}`}>
         <input
           id={id}
           type="checkbox"

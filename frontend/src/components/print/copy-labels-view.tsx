@@ -84,7 +84,7 @@ export function CopyLabelsView() {
           : `${list.length} nhãn, ${sheets} ${layout.roll ? "trang" : "tờ A4"}`
       }
       options={
-        <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_240px]">
+        <div className="grid items-end gap-5 md:grid-cols-[minmax(0,1fr)_240px]">
           <SelectField
             id="label-layout"
             label="Loại giấy nhãn"

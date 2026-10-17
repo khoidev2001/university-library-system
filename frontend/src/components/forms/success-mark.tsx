@@ -1,6 +1,16 @@
 /** Dấu tích vẽ nét khi hiện ra (kiểu Magic UI): vòng tròn bật lên rồi nét tích được vẽ. Trang trí, ẩn khỏi trình đọc màn hình. */
-export function SuccessMark({ tone = "good", size = 56 }: { tone?: "good" | "warn"; size?: number }) {
-  const color = tone === "good" ? "text-leaf bg-leaf-soft" : "text-amber bg-amber-soft";
+export function SuccessMark({
+  tone = "good",
+  size = 56,
+  onSoft = false,
+}: {
+  tone?: "good" | "warn";
+  size?: number;
+  /** Đặt trên nền màu nhạt: dùng nền trắng cho vòng tròn để vẫn nhìn thấy. */
+  onSoft?: boolean;
+}) {
+  const ink = tone === "good" ? "text-leaf" : "text-danger";
+  const color = onSoft ? `${ink} bg-white` : tone === "good" ? "text-leaf bg-leaf-soft" : "text-amber bg-amber-soft";
   return (
     <span
       aria-hidden="true"

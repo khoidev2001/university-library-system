@@ -214,6 +214,11 @@ export function ReadersView() {
                         <span className="mt-0.5 block text-xs text-ink-soft sm:hidden">
                           {reader.memberCode}, {typeLabel(reader.memberType)}
                         </span>
+                        {!reader.isActive && (
+                          <span className="mt-1 block md:hidden">
+                            <StatusPill tone="bad">Đang khoá</StatusPill>
+                          </span>
+                        )}
                       </span>
                     </button>
                     <span className="hidden w-36 shrink-0 text-sm sm:block">

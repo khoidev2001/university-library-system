@@ -71,7 +71,7 @@ export function TempPasswordPanel({
   return (
     <div className="space-y-4">
       <div className="flex items-start gap-3.5 rounded-2xl bg-leaf-soft p-4">
-        <SuccessMark size={36} />
+        <SuccessMark size={36} onSoft />
         <p role="status" className="pt-1 text-sm font-semibold leading-relaxed text-leaf">
           {heading}
         </p>
