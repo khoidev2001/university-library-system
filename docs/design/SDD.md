@@ -127,7 +127,9 @@ Thành phần cắt ngang (cross-cutting), thứ tự guard toàn cục: `Thrott
 
 Ba actor chính với quyền lồng nhau (Admin bao hàm Librarian; các chức năng cá nhân của bạn đọc chỉ dành cho tài khoản Reader), bốn actor phụ là AI Service, Google Books API, Resend và VNPay. Chi tiết mô tả actor và use case ở SRS mục 2.3.
 
-![Hình 3.1: Use Case tổng quan](../uml/use-case-overview.png)
+![Hình 3.1a: Use Case, nhóm chức năng của bạn đọc](../uml/use-case-reader.png)
+
+![Hình 3.1b: Use Case, nhóm chức năng của thủ thư và quản trị](../uml/use-case-staff.png)
 
 ## 3.2. Class Diagram
 
@@ -401,7 +403,7 @@ CREATE INDEX "books_title_trgm_idx" ON "books" USING GIN ("title" gin_trgm_ops);
 | GET | `/fines?paid=&userId=&page=` | L | query (`paid` bỏ trống là cả đã và chưa thu) | 200 `{items: [FineWithLoanUser], total}` |
 | POST | `/fines/:id/pay` | L | không có | 200 Fine · 404 · 409 `FINE_ALREADY_PAID` / `FINE_PAYMENT_PENDING` (đang nằm trong giao dịch VNPay còn hiệu lực) |
 
-`Fine`: `{id, loanId, type: OVERDUE\|LOST, amount, paidAt, paidTo (rỗng khi thu qua VNPay), createdAt, loan: {book: {title}, dueAt, returnedAt}, onlinePayment}`; `onlinePayment` là giao dịch VNPay đang gắn với khoản phạt (nếu có).
+`Fine`: `{id, loanId, type: OVERDUE|LOST, amount, paidAt, paidTo (rỗng khi thu qua VNPay), createdAt, loan: {book: {title}, dueAt, returnedAt}, onlinePayment}`; `onlinePayment` là giao dịch VNPay đang gắn với khoản phạt (nếu có).
 
 ## 5.7. Policies, Ratings, Reports
 
@@ -523,7 +525,7 @@ Loại thông báo (`type`): `LOAN_DUE_SOON`, `LOAN_OVERDUE`, `RESERVATION_READY
 | GET | `/payments/vnpay/ipn` | Pub | tham số `vnp_*` (VNPay gọi) | 200 `{RspCode, Message}`: 00 xác nhận, 01 không thấy đơn, 02 đã xác nhận, 04 sai số tiền, 97 sai chữ ký, 99 lỗi khác |
 | GET | `/payments/vnpay/return` | Pub | tham số `vnp_*` (trình duyệt) | 302 tới `${APP_PUBLIC_URL}/my/payments/result?paymentId=...` hoặc `?error=not_configured\|invalid_signature\|not_found\|invalid_amount\|unknown` |
 
-`Payment`: `{id, txnRef, amount, status: PENDING\|PAID\|FAILED\|EXPIRED\|CANCELLED, vnpTransactionNo, bankCode, responseCode, needsRefund, createdAt, paidAt, expiresAt, user, fines: [{id, type, amount, loanId, bookTitle}]}`. `needsRefund = true` khi tiền về sau khi khoản phạt đã được xử lý cách khác.
+`Payment`: `{id, txnRef, amount, status: PENDING|PAID|FAILED|EXPIRED|CANCELLED, vnpTransactionNo, bankCode, responseCode, needsRefund, createdAt, paidAt, expiresAt, user, fines: [{id, type, amount, loanId, bookTitle}]}`. `needsRefund = true` khi tiền về sau khi khoản phạt đã được xử lý cách khác.
 
 ## 5.14. Exports: `/api/exports`
 

@@ -168,7 +168,9 @@ ULS là hệ thống độc lập, xây dựng mới, không kế thừa hệ th
 
 ![Hình 2.2: Phân cấp actor và quyền](../uml/actor-hierarchy.png)
 
-![Hình 2.3: Sơ đồ Use Case tổng quan](../uml/use-case-overview.png)
+![Hình 2.3a: Sơ đồ Use Case, nhóm chức năng của bạn đọc](../uml/use-case-reader.png)
+
+![Hình 2.3b: Sơ đồ Use Case, nhóm chức năng của thủ thư và quản trị](../uml/use-case-staff.png)
 
 ## 2.4. Ràng buộc
 

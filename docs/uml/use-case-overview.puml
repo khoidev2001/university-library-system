@@ -41,7 +41,7 @@ rectangle "Hệ thống Quản lý Thư viện (ULS)" {
     usecase "Tìm kiếm sách" as UC05
     usecase "Xem chi tiết sách" as UC06
   }
-  package "F4 Mượn – trả (Reader)" {
+  package "F4 Mượn, trả (Reader)" {
     usecase "Xem sách đang mượn\n& lịch sử" as UC10
     usecase "Gia hạn sách" as UC09
     usecase "Xem tiền phạt" as UC12a
@@ -55,7 +55,7 @@ rectangle "Hệ thống Quản lý Thư viện (ULS)" {
     usecase "Quản lý bản sao" as UC04
     usecase "Quản lý tác giả,\nthể loại" as UC20
   }
-  package "F4 Mượn – trả (Quầy)" {
+  package "F4 Mượn, trả (Quầy)" {
     usecase "Cho mượn sách" as UC07
     usecase "Nhận trả sách" as UC08
     usecase "Ghi nhận sách mất" as UC11

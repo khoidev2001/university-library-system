@@ -1,0 +1,66 @@
+@startuml use-case-reader
+' Use Case: nhóm chức năng của bạn đọc (Reader). Bản tách từ use-case-overview để đọc rõ hơn trong tài liệu.
+left to right direction
+skinparam nodesep 6
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #F7F5F0
+  BorderColor #1B2A41
+  ArrowColor #1B2A41
+}
+skinparam rectangle {
+  BackgroundColor #FFFFFF
+  BorderColor #1B2A41
+}
+
+actor "Reader\n(Bạn đọc: SV / GV)" as Reader
+actor "AI Service" as AI <<hệ thống>>
+actor "Resend" as RS <<hệ thống>>
+actor "VNPay" as VN <<hệ thống>>
+
+rectangle "Hệ thống Quản lý Thư viện (ULS): bạn đọc" {
+  package "F1 Xác thực" {
+    usecase "Đăng ký tài khoản" as UC01
+    usecase "Đăng nhập" as UC02
+  }
+  package "F5 Tìm kiếm" {
+    usecase "Tìm kiếm sách" as UC05
+    usecase "Xem chi tiết sách" as UC06
+  }
+  package "F4 Mượn, trả (Reader)" {
+    usecase "Xem sách đang mượn\n& lịch sử" as UC10
+    usecase "Gia hạn sách" as UC09
+    usecase "Xem tiền phạt" as UC12a
+  }
+  package "F7 / F9 Đánh giá & AI" {
+    usecase "Đánh giá sách" as UC17
+    usecase "Nhận gợi ý sách" as UC18
+  }
+  package "F11-F14 Đặt trước, thông báo,\ntài khoản, thanh toán" {
+    usecase "Đặt trước sách" as UC23
+    usecase "Nhận thông báo\nnhắc hạn" as UC24
+    usecase "Đổi / quên\nmật khẩu" as UC25
+    usecase "Thanh toán phạt\ntrực tuyến" as UC26
+  }
+}
+
+Reader --> UC01
+Reader --> UC02
+Reader --> UC05
+Reader --> UC06
+Reader --> UC10
+Reader --> UC09
+Reader --> UC12a
+Reader --> UC17
+Reader --> UC18
+Reader --> UC23
+Reader --> UC24
+Reader --> UC25
+Reader --> UC26
+
+UC18 --> AI
+UC25 --> RS
+UC24 --> RS
+UC26 --> VN
+@enduml
