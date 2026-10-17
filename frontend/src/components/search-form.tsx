@@ -3,6 +3,7 @@
 import { Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import "./public/public.css";
 
 /**
  * Ô tìm kiếm. Dạng `large` là nhân vật chính của trang chủ (bo tròn lớn, bóng nổi);
@@ -52,7 +53,7 @@ export function SearchForm({
           autoFocus={autoFocus}
           onChange={(event) => setValue(event.target.value)}
           placeholder="Tên sách, tác giả, ISBN"
-          className={`w-full rounded-xl bg-transparent text-ink outline-none placeholder:text-ink-faint [&::-webkit-search-cancel-button]:hidden ${
+          className={`search-input w-full rounded-xl bg-transparent text-ink outline-none placeholder:text-ink-faint [&::-webkit-search-cancel-button]:hidden ${
             large ? "h-12 pl-12 pr-3 text-base sm:text-lg" : "h-10 pl-10 pr-3 text-sm"
           }`}
         />

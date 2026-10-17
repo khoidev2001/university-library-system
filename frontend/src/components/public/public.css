@@ -32,3 +32,9 @@
 }
 
 .anim-marquee:has(:focus-visible) { animation-play-state: paused; }
+
+/* Ô tìm kiếm tự có viền focus trên cả khung (focus-within), nên bỏ viền focus riêng của ô nhập.
+   Quy tắc chung của hệ thống không nằm trong layer nên phải ghi đè bằng quy tắc không layer. */
+.search-input:focus-visible {
+  outline: none;
+}
