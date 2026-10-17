@@ -1,5 +1,7 @@
-import Link from "next/link";
 import type { Metadata } from "next";
+import { NotFoundArt } from "@/components/public/not-found-art";
+import { SearchForm } from "@/components/search-form";
+import { ButtonLink } from "@/components/ui";
 
 export const metadata: Metadata = {
   title: "Không tìm thấy trang",
@@ -8,19 +10,23 @@ export const metadata: Metadata = {
 
 export default function NotFound() {
   return (
-    <div className="mx-auto max-w-md px-4 py-24 text-center sm:px-6">
-      <p className="font-serif text-5xl font-bold text-ink-faint">404</p>
-      <h1 className="mt-4 font-serif text-2xl font-bold">Không tìm thấy trang này</h1>
-      <p className="mt-2 text-sm text-ink-soft">
-        Đường dẫn có thể đã thay đổi, hoặc cuốn sách bạn tìm không còn trong danh mục.
-      </p>
-      <div className="mt-7 flex justify-center gap-3">
-        <Link href="/" className="rounded-md bg-ink px-5 py-2.5 text-sm font-medium text-paper hover:bg-ink/90">
-          Về trang chủ
-        </Link>
-        <Link href="/books" className="rounded-md border border-line bg-white px-5 py-2.5 text-sm font-medium hover:bg-paper-2">
-          Tra cứu sách
-        </Link>
+    <div className="bg-aurora">
+      <div className="mx-auto max-w-2xl px-4 pb-20 pt-12 text-center sm:px-6 sm:pt-16">
+        <NotFoundArt className="mx-auto h-auto w-full max-w-sm" />
+        <h1 className="anim-rise mt-6 text-3xl font-bold tracking-tight sm:text-5xl">Cuốn này đã lạc khỏi kệ</h1>
+        <p className="anim-rise-2 mx-auto mt-4 max-w-md text-base leading-relaxed text-ink-soft">
+          Đường dẫn có thể đã thay đổi, hoặc cuốn sách bạn tìm không còn trong danh mục. Thử tìm lại bằng tên sách
+          hoặc tác giả.
+        </p>
+        <div className="anim-rise-3 mx-auto mt-8 max-w-lg">
+          <SearchForm size="compact" />
+        </div>
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <ButtonLink href="/">Về trang chủ</ButtonLink>
+          <ButtonLink href="/books" variant="ghost">
+            Duyệt danh mục
+          </ButtonLink>
+        </div>
       </div>
     </div>
   );
