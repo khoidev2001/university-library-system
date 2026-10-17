@@ -7,8 +7,22 @@ import { apiFetch, formatCurrency, formatDate, formatDateTime } from "@/lib/api"
 import { useAuth } from "@/lib/auth";
 import type { Fine, Page } from "@/lib/types";
 import { ExportButtons } from "../export-buttons";
-import { Badge, PageHeading, Spinner } from "../ui";
-import { Pagination, TableShell, Th, Toolbar, errorText, useNotice } from "./admin-ui";
+import { EmptyState, PageHeading } from "../ui";
+import {
+  FilterTabs,
+  Pagination,
+  RowButton,
+  StatusBadge,
+  TableShell,
+  TableSkeleton,
+  Td,
+  Th,
+  Toolbar,
+  Tr,
+  errorText,
+  useConfirm,
+  useNotice,
+} from "./admin-ui";
 
 const LIMIT = 15;
 
@@ -27,6 +41,7 @@ export function FinesAdminView() {
   const queryClient = useQueryClient();
   const params = useSearchParams();
   const { show, node } = useNotice();
+  const { confirm, dialog: confirmDialog } = useConfirm();
 
   const [filter, setFilter] = useState<Filter>(() => {
     const paid = params.get("paid");
@@ -63,40 +78,31 @@ export function FinesAdminView() {
     },
   });
 
-  const pageTotal = (fines.data?.items ?? []).reduce((sum, fine) => sum + fine.amount, 0);
+  const items = fines.data?.items ?? [];
+  const pageTotal = items.reduce((sum, fine) => sum + fine.amount, 0);
 
   return (
     <div>
       <PageHeading
-        eyebrow="Nghiệp vụ"
         title="Khoản phạt"
         description="Ghi nhận thu tiền mặt tại quầy; khoản bạn đọc trả qua VNPay tự được ghi nhận. Bạn đọc còn nợ phạt sẽ chưa mượn thêm được sách."
       />
       {node}
+      {confirmDialog}
 
       <Toolbar>
-        <div role="tablist" aria-label="Lọc khoản phạt" className="flex gap-1 rounded-lg border border-line bg-white p-1">
-          {FILTERS.map((item) => (
-            <button
-              key={item.value}
-              type="button"
-              role="tab"
-              aria-selected={filter === item.value}
-              onClick={() => {
-                setFilter(item.value);
-                setPage(1);
-              }}
-              className={`min-h-10 rounded-md px-3.5 py-1.5 text-sm ${
-                filter === item.value ? "bg-ink font-medium text-paper" : "text-ink-soft hover:bg-paper-2"
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
+        <FilterTabs
+          label="Lọc khoản phạt"
+          value={filter}
+          items={FILTERS}
+          onChange={(value) => {
+            setFilter(value);
+            setPage(1);
+          }}
+        />
         {fines.data && (
-          <p className="text-sm text-ink-soft">
-            Tổng trang này: <strong className="text-ink">{formatCurrency(pageTotal)}</strong>
+          <p className="rounded-full bg-white px-4 py-2 text-sm text-ink-soft ring-1 ring-line">
+            Tổng trang này: <strong className="font-bold tabular-nums text-ink">{formatCurrency(pageTotal)}</strong>
           </p>
         )}
       </Toolbar>
@@ -111,110 +117,111 @@ export function FinesAdminView() {
 
       <div className="mt-5">
         {fines.isLoading ? (
-          <Spinner />
+          <TableSkeleton rows={8} cols={5} />
+        ) : items.length === 0 ? (
+          <EmptyState
+            title={filter === "UNPAID" ? "Không còn khoản phạt nào chưa thu" : "Không có khoản phạt nào ở mục này"}
+            hint={filter === "UNPAID" ? "Mọi khoản phạt đã được thu. Khoản mới sẽ hiện ở đây khi phát sinh." : undefined}
+          />
         ) : (
-          <TableShell minWidth={720}>
+          <TableShell minWidth={780}>
             <caption className="sr-only">Danh sách khoản phạt</caption>
-            <thead className="border-b border-line bg-paper-2">
+            <thead>
               <tr>
                 <Th>Bạn đọc</Th>
                 <Th>Sách</Th>
                 <Th>Loại</Th>
                 <Th>Số tiền</Th>
                 <Th>Trạng thái</Th>
-                <Th align="right"><span className="sr-only">Thao tác</span></Th>
+                <Th align="right">
+                  <span className="sr-only">Thao tác</span>
+                </Th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-line">
-              {(fines.data?.items ?? []).map((fine) => (
-                <tr key={fine.id}>
-                  <td className="px-4 py-3">
-                    <span className="font-medium">{fine.loan?.user.fullName}</span>
-                    <span className="block text-xs text-ink-faint">{fine.loan?.user.memberCode}</span>
-                  </td>
-                  <td className="px-4 py-3">{fine.loan?.copy.book.title}</td>
-                  <td className="px-4 py-3">
-                    <Badge tone={fine.type === "LOST" ? "bad" : "warn"}>
+            <tbody>
+              {items.map((fine, index) => (
+                <Tr key={fine.id} index={index}>
+                  <Td className="whitespace-nowrap">
+                    <span className="font-semibold">{fine.loan?.user.fullName}</span>
+                    <span className="block text-xs tabular-nums text-ink-faint">{fine.loan?.user.memberCode}</span>
+                  </Td>
+                  <Td className="max-w-[16rem]">
+                    <span className="line-clamp-2">{fine.loan?.copy.book.title}</span>
+                  </Td>
+                  <Td>
+                    <StatusBadge tone={fine.type === "LOST" ? "bad" : "warn"}>
                       {fine.type === "LOST" ? "Mất sách" : "Trả trễ"}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 font-medium">{formatCurrency(fine.amount)}</td>
-                  <td className="px-4 py-3">
+                    </StatusBadge>
+                  </Td>
+                  <Td className="whitespace-nowrap font-bold tabular-nums">{formatCurrency(fine.amount)}</Td>
+                  <Td>
                     {fine.paidAt ? (
-                      <span className="space-y-1">
+                      <span className="flex flex-col items-start gap-1">
                         {fine.onlinePayment?.status === "PAID" ? (
-                          <Badge tone="info">Đã thanh toán qua VNPay</Badge>
+                          <StatusBadge tone="info">Đã thanh toán qua VNPay</StatusBadge>
                         ) : (
-                          <Badge tone="good">Đã thu</Badge>
+                          <StatusBadge tone="good">Đã thu</StatusBadge>
                         )}
-                        <span className="block text-xs text-ink-faint">{formatDate(fine.paidAt)}</span>
+                        <span className="text-xs text-ink-faint">{formatDate(fine.paidAt)}</span>
                         {fine.onlinePayment?.status === "PAID" && (
-                          <span className="block text-xs text-ink-faint">
+                          <span className="text-xs tabular-nums text-ink-faint">
                             GD {fine.onlinePayment.vnpTransactionNo ?? fine.onlinePayment.txnRef}
                             {fine.onlinePayment.bankCode ? ` · ${fine.onlinePayment.bankCode}` : ""}
                           </span>
                         )}
                       </span>
                     ) : fine.onlinePayment?.status === "PENDING" ? (
-                      <span className="space-y-1">
-                        <Badge tone="warn">Đang chờ thanh toán VNPay</Badge>
-                        <span className="block text-xs text-ink-faint">
+                      <span className="flex flex-col items-start gap-1">
+                        <StatusBadge tone="warn">Đang chờ thanh toán VNPay</StatusBadge>
+                        <span className="text-xs text-ink-faint">
                           Hết hạn {formatDateTime(fine.onlinePayment.expiresAt)}
                         </span>
                       </span>
                     ) : (
-                      <Badge tone="warn">Chưa thu</Badge>
+                      <StatusBadge tone="warn">Chưa thu</StatusBadge>
                     )}
-                  </td>
-                  <td className="px-4 py-3">
+                  </Td>
+                  <Td>
                     <div className="flex justify-end">
                       {!fine.paidAt && fine.onlinePayment?.status === "PENDING" && (
-                        <button
-                          type="button"
+                        <RowButton
                           aria-label={`Huỷ giao dịch VNPay đang chờ của ${fine.loan?.user.fullName ?? "bạn đọc"}`}
                           disabled={cancelOnline.isPending}
-                          onClick={() => {
-                            if (
-                              window.confirm(
-                                `Huỷ giao dịch VNPay đang chờ của ${fine.loan?.user.fullName}? Nếu bạn đọc vẫn trả bên VNPay, khoản tiền đó sẽ cần hoàn lại.`,
-                              )
-                            ) {
-                              cancelOnline.mutate(fine.onlinePayment!.id);
-                            }
+                          onClick={async () => {
+                            const ok = await confirm({
+                              title: "Huỷ giao dịch đang chờ",
+                              message: `Huỷ giao dịch VNPay đang chờ của ${fine.loan?.user.fullName}? Nếu bạn đọc vẫn trả bên VNPay, khoản tiền đó sẽ cần hoàn lại.`,
+                              confirmLabel: "Huỷ giao dịch",
+                            });
+                            if (ok) cancelOnline.mutate(fine.onlinePayment!.id);
                           }}
-                          className="min-h-10 whitespace-nowrap rounded-md border border-line px-3 py-1.5 text-xs font-medium hover:bg-paper-2 disabled:opacity-50"
                         >
                           Huỷ giao dịch chờ
-                        </button>
+                        </RowButton>
                       )}
                       {!fine.paidAt && fine.onlinePayment?.status !== "PENDING" && (
-                        <button
-                          type="button"
+                        <RowButton
                           aria-label={`Thu tiền phạt của ${fine.loan?.user.fullName ?? "bạn đọc"}`}
                           disabled={pay.isPending}
-                          onClick={() => {
-                            if (
-                              window.confirm(
-                                `Xác nhận đã thu ${formatCurrency(fine.amount)} của ${fine.loan?.user.fullName}?`,
-                              )
-                            ) {
-                              pay.mutate(fine);
-                            }
+                          onClick={async () => {
+                            const ok = await confirm({
+                              title: "Xác nhận thu tiền",
+                              message: `Xác nhận đã thu ${formatCurrency(fine.amount)} của ${fine.loan?.user.fullName}?`,
+                              confirmLabel: "Đã thu tiền",
+                              tone: "primary",
+                            });
+                            if (ok) pay.mutate(fine);
                           }}
-                          className="min-h-10 whitespace-nowrap rounded-md border border-line px-3 py-1.5 text-xs font-medium hover:bg-paper-2 disabled:opacity-50"
                         >
                           Thu tiền
-                        </button>
+                        </RowButton>
                       )}
                     </div>
-                  </td>
-                </tr>
+                  </Td>
+                </Tr>
               ))}
             </tbody>
           </TableShell>
-        )}
-        {fines.data?.items.length === 0 && (
-          <p className="py-10 text-center text-sm text-ink-soft">Không có khoản phạt nào ở mục này.</p>
         )}
         {fines.data && <Pagination page={page} total={fines.data.total} limit={LIMIT} onPage={setPage} />}
       </div>

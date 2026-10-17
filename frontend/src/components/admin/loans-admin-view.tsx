@@ -7,8 +7,24 @@ import { apiFetch, describeDueDate, formatCurrency, formatDate } from "@/lib/api
 import { useAuth } from "@/lib/auth";
 import type { Fine, Loan, LoanStatus, Page } from "@/lib/types";
 import { ExportButtons } from "../export-buttons";
-import { Badge, PageHeading, RiskMeter, Spinner, inputClass } from "../ui";
-import { Pagination, TableShell, Th, Toolbar, errorText, useNotice } from "./admin-ui";
+import { EmptyState, PageHeading, RiskMeter } from "../ui";
+import {
+  BookThumb,
+  FilterTabs,
+  Pagination,
+  RowButton,
+  SearchInput,
+  StatusBadge,
+  TableShell,
+  TableSkeleton,
+  Td,
+  Th,
+  Toolbar,
+  Tr,
+  errorText,
+  useConfirm,
+  useNotice,
+} from "./admin-ui";
 
 const LIMIT = 15;
 
@@ -39,11 +55,11 @@ export function LoansAdminView() {
   const queryClient = useQueryClient();
   const params = useSearchParams();
   const { show, node } = useNotice();
+  const { confirm, dialog: confirmDialog } = useConfirm();
 
   const [filter, setFilter] = useState<Filter>(() => initialFilter(params.get("status"), params.get("overdue")));
   const [page, setPage] = useState(1);
   const [reader, setReader] = useState("");
-  const [readerQuery, setReaderQuery] = useState("");
 
   const loans = useQuery({
     queryKey: ["admin-loans", filter, page],
@@ -92,7 +108,7 @@ export function LoansAdminView() {
   const busy = giveBack.isPending || reportLost.isPending;
 
   // Lọc theo tên, mã thẻ hoặc tên sách ngay trên trang đang xem
-  const needle = readerQuery.toLowerCase();
+  const needle = reader.trim().toLowerCase();
   const rows = (loans.data?.items ?? []).filter(
     (loan) =>
       !needle ||
@@ -105,49 +121,30 @@ export function LoansAdminView() {
   return (
     <div>
       <PageHeading
-        eyebrow="Nghiệp vụ"
         title="Phiếu mượn"
         description="Theo dõi mọi phiếu mượn, nhận trả sách hoặc ghi nhận mất sách ngay trên danh sách."
       />
       {node}
+      {confirmDialog}
 
       <Toolbar>
-        <div role="tablist" aria-label="Lọc phiếu mượn" className="flex flex-wrap gap-1 rounded-lg border border-line bg-white p-1">
-          {FILTERS.map((item) => (
-            <button
-              key={item.value}
-              type="button"
-              role="tab"
-              aria-selected={filter === item.value}
-              onClick={() => {
-                setFilter(item.value);
-                setPage(1);
-              }}
-              className={`min-h-10 rounded-md px-3.5 py-1.5 text-sm ${
-                filter === item.value ? "bg-ink font-medium text-paper" : "text-ink-soft hover:bg-paper-2"
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-        <form
-          className="flex flex-1 gap-2"
-          onSubmit={(event) => {
-            event.preventDefault();
-            setReaderQuery(reader.trim());
+        <FilterTabs
+          label="Lọc phiếu mượn"
+          value={filter}
+          items={FILTERS}
+          onChange={(value) => {
+            setFilter(value);
+            setPage(1);
           }}
-        >
-          <label htmlFor="admin-loans-q" className="sr-only">Lọc trong trang</label>
-          <input
+        />
+        <form className="flex min-w-[220px] flex-1" onSubmit={(event) => event.preventDefault()}>
+          <SearchInput
             id="admin-loans-q"
+            label="Lọc trong trang"
             value={reader}
-            onChange={(e) => {
-              setReader(e.target.value);
-              if (!e.target.value) setReaderQuery("");
-            }}
-            className={`${inputClass} max-w-sm`}
+            onChange={setReader}
             placeholder="Lọc theo bạn đọc, sách hoặc mã vạch"
+            className="max-w-md"
           />
         </form>
       </Toolbar>
@@ -162,77 +159,82 @@ export function LoansAdminView() {
 
       <div className="mt-5">
         {loans.isLoading ? (
-          <Spinner />
+          <TableSkeleton rows={8} cols={5} />
+        ) : rows.length === 0 ? (
+          <EmptyState
+            title="Không có phiếu mượn nào khớp"
+            hint={needle ? "Thử xoá từ khoá lọc hoặc chuyển sang trang khác." : "Chưa có phiếu nào ở mục này."}
+          />
         ) : (
-          <TableShell minWidth={860}>
+          <TableShell minWidth={900}>
             <caption className="sr-only">Danh sách phiếu mượn</caption>
-            <thead className="border-b border-line bg-paper-2">
+            <thead>
               <tr>
                 <Th>Bạn đọc</Th>
                 <Th>Sách</Th>
                 <Th>Mượn</Th>
                 <Th>Hạn trả</Th>
                 <Th>Tình trạng</Th>
-                <Th align="right"><span className="sr-only">Thao tác</span></Th>
+                <Th align="right">
+                  <span className="sr-only">Thao tác</span>
+                </Th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-line">
-              {rows.map((loan) => (
-                <tr key={loan.id}>
-                  <td className="px-4 py-3">
-                    <span className="font-medium">{loan.user.fullName}</span>
-                    <span className="block text-xs text-ink-faint">{loan.user.memberCode}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    {loan.copy.book.title}
-                    <span className="block font-mono text-xs text-ink-faint">{loan.copy.barcode}</span>
-                  </td>
-                  <td className="px-4 py-3 text-ink-soft">{formatDate(loan.borrowedAt)}</td>
-                  <td className="px-4 py-3 text-ink-soft">{formatDate(loan.dueAt)}</td>
-                  <td className="px-4 py-3">
+            <tbody>
+              {rows.map((loan, index) => (
+                <Tr key={loan.id} index={index}>
+                  <Td className="whitespace-nowrap">
+                    <span className="font-semibold">{loan.user.fullName}</span>
+                    <span className="block text-xs tabular-nums text-ink-faint">{loan.user.memberCode}</span>
+                  </Td>
+                  <Td>
+                    <div className="flex items-center gap-3">
+                      <BookThumb coverUrl={loan.copy.book.coverUrl} title={loan.copy.book.title} />
+                      <div className="min-w-0">
+                        <span className="line-clamp-2">{loan.copy.book.title}</span>
+                        <span className="block text-xs tabular-nums text-ink-faint">Mã vạch {loan.copy.barcode}</span>
+                      </div>
+                    </div>
+                  </Td>
+                  <Td className="whitespace-nowrap text-ink-soft">{formatDate(loan.borrowedAt)}</Td>
+                  <Td className="whitespace-nowrap text-ink-soft">{formatDate(loan.dueAt)}</Td>
+                  <Td>
                     <LoanStatusCell loan={loan} />
-                  </td>
-                  <td className="px-4 py-3">
+                  </Td>
+                  <Td>
                     <div className="flex justify-end gap-2">
                       {loan.status === "ACTIVE" && (
                         <>
-                          <button
-                            type="button"
+                          <RowButton
                             aria-label={`Nhận trả ${loan.copy.book.title}`}
                             disabled={busy}
                             onClick={() => giveBack.mutate(loan)}
-                            className="rounded-md border border-line px-3 py-1.5 text-xs font-medium hover:bg-paper-2 disabled:opacity-50"
                           >
                             Nhận trả
-                          </button>
-                          <button
-                            type="button"
+                          </RowButton>
+                          <RowButton
+                            danger
                             aria-label={`Báo mất ${loan.copy.book.title}`}
                             disabled={busy}
-                            onClick={() => {
-                              if (
-                                window.confirm(
-                                  `Ghi nhận mất "${loan.copy.book.title}"? Bạn đọc sẽ bị phạt theo giá bìa ${formatCurrency(loan.copy.book.price)}.`,
-                                )
-                              ) {
-                                reportLost.mutate(loan);
-                              }
+                            onClick={async () => {
+                              const ok = await confirm({
+                                title: "Ghi nhận mất sách",
+                                message: `Ghi nhận mất "${loan.copy.book.title}"? Bạn đọc sẽ bị phạt theo giá bìa ${formatCurrency(loan.copy.book.price)}.`,
+                                confirmLabel: "Ghi nhận mất",
+                              });
+                              if (ok) reportLost.mutate(loan);
                             }}
-                            className="rounded-md border border-brand/30 px-3 py-1.5 text-xs font-medium text-brand hover:bg-brand-soft disabled:opacity-50"
                           >
                             Báo mất
-                          </button>
+                          </RowButton>
                         </>
                       )}
                     </div>
-                  </td>
-                </tr>
+                  </Td>
+                </Tr>
               ))}
             </tbody>
           </TableShell>
-        )}
-        {rows.length === 0 && !loans.isLoading && (
-          <p className="py-10 text-center text-sm text-ink-soft">Không có phiếu mượn nào khớp.</p>
         )}
         {loans.data && <Pagination page={page} total={loans.data.total} limit={LIMIT} onPage={setPage} />}
       </div>
@@ -243,21 +245,19 @@ export function LoansAdminView() {
 function LoanStatusCell({ loan }: { loan: Loan }) {
   if (loan.status === "RETURNED") {
     return (
-      <span className="space-y-1">
-        <Badge tone="good">Đã trả</Badge>
-        {loan.returnedAt && <span className="block text-xs text-ink-faint">{formatDate(loan.returnedAt)}</span>}
+      <span className="flex flex-col items-start gap-1">
+        <StatusBadge tone="good">Đã trả</StatusBadge>
+        {loan.returnedAt && <span className="text-xs text-ink-faint">{formatDate(loan.returnedAt)}</span>}
       </span>
     );
   }
-  if (loan.status === "LOST") return <Badge tone="bad">Mất sách</Badge>;
+  if (loan.status === "LOST") return <StatusBadge tone="bad">Mất sách</StatusBadge>;
   return (
-    <span className="space-y-1">
-      <Badge tone={loan.isOverdue ? "bad" : "info"}>{describeDueDate(loan.dueAt, loan.isOverdue, loan.overdueDays)}</Badge>
-      {!loan.isOverdue && (
-        <span className="block">
-          <RiskMeter risk={loan.predictedOverdueRisk} />
-        </span>
-      )}
+    <span className="flex flex-col items-start gap-1 whitespace-nowrap">
+      <StatusBadge tone={loan.isOverdue ? "bad" : "info"}>
+        {describeDueDate(loan.dueAt, loan.isOverdue, loan.overdueDays)}
+      </StatusBadge>
+      {!loan.isOverdue && <RiskMeter risk={loan.predictedOverdueRisk} />}
     </span>
   );
 }

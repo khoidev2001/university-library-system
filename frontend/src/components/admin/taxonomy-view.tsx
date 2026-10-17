@@ -1,24 +1,36 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { FolderTree, Plus } from "lucide-react";
 import { useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { Author, Category, Page } from "@/lib/types";
-import { Badge, Button, Card, PageHeading, Spinner, inputClass } from "../ui";
-import { Modal, Pagination, errorText, useNotice } from "./admin-ui";
+import { Button, Card, EmptyState, Field, PageHeading, inputClass } from "../ui";
+import {
+  Avatar,
+  FormActions,
+  FormError,
+  ListSkeleton,
+  Modal,
+  Pagination,
+  RowButton,
+  SearchInput,
+  errorText,
+  useConfirm,
+  useNotice,
+} from "./admin-ui";
 
 export function TaxonomyView() {
   const { show, node } = useNotice();
   return (
     <div>
       <PageHeading
-        eyebrow="Kho sách"
         title="Tác giả và thể loại"
         description="Thể loại hoặc tác giả đang gắn với sách thì không xoá được, hãy chuyển sách sang mục khác trước."
       />
       {node}
-      <div className="mt-6 grid gap-6 xl:grid-cols-2">
+      <div className="mt-6 grid gap-4 xl:grid-cols-2">
         <CategoriesPanel notify={show} />
         <AuthorsPanel notify={show} />
       </div>
@@ -31,6 +43,7 @@ type Notify = (tone: "good" | "bad", text: string) => void;
 function CategoriesPanel({ notify }: { notify: Notify }) {
   const { token } = useAuth();
   const queryClient = useQueryClient();
+  const { confirm, dialog: confirmDialog } = useConfirm();
   const [editing, setEditing] = useState<Category | "new" | null>(null);
 
   const categories = useQuery({
@@ -49,37 +62,61 @@ function CategoriesPanel({ notify }: { notify: Notify }) {
     onError: (error) => notify("bad", errorText(error, "Không xoá được thể loại.")),
   });
 
+  const list = categories.data ?? [];
+
   return (
     <Card>
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="font-serif text-lg font-bold">Thể loại</h2>
-        <Button onClick={() => setEditing("new")}>Thêm thể loại</Button>
+      {confirmDialog}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-bold">Thể loại</h2>
+          <p className="text-sm text-ink-faint">{categories.data ? `${list.length} thể loại` : "Đang tải..."}</p>
+        </div>
+        <Button onClick={() => setEditing("new")}>
+          <Plus size={18} aria-hidden="true" />
+          Thêm thể loại
+        </Button>
       </div>
       {categories.isLoading ? (
-        <Spinner />
+        <ListSkeleton />
+      ) : list.length === 0 ? (
+        <div className="mt-4">
+          <EmptyState title="Chưa có thể loại nào" hint="Thêm thể loại đầu tiên để phân loại sách trong kho." />
+        </div>
       ) : (
-        <ul className="mt-4 divide-y divide-line">
-          {(categories.data ?? []).map((category) => (
-            <li key={category.id} className="flex items-center gap-3 py-2.5 text-sm">
-              <span className="min-w-0 flex-1">
-                <span className="font-medium">{category.name}</span>
-                <span className="block text-xs text-ink-faint">{category.slug}</span>
+        <ul className="mt-4 space-y-1">
+          {list.map((category) => (
+            <li
+              key={category.id}
+              className="flex items-center gap-3 rounded-2xl px-2 py-2 text-sm transition-colors hover:bg-paper"
+            >
+              <span aria-hidden="true" className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary">
+                <FolderTree size={18} />
               </span>
-              <Badge tone="neutral">{category.bookCount ?? 0} sách</Badge>
-              <button type="button" aria-label={`Sửa thể loại ${category.name}`} onClick={() => setEditing(category)} className="rounded-md border border-line min-h-10 px-3 py-1.5 text-xs font-medium hover:bg-paper-2">
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-semibold">{category.name}</span>
+                <span className="block truncate text-xs text-ink-faint">
+                  {category.slug} · {(category.bookCount ?? 0).toLocaleString("vi-VN")} sách
+                </span>
+              </span>
+              <RowButton aria-label={`Sửa thể loại ${category.name}`} onClick={() => setEditing(category)}>
                 Sửa
-              </button>
-              <button
-                type="button"
+              </RowButton>
+              <RowButton
+                danger
                 aria-label={`Xoá thể loại ${category.name}`}
                 disabled={remove.isPending}
-                onClick={() => {
-                  if (window.confirm(`Xoá thể loại ${category.name}?`)) remove.mutate(category);
+                onClick={async () => {
+                  const ok = await confirm({
+                    title: "Xoá thể loại",
+                    message: `Xoá thể loại ${category.name}? Thể loại đang có sách thì sẽ không xoá được.`,
+                    confirmLabel: "Xoá thể loại",
+                  });
+                  if (ok) remove.mutate(category);
                 }}
-                className="rounded-md border border-brand/30 min-h-10 px-3 py-1.5 text-xs font-medium text-brand hover:bg-brand-soft disabled:opacity-50"
               >
                 Xoá
-              </button>
+              </RowButton>
             </li>
           ))}
         </ul>
@@ -134,20 +171,21 @@ function CategoryModal({
           save.mutate();
         }}
       >
-        <div>
-          <label htmlFor="cat-name" className="block text-sm font-medium">Tên thể loại</label>
-          <input id="cat-name" required minLength={2} maxLength={100} value={name} onChange={(e) => setName(e.target.value)} className={`${inputClass} mt-1.5`} />
-        </div>
-        <div>
-          <label htmlFor="cat-slug" className="block text-sm font-medium">Đường dẫn (slug)</label>
-          <p className="mt-0.5 text-xs text-ink-faint">Chữ thường, số, dấu gạch ngang. Bỏ trống để tự sinh từ tên.</p>
-          <input id="cat-slug" pattern="[a-z0-9]+(-[a-z0-9]+)*" value={slug} onChange={(e) => setSlug(e.target.value)} className={`${inputClass} mt-1.5`} />
-        </div>
-        {error && <p role="alert" className="rounded-md bg-brand-soft px-3 py-2 text-sm text-brand">{error}</p>}
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={onClose}>Huỷ</Button>
-          <Button type="submit" disabled={save.isPending}>{save.isPending ? "Đang lưu..." : "Lưu"}</Button>
-        </div>
+        <Field label="Tên thể loại" htmlFor="cat-name">
+          <input id="cat-name" required minLength={2} maxLength={100} value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
+        </Field>
+        <Field label="Đường dẫn (slug)" hint="Chữ thường, số, dấu gạch ngang. Bỏ trống để tự sinh từ tên." htmlFor="cat-slug">
+          <input id="cat-slug" pattern="[a-z0-9]+(-[a-z0-9]+)*" value={slug} onChange={(e) => setSlug(e.target.value)} className={inputClass} />
+        </Field>
+        {error && <FormError>{error}</FormError>}
+        <FormActions>
+          <Button type="button" variant="ghost" onClick={onClose}>
+            Huỷ
+          </Button>
+          <Button type="submit" disabled={save.isPending}>
+            {save.isPending ? "Đang lưu..." : "Lưu"}
+          </Button>
+        </FormActions>
       </form>
     </Modal>
   );
@@ -158,6 +196,7 @@ const AUTHOR_LIMIT = 12;
 function AuthorsPanel({ notify }: { notify: Notify }) {
   const { token } = useAuth();
   const queryClient = useQueryClient();
+  const { confirm, dialog: confirmDialog } = useConfirm();
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -181,50 +220,76 @@ function AuthorsPanel({ notify }: { notify: Notify }) {
     onError: (error) => notify("bad", errorText(error, "Không xoá được tác giả.")),
   });
 
+  const items = authors.data?.items ?? [];
+
   return (
     <Card>
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="font-serif text-lg font-bold">Tác giả</h2>
-        <Button onClick={() => setEditing("new")}>Thêm tác giả</Button>
+      {confirmDialog}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-bold">Tác giả</h2>
+          <p className="text-sm text-ink-faint">
+            {authors.data ? `${authors.data.total.toLocaleString("vi-VN")} tác giả` : "Đang tải..."}
+          </p>
+        </div>
+        <Button onClick={() => setEditing("new")}>
+          <Plus size={18} aria-hidden="true" />
+          Thêm tác giả
+        </Button>
       </div>
       <form
-        className="mt-4 flex gap-2"
+        className="mt-4 flex items-center gap-2"
         onSubmit={(event) => {
           event.preventDefault();
           setQuery(search.trim());
           setPage(1);
         }}
       >
-        <label htmlFor="author-q" className="sr-only">Tìm tác giả</label>
-        <input id="author-q" value={search} onChange={(e) => setSearch(e.target.value)} className={inputClass} placeholder="Tên tác giả" />
-        <Button type="submit" variant="ghost">Tìm</Button>
+        <SearchInput id="author-q" label="Tìm tác giả" value={search} onChange={setSearch} placeholder="Tên tác giả" />
+        <Button type="submit" variant="ghost">
+          Tìm
+        </Button>
       </form>
       {authors.isLoading ? (
-        <Spinner />
+        <ListSkeleton />
+      ) : items.length === 0 ? (
+        <div className="mt-4">
+          <EmptyState title="Không tìm thấy tác giả" hint="Thử tên khác, hoặc thêm tác giả mới bằng nút phía trên." />
+        </div>
       ) : (
-        <ul className="mt-3 divide-y divide-line">
-          {(authors.data?.items ?? []).map((author) => (
-            <li key={author.id} className="flex items-center gap-3 py-2.5 text-sm">
-              <span className="min-w-0 flex-1 truncate font-medium">{author.name}</span>
-              <Badge tone="neutral">{author.bookCount ?? 0} sách</Badge>
-              <button type="button" aria-label={`Sửa tác giả ${author.name}`} onClick={() => setEditing(author)} className="rounded-md border border-line min-h-10 px-3 py-1.5 text-xs font-medium hover:bg-paper-2">
+        <ul className="mt-3 space-y-1">
+          {items.map((author) => (
+            <li
+              key={author.id}
+              className="flex items-center gap-3 rounded-2xl px-2 py-2 text-sm transition-colors hover:bg-paper"
+            >
+              <Avatar name={author.name} size={40} />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-semibold">{author.name}</span>
+                <span className="block text-xs text-ink-faint">{(author.bookCount ?? 0).toLocaleString("vi-VN")} sách</span>
+              </span>
+              <RowButton aria-label={`Sửa tác giả ${author.name}`} onClick={() => setEditing(author)}>
                 Sửa
-              </button>
-              <button
-                type="button"
+              </RowButton>
+              <RowButton
+                danger
+                aria-label={`Xoá tác giả ${author.name}`}
                 disabled={remove.isPending}
-                onClick={() => {
-                  if (window.confirm(`Xoá tác giả ${author.name}?`)) remove.mutate(author);
+                onClick={async () => {
+                  const ok = await confirm({
+                    title: "Xoá tác giả",
+                    message: `Xoá tác giả ${author.name}? Tác giả đang có sách thì sẽ không xoá được.`,
+                    confirmLabel: "Xoá tác giả",
+                  });
+                  if (ok) remove.mutate(author);
                 }}
-                className="rounded-md border border-brand/30 min-h-10 px-3 py-1.5 text-xs font-medium text-brand hover:bg-brand-soft disabled:opacity-50"
               >
                 Xoá
-              </button>
+              </RowButton>
             </li>
           ))}
         </ul>
       )}
-      {authors.data?.items.length === 0 && <p className="py-6 text-center text-sm text-ink-soft">Không tìm thấy tác giả.</p>}
       {authors.data && <Pagination page={page} total={authors.data.total} limit={AUTHOR_LIMIT} onPage={setPage} />}
       {editing && (
         <AuthorModal
@@ -275,15 +340,18 @@ function AuthorModal({
           save.mutate();
         }}
       >
-        <div>
-          <label htmlFor="author-name" className="block text-sm font-medium">Tên tác giả</label>
-          <input id="author-name" required maxLength={150} value={name} onChange={(e) => setName(e.target.value)} className={`${inputClass} mt-1.5`} />
-        </div>
-        {error && <p role="alert" className="rounded-md bg-brand-soft px-3 py-2 text-sm text-brand">{error}</p>}
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={onClose}>Huỷ</Button>
-          <Button type="submit" disabled={save.isPending}>{save.isPending ? "Đang lưu..." : "Lưu"}</Button>
-        </div>
+        <Field label="Tên tác giả" htmlFor="author-name">
+          <input id="author-name" required maxLength={150} value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
+        </Field>
+        {error && <FormError>{error}</FormError>}
+        <FormActions>
+          <Button type="button" variant="ghost" onClick={onClose}>
+            Huỷ
+          </Button>
+          <Button type="submit" disabled={save.isPending}>
+            {save.isPending ? "Đang lưu..." : "Lưu"}
+          </Button>
+        </FormActions>
       </form>
     </Modal>
   );
