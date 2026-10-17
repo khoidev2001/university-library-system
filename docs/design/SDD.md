@@ -131,7 +131,7 @@ Ba actor chính với quyền lồng nhau (Admin bao hàm Librarian; các chức
 
 ## 3.2. Class Diagram
 
-Sơ đồ lớp gồm hai gói: **Domain** (entity ánh xạ 1-1 với Prisma schema, có phương thức dẫn xuất `isOverdue`, `overdueDays`) và **Application** (các Service của NestJS và hai client ra ngoài `AiClient`, `GoogleBooksClient`). `LoansService` là lớp trung tâm của nghiệp vụ: phụ thuộc `PoliciesService` (lấy chính sách), `FinesService` (tính/tạo phạt), `CopiesService` (đổi trạng thái bản sao) và `AiClient` (dự báo).
+Sơ đồ lớp gồm hai gói: **Domain** (entity ánh xạ 1-1 với Prisma schema, có phương thức dẫn xuất `isOverdue`, `overdueDays`) và **Application** (các Service của NestJS và hai client ra ngoài `AiClient`, `GoogleBooksClient`). `LoansService` là lớp trung tâm của nghiệp vụ: phụ thuộc `PoliciesService` (lấy chính sách), `FinesService` (tính/tạo phạt), `CopiesService` (đổi trạng thái bản sao) và `AiClient` (dự báo), và từ bản 2.0 còn `ReservationsService` (giữ bản sao cho người đặt trước khi trả sách). Các service thêm sau MVP (`ReservationsService`, `NotificationsService`, `PaymentsService`, `ExportsService`, `BookImportService`, `MailService`, `PasswordResetService`) cùng theo mẫu Controller, Service, Prisma nhưng chưa được vẽ trong Hình 3.2; quan hệ giữa chúng được mô tả ở các hình 3.6 và 3.7 và ở bảng module mục 2.3.
 
 ![Hình 3.2: Class Diagram](../uml/class-diagram.png)
 
