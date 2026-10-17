@@ -76,7 +76,7 @@ export class NotificationsService {
   /**
    * Nhắc hạn trả: "sắp đến hạn" (trong DUE_SOON_DAYS ngày) và "quá hạn".
    * Mỗi phiếu chỉ nhắc một lần mỗi loại nhờ dedupeKey, nên chạy lặp an toàn.
-   * Duyệt hết mọi phiếu theo từng lô (con trỏ theo id) — trước đây chỉ lấy 500 phiếu đầu nên
+   * Duyệt hết mọi phiếu theo từng lô (con trỏ theo id), trước đây chỉ lấy 500 phiếu đầu nên
    * khi có hơn 500 phiếu cần nhắc, phần còn lại không bao giờ được nhắc.
    */
   async sendLoanReminders(

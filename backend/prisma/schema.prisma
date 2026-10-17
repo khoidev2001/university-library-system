@@ -1,4 +1,4 @@
-// ERD — docs/PLAN.md mục 4. Chuẩn 3NF.
+// ERD, docs/PLAN.md mục 4. Chuẩn 3NF.
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["postgresqlExtensions"]
@@ -87,7 +87,7 @@ model User {
   @@map("users")
 }
 
-// Chính sách mượn theo loại bạn đọc — Admin sửa qua UI (BR-10: chụp vào phiếu lúc tạo)
+// Chính sách mượn theo loại bạn đọc, Admin sửa qua UI (BR-10: chụp vào phiếu lúc tạo)
 model LoanPolicy {
   id             Int        @id @default(autoincrement())
   memberType     MemberType @unique @map("member_type")

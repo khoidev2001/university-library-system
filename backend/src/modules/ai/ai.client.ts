@@ -65,7 +65,7 @@ export class AiClient {
         signal: AbortSignal.timeout(this.predictTimeoutMs),
       });
       if (!res.ok) {
-        this.logger.warn(`predict-overdue HTTP ${res.status} — bỏ qua dự báo`);
+        this.logger.warn(`predict-overdue HTTP ${res.status}, bỏ qua dự báo`);
         return null;
       }
       const body = (await res.json()) as { risk?: number };
@@ -74,7 +74,7 @@ export class AiClient {
       return body.risk;
     } catch (e) {
       this.logger.warn(
-        `predict-overdue lỗi: ${(e as Error).message} — bỏ qua dự báo`,
+        `predict-overdue lỗi: ${(e as Error).message}, bỏ qua dự báo`,
       );
       return null;
     }

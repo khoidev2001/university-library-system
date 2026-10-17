@@ -118,7 +118,7 @@ def google_lookup(isbn: str, api_key: str | None) -> dict | None:
     try:
         with urllib.request.urlopen(url, timeout=10) as res:
             body = json.load(res)
-    except Exception as e:  # noqa: BLE001 — lỗi mạng/429: không cache, thử lại lần sau
+    except Exception as e:  # noqa: BLE001, lỗi mạng/429: không cache, thử lại lần sau
         print(f"  {isbn}: {e}", file=sys.stderr)
         raise LookupError(str(e)) from e
     info = (body.get("items") or [{}])[0].get("volumeInfo")
@@ -149,7 +149,7 @@ def enrich(books: pd.DataFrame, limit: int, api_key: str | None) -> dict[str, di
         except LookupError:
             failures += 1
             if failures >= 5:
-                print("  quá nhiều lỗi liên tiếp (rate limit?) — dừng, sẽ tiếp tục ở lần chạy sau", flush=True)
+                print("  quá nhiều lỗi liên tiếp (rate limit?), dừng, sẽ tiếp tục ở lần chạy sau", flush=True)
                 break
         if i % 25 == 0:
             cache_path.write_text(json.dumps(cache, ensure_ascii=False, indent=1), encoding="utf-8")

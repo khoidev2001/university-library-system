@@ -24,7 +24,7 @@ function sanitizeDisplayName(name: string): string {
   );
 }
 
-/** encodeURIComponent chừa lại !'()* — RFC 5987 bắt buộc mã hoá cả các ký tự này. */
+/** encodeURIComponent chừa lại !'()*, RFC 5987 bắt buộc mã hoá cả các ký tự này. */
 function encodeRfc5987(value: string): string {
   return encodeURIComponent(value).replace(
     /['()*]/g,

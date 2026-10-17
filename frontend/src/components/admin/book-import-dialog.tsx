@@ -382,8 +382,8 @@ export function BookImportDialog({ onClose, onDone }: { onClose: () => void; onD
                       <span className="font-medium">{r.title || "(thiếu tiêu đề)"}</span>
                       {r.isbn && <span className="block font-mono text-xs text-ink-faint">{r.isbn}</span>}
                     </td>
-                    <td className="px-4 py-2.5 text-ink-soft">{r.category ?? "—"}</td>
-                    <td className="px-4 py-2.5 text-ink-soft">{r.copies ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-ink-soft">{r.category ?? "-"}</td>
+                    <td className="px-4 py-2.5 text-ink-soft">{r.copies ?? "-"}</td>
                     <td className="px-4 py-2.5">
                       <ul className="space-y-0.5 text-xs">
                         {r.errors.map((issue, i) => (
@@ -481,7 +481,7 @@ export function BookImportDialog({ onClose, onDone }: { onClose: () => void; onD
                     {report.failed.slice(0, 100).map((f) => (
                       <tr key={f.row} className="align-top">
                         <td className="px-4 py-2.5 tabular text-ink-soft">{f.row}</td>
-                        <td className="px-4 py-2.5">{f.raw.title ?? "—"}</td>
+                        <td className="px-4 py-2.5">{f.raw.title ?? "-"}</td>
                         <td className="px-4 py-2.5 text-xs text-brand">{f.reason}</td>
                       </tr>
                     ))}

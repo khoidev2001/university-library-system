@@ -18,7 +18,7 @@ import { ReportsService } from '../reports/reports.service';
 import { LoansController } from './loans.controller';
 import { LoansService } from './loans.service';
 
-/** F4 + F6 + F7: mượn/trả/phạt, báo cáo, đánh giá — dùng chung LoanPolicy và AiClient. */
+/** F4 + F6 + F7: mượn/trả/phạt, báo cáo, đánh giá, dùng chung LoanPolicy và AiClient. */
 @Module({
   imports: [PoliciesModule, PaymentsModule],
   controllers: [

@@ -38,7 +38,7 @@ export class LoansController {
   @ApiResponse({
     status: 201,
     description:
-      '{ loan, overdueRisk } — overdueRisk có thể null khi AI không sẵn sàng',
+      '{ loan, overdueRisk }, overdueRisk có thể null khi AI không sẵn sàng',
   })
   @ApiResponse({
     status: 409,

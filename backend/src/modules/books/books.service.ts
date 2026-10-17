@@ -349,7 +349,7 @@ export class BooksService {
     }
   }
 
-  /** FR-COPY-03: số bản còn — tính từ trạng thái bản sao, không lưu (SDD 4.3). */
+  /** FR-COPY-03: số bản còn, tính từ trạng thái bản sao, không lưu (SDD 4.3). */
   private async copyCounts(
     bookIds: number[],
   ): Promise<Map<number, { total: number; available: number }>> {

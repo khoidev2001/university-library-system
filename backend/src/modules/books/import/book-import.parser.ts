@@ -80,7 +80,7 @@ function sniffForeignType(buf: Uint8Array): string | null {
   const startsWith = (...bytes: number[]) =>
     bytes.every((b, i) => buf[i] === b);
   if (startsWith(0xd0, 0xcf, 0x11, 0xe0))
-    return 'Excel cũ (.xls) hoặc Word cũ — hãy lưu lại thành .xlsx hoặc CSV';
+    return 'Excel cũ (.xls) hoặc Word cũ, hãy lưu lại thành .xlsx hoặc CSV';
   if (startsWith(0x25, 0x50, 0x44, 0x46)) return 'PDF';
   if (startsWith(0x4d, 0x5a)) return 'chương trình thực thi (.exe)';
   if (startsWith(0x7f, 0x45, 0x4c, 0x46)) return 'chương trình thực thi';

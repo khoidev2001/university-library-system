@@ -1,7 +1,7 @@
 /**
  * Sinh lịch sử mượn/trả mô phỏng từ rating goodbooks (docs/PLAN.md mục 6).
  *
- * QUAN TRỌNG — dữ liệu này là MÔ PHỎNG, không phải số liệu thật của thư viện:
+ * QUAN TRỌNG, dữ liệu này là MÔ PHỎNG, không phải số liệu thật của thư viện:
  * nhãn "trả trễ" được sinh theo xác suất có nhiễu (không theo luật cứng), nên mô hình
  * dự báo ở Sprint 3 học quy luật mô phỏng này. Báo cáo phải ghi rõ điều đó.
  *
@@ -17,7 +17,7 @@ const HISTORY_MONTHS = 12;
 const MAX_LOANS = Number(process.env.SEED_LOANS_MAX ?? 12000);
 const EXAM_MONTHS = new Set([1, 6]); // tháng thi: trễ nhiều hơn
 
-/** Bộ sinh số giả ngẫu nhiên có hạt giống — chạy lại cho ra cùng dữ liệu. */
+/** Bộ sinh số giả ngẫu nhiên có hạt giống, chạy lại cho ra cùng dữ liệu. */
 function createRandom(seed: number): () => number {
   let state = seed;
   return () => {
@@ -62,7 +62,7 @@ async function main(): Promise<void> {
   }
 
   const librarians = await prisma.user.findMany({ where: { role: 'LIBRARIAN' }, select: { id: true } });
-  if (librarians.length === 0) throw new Error('Chưa có tài khoản thủ thư — chạy `pnpm prisma db seed` trước.');
+  if (librarians.length === 0) throw new Error('Chưa có tài khoản thủ thư, chạy `pnpm prisma db seed` trước.');
 
   const policies = await prisma.loanPolicy.findMany();
   const loanDaysOf = new Map(policies.map((p) => [p.memberType, p.loanDays]));

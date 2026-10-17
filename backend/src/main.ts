@@ -26,7 +26,7 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('University Library System API')
-    .setDescription('API Hệ thống Quản lý Thư viện Trường Đại học — Đề tài 8')
+    .setDescription('API Hệ thống Quản lý Thư viện Trường Đại học, Đề tài 8')
     .setVersion('0.1.0')
     .addBearerAuth()
     .build();

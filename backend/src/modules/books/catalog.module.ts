@@ -10,7 +10,7 @@ import { BooksService } from './books.service';
 import { BookImportService } from './import/book-import.service';
 import { GoogleBooksClient } from './google-books.client';
 
-/** F2 + F5: sách, tác giả, thể loại, bản sao — một module vì dùng chung entity Book. */
+/** F2 + F5: sách, tác giả, thể loại, bản sao, một module vì dùng chung entity Book. */
 @Module({
   controllers: [
     BooksController,

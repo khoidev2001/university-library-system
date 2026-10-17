@@ -1,6 +1,6 @@
 /**
  * Mock PrismaService cho unit test: mỗi model là object các jest.fn().
- * `$transaction` chấp nhận mảng promise (batch) hoặc callback (interactive) — cả hai đều chạy thật
+ * `$transaction` chấp nhận mảng promise (batch) hoặc callback (interactive), cả hai đều chạy thật
  * với các mock bên trong, nên test kiểm được thứ tự gọi.
  */
 type Fn = jest.Mock;

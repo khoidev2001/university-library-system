@@ -75,7 +75,7 @@ export class CreateBookDto {
   publishedYear?: number;
 
   @ApiProperty({
-    description: 'Giá bìa (VND) — dùng tính phạt mất sách',
+    description: 'Giá bìa (VND), dùng tính phạt mất sách',
     example: 120000,
   })
   @IsInt()

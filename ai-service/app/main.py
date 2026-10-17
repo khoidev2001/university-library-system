@@ -1,4 +1,4 @@
-"""AI Service — gợi ý sách và dự báo trả trễ (LAB 3).
+"""AI Service, gợi ý sách và dự báo trả trễ (LAB 3).
 
 Hợp đồng API: SDD mục 5.9. Mô hình được huấn luyện lại khi service khởi động
 (TRAIN_ON_STARTUP) và khi gọi POST /train; dữ liệu lấy từ Backend, không chạm CSDL.
@@ -52,7 +52,7 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(
-    title="University Library System — AI Service",
+    title="University Library System, AI Service",
     description="Gợi ý sách (TF-IDF + item-based CF) và dự báo nguy cơ trả trễ (LogReg / RandomForest).",
     version="1.0.0",
     lifespan=lifespan,
@@ -75,7 +75,7 @@ class PredictOverdueRequest(BaseModel):
 
 
 def run_training() -> dict[str, Any]:
-    """Huấn luyện cả hai mô hình. Lỗi backend KHÔNG làm sập service — giữ mô hình cũ."""
+    """Huấn luyện cả hai mô hình. Lỗi backend KHÔNG làm sập service, giữ mô hình cũ."""
     if not training_lock.acquire(blocking=False):
         return {"status": "already_running"}
     try:

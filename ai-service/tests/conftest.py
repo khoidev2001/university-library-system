@@ -1,4 +1,4 @@
-"""Dữ liệu giả lập dùng chung cho test — đủ cấu trúc để huấn luyện thật được."""
+"""Dữ liệu giả lập dùng chung cho test, đủ cấu trúc để huấn luyện thật được."""
 from __future__ import annotations
 
 import random
