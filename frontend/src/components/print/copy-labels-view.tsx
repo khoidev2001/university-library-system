@@ -6,7 +6,8 @@ import { useMemo, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { LabelCopy } from "@/lib/import-types";
-import { Alert, Field, Spinner, inputClass } from "../ui";
+import { SelectField, Switch, TextField } from "../forms/controls";
+import { Alert, Skeleton } from "../ui";
 import { Code128Svg } from "./barcode-svg";
 import { LABEL_LAYOUTS, placeLabels, type LabelLayout } from "./label-layouts";
 import { PaperSheet, PrintFrame } from "./print-frame";
@@ -28,6 +29,14 @@ function CopyLabel({ copy, layout }: { copy: LabelCopy; layout: LabelLayout }) {
           <span className={`truncate font-bold ${small ? "text-[6pt]" : "text-[7.6pt]"}`}>{copy.shelfLocation}</span>
         )}
       </div>
+    </div>
+  );
+}
+
+function PreviewSkeleton({ label }: { label: string }) {
+  return (
+    <div role="status" aria-label={label} className="p-4 print:hidden">
+      <Skeleton className="h-64 w-full" />
     </div>
   );
 }
@@ -75,50 +84,42 @@ export function CopyLabelsView() {
           : `${list.length} nhãn, ${sheets} ${layout.roll ? "trang" : "tờ A4"}`
       }
       options={
-        <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
-          <Field label="Loại giấy nhãn" htmlFor="label-layout">
-            <select
-              id="label-layout"
-              value={layoutId}
-              onChange={(event) => {
-                setLayoutId(event.target.value);
-                setSkip(0);
-              }}
-              className={`${inputClass} min-h-10`}
-            >
-              {LABEL_LAYOUTS.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field
+        <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_240px]">
+          <SelectField
+            id="label-layout"
+            label="Loại giấy nhãn"
+            value={layoutId}
+            onChange={(event) => {
+              setLayoutId(event.target.value);
+              setSkip(0);
+            }}
+          >
+            {LABEL_LAYOUTS.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name}
+              </option>
+            ))}
+          </SelectField>
+          <TextField
+            id="label-skip"
             label="Bỏ trống ô đầu tiên"
             hint={layout.roll ? "Không áp dụng cho cuộn nhãn" : `Từ 0 đến ${perSheet - 1}, dùng tiếp tờ đã in dở`}
-            htmlFor="label-skip"
-          >
-            <input
-              id="label-skip"
-              type="number"
-              inputMode="numeric"
-              min={0}
-              max={perSheet - 1}
-              disabled={layout.roll}
-              value={effectiveSkip}
-              onChange={(event) => setSkip(Math.max(0, Math.floor(Number(event.target.value) || 0)))}
-              className={`${inputClass} min-h-10`}
-            />
-          </Field>
-          <label className="flex min-h-10 items-center gap-2.5 text-sm md:col-span-2">
-            <input
-              type="checkbox"
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={perSheet - 1}
+            disabled={layout.roll}
+            value={effectiveSkip}
+            onChange={(event) => setSkip(Math.max(0, Math.floor(Number(event.target.value) || 0)))}
+          />
+          <div className="border-t border-line pt-4 md:col-span-2">
+            <Switch
+              id="label-hide-lost"
               checked={hideLost}
-              onChange={(event) => setHideLost(event.target.checked)}
-              className="h-5 w-5 accent-[var(--color-ink)]"
+              onChange={setHideLost}
+              label="Bỏ qua bản sao đã báo mất"
             />
-            Bỏ qua bản sao đã báo mất
-          </label>
+          </div>
         </div>
       }
     >
@@ -127,7 +128,7 @@ export function CopyLabelsView() {
           <Alert tone="info">Chưa chọn sách nào. Hãy quay lại danh sách sách và chọn sách cần in nhãn.</Alert>
         </div>
       ) : copies.isLoading ? (
-        <Spinner label="Đang tải bản sao" />
+        <PreviewSkeleton label="Đang tải bản sao" />
       ) : copies.isError ? (
         <div className="p-4 print:hidden">
           <Alert tone="bad">Không tải được bản sao. Có thể bạn chọn quá nhiều sách (tối đa 2000 nhãn mỗi lần).</Alert>

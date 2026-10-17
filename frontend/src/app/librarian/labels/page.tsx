@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { CopyLabelsView } from "@/components/print/copy-labels-view";
 import { RequireRole } from "@/components/require-role";
-import { Spinner } from "@/components/ui";
+import { PrintSkeleton } from "@/components/route-skeletons";
 
 export const metadata: Metadata = {
   title: "In nhãn mã vạch",
@@ -14,7 +14,7 @@ export default function CopyLabelsPage() {
   // useSearchParams cần Suspense để trang vẫn dựng tĩnh được
   return (
     <RequireRole roles={["LIBRARIAN"]}>
-      <Suspense fallback={<Spinner />}>
+      <Suspense fallback={<PrintSkeleton />}>
         <CopyLabelsView />
       </Suspense>
     </RequireRole>

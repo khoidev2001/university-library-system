@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ReaderCardsView } from "@/components/print/reader-cards-view";
 import { RequireRole } from "@/components/require-role";
-import { Spinner } from "@/components/ui";
+import { PrintSkeleton } from "@/components/route-skeletons";
 
 export const metadata: Metadata = {
   title: "In thẻ bạn đọc",
@@ -17,7 +17,7 @@ export default async function ReaderCardPage({ params }: { params: Promise<{ id:
   if (!Number.isInteger(readerId) || readerId < 1) notFound();
   return (
     <RequireRole roles={["LIBRARIAN"]}>
-      <Suspense fallback={<Spinner />}>
+      <Suspense fallback={<PrintSkeleton />}>
         <ReaderCardsView readerId={readerId} />
       </Suspense>
     </RequireRole>

@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { Page, User } from "@/lib/types";
-import { Alert, Spinner } from "../ui";
+import { Alert, Skeleton } from "../ui";
 import { PaperSheet, PrintFrame } from "./print-frame";
 import { CARD_HEIGHT_MM, CARD_WIDTH_MM, ReaderCard, type CardReader } from "./reader-card";
 
@@ -106,13 +106,13 @@ export function ReaderCardsView({ readerId }: { readerId?: number }) {
       }
       options={
         <fieldset>
-          <legend className="text-sm font-medium">Khổ giấy</legend>
-          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          <legend className="text-sm font-semibold">Khổ giấy</legend>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
             {PAPERS.map((item) => (
               <label
                 key={item.value}
-                className={`flex min-h-12 cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm ${
-                  paper === item.value ? "border-ink bg-paper-2" : "border-line hover:bg-paper-2"
+                className={`flex min-h-12 cursor-pointer items-start gap-3 rounded-2xl border-2 p-4 text-sm transition-colors ${
+                  paper === item.value ? "border-primary bg-primary-soft/60" : "border-line hover:bg-paper-2"
                 }`}
               >
                 <input
@@ -121,10 +121,10 @@ export function ReaderCardsView({ readerId }: { readerId?: number }) {
                   value={item.value}
                   checked={paper === item.value}
                   onChange={() => setPaper(item.value)}
-                  className="mt-1 h-4 w-4 accent-[var(--color-ink)]"
+                  className="mt-0.5 h-5 w-5 accent-[var(--color-primary)]"
                 />
                 <span>
-                  <span className="block font-medium">{item.label}</span>
+                  <span className="block font-semibold">{item.label}</span>
                   <span className="block text-xs text-ink-soft">{item.hint}</span>
                 </span>
               </label>
@@ -134,7 +134,9 @@ export function ReaderCardsView({ readerId }: { readerId?: number }) {
       }
     >
       {readers.isLoading ? (
-        <Spinner label="Đang tải bạn đọc" />
+        <div role="status" aria-label="Đang tải bạn đọc" className="p-4 print:hidden">
+          <Skeleton className="h-64 w-full" />
+        </div>
       ) : readers.isError ? (
         <div className="p-4 print:hidden">
           <Alert tone="bad">Không tải được danh sách bạn đọc. Vui lòng thử lại.</Alert>
