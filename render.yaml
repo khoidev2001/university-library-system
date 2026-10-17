@@ -34,7 +34,7 @@ services:
       - key: MAIL_FROM
         sync: false # ví dụ: Thư viện MUCE <no-reply@ten-mien.vn> (tên miền đã xác minh ở Resend)
       - key: APP_PUBLIC_URL
-        sync: false # địa chỉ Vercel, dùng dựng liên kết trong thư, ví dụ https://muce-library.vercel.app
+        sync: false # địa chỉ Vercel, không có / cuối; dùng dựng liên kết trong thư và địa chỉ trả về của VNPay, ví dụ https://muce-library.vercel.app
       - key: LIBRARY_UTC_OFFSET_MINUTES
         value: "420"
       # Thanh toán phạt VNPay (bỏ trống VNPAY_TMN_CODE hoặc VNPAY_HASH_SECRET = tắt tính năng); xem README
@@ -42,8 +42,6 @@ services:
         sync: false
       - key: VNPAY_HASH_SECRET
         sync: false
-      - key: APP_PUBLIC_URL
-        sync: false # địa chỉ Vercel, không có / cuối
 
   - type: web
     name: uls-ai
