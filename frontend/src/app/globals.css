@@ -117,12 +117,25 @@ input[type="number"]::-webkit-inner-spin-button {
   }
 }
 
-/* Nền trang chủ: hai quầng sáng mờ phía sau phần giới thiệu, chỉ là ảnh nền tĩnh nên không tốn khung hình */
-.bg-aurora {
+/* Quầng sáng nền nằm ở thân trang (không thuộc riêng phần giới thiệu) nên chạy liền xuống dưới thanh đầu trang,
+   không để lộ một dải màu phẳng giữa thanh đầu và phần giới thiệu. Ảnh nền tĩnh nên không tốn khung hình. */
+body {
+  position: relative;
+}
+body::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 36rem;
+  z-index: -1;
+  pointer-events: none;
   background:
-    radial-gradient(60rem 28rem at 12% -10%, rgb(79 70 229 / 0.14), transparent 60%),
-    radial-gradient(48rem 24rem at 92% 0%, rgb(20 184 166 / 0.14), transparent 62%),
-    var(--color-paper);
+    radial-gradient(60rem 28rem at 12% -6%, rgb(79 70 229 / 0.14), transparent 60%),
+    radial-gradient(48rem 24rem at 92% 0%, rgb(20 184 166 / 0.14), transparent 62%);
+}
+/* Giữ tên lớp cũ cho các trang đã dùng; nền thật do body::before đảm nhiệm */
+.bg-aurora {
+  background: transparent;
 }
 .text-gradient {
   background: linear-gradient(100deg, var(--color-primary) 0%, #7c5cff 55%, var(--color-mint) 120%);
