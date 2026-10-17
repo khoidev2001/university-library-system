@@ -367,13 +367,13 @@ export function BookImportDialog({ onClose, onDone }: { onClose: () => void; onD
                       </StatusBadge>
                       <span className="mt-1 block text-xs text-ink-soft">{ACTION_LABEL[r.action]}</span>
                     </Td>
-                    <Td className="py-3">
+                    <Td card="title" className="py-3">
                       <span className="font-semibold">{r.title || "(thiếu tiêu đề)"}</span>
                       {r.isbn && <span className="block text-xs tabular-nums text-ink-faint">{r.isbn}</span>}
                     </Td>
                     <Td className="py-3 text-ink-soft">{r.category ?? "-"}</Td>
                     <Td className="py-3 tabular-nums text-ink-soft">{r.copies ?? "-"}</Td>
-                    <Td className="min-w-[13rem] py-3">
+                    <Td card="full" className="min-w-[13rem] py-3">
                       <ul className="space-y-0.5 text-xs">
                         {r.errors.map((issue, i) => (
                           <li key={`e${i}`} className="text-danger">
@@ -469,8 +469,8 @@ export function BookImportDialog({ onClose, onDone }: { onClose: () => void; onD
                     {report.failed.slice(0, 100).map((f) => (
                       <tr key={f.row} className="align-top">
                         <Td className="py-3 tabular-nums text-ink-soft">{f.row}</Td>
-                        <Td className="py-3">{f.raw.title ?? "-"}</Td>
-                        <Td className="py-3 text-xs text-danger">{f.reason}</Td>
+                        <Td card="title" className="py-3">{f.raw.title ?? "-"}</Td>
+                        <Td card="full" className="py-3 text-xs text-danger">{f.reason}</Td>
                       </tr>
                     ))}
                   </tbody>

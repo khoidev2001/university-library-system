@@ -141,7 +141,7 @@ export function FinesAdminView() {
             <tbody>
               {items.map((fine, index) => (
                 <Tr key={fine.id} index={index}>
-                  <Td className="whitespace-nowrap">
+                  <Td card="title" className="whitespace-nowrap">
                     <span className="font-semibold">{fine.loan?.user.fullName}</span>
                     <span className="block text-xs tabular-nums text-ink-faint">{fine.loan?.user.memberCode}</span>
                   </Td>
@@ -181,7 +181,7 @@ export function FinesAdminView() {
                       <StatusBadge tone="warn">Chưa thu</StatusBadge>
                     )}
                   </Td>
-                  <Td>
+                  <Td card="actions">
                     <div className="flex justify-end">
                       {!fine.paidAt && fine.onlinePayment?.status === "PENDING" && (
                         <RowButton

@@ -9,7 +9,7 @@ import { useAuth } from "@/lib/auth";
 import type { InventoryRow, MonthCount, OverdueRow, Page, TopBookRow } from "@/lib/types";
 import { CountUp, Reveal } from "../motion";
 import { ButtonLink, Card, ChartSkeleton, PageHeading, Skeleton, StatCard } from "../ui";
-import { GrowBar, InlineSkeleton, StatusBadge, Td, Th } from "./admin-ui";
+import { GrowBar, InlineSkeleton, StatusBadge, TableShell, Td, Th } from "./admin-ui";
 
 const MonthlyBarChart = dynamic(() => import("../charts").then((m) => m.MonthlyBarChart), {
   ssr: false,
@@ -265,40 +265,38 @@ export function DashboardView() {
                 <p className="max-w-sm text-sm text-ink-soft">Hiện không có phiếu nào quá hạn. Danh sách này sẽ hiện ở đây khi có.</p>
               </div>
             ) : (
-              <div className="relative overflow-x-auto">
-                <table className="w-full min-w-[640px] text-sm [&_tbody>tr+tr]:border-t [&_tbody>tr+tr]:border-line/80 [&_tbody>tr:hover]:bg-paper/90">
-                  <caption className="sr-only">Phiếu mượn quá hạn gần đây</caption>
-                  <thead>
-                    <tr>
-                      <Th>Bạn đọc</Th>
-                      <Th>Sách</Th>
-                      <Th>Hạn trả</Th>
-                      <Th>Trễ</Th>
-                      <Th align="right">Phạt ước tính</Th>
+              <TableShell variant="plain" minWidth={640}>
+                <caption className="sr-only">Phiếu mượn quá hạn gần đây</caption>
+                <thead>
+                  <tr>
+                    <Th>Bạn đọc</Th>
+                    <Th>Sách</Th>
+                    <Th>Hạn trả</Th>
+                    <Th>Trễ</Th>
+                    <Th align="right">Phạt ước tính</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {overdueRows.map((row) => (
+                    <tr key={row.loanId}>
+                      <Td card="title" className="whitespace-nowrap">
+                        <span className="font-semibold">{row.user.fullName}</span>
+                        <span className="block text-xs text-ink-faint">{row.user.memberCode}</span>
+                      </Td>
+                      <Td className="min-w-[11rem] max-w-[16rem]">
+                        <span className="line-clamp-2">{row.book.title}</span>
+                      </Td>
+                      <Td className="whitespace-nowrap text-ink-soft">{formatDate(row.dueAt)}</Td>
+                      <Td>
+                        <StatusBadge tone="bad">{row.overdueDays} ngày</StatusBadge>
+                      </Td>
+                      <Td align="right" className="whitespace-nowrap font-semibold">
+                        {formatCurrency(row.estimatedFine)}
+                      </Td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {overdueRows.map((row) => (
-                      <tr key={row.loanId}>
-                        <Td className="whitespace-nowrap">
-                          <span className="font-semibold">{row.user.fullName}</span>
-                          <span className="block text-xs text-ink-faint">{row.user.memberCode}</span>
-                        </Td>
-                        <Td className="min-w-[11rem] max-w-[16rem]">
-                          <span className="line-clamp-2">{row.book.title}</span>
-                        </Td>
-                        <Td className="whitespace-nowrap text-ink-soft">{formatDate(row.dueAt)}</Td>
-                        <Td>
-                          <StatusBadge tone="bad">{row.overdueDays} ngày</StatusBadge>
-                        </Td>
-                        <Td align="right" className="whitespace-nowrap font-semibold">
-                          {formatCurrency(row.estimatedFine)}
-                        </Td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </TableShell>
             )}
           </Card>
         </Reveal>

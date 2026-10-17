@@ -238,3 +238,187 @@ body::before {
 @view-transition { navigation: auto; }
 ::view-transition-old(root) { animation: fade-in 140ms ease reverse both; }
 ::view-transition-new(root) { animation: fade-in 220ms ease both; }
+
+/* ---- Bảng thành thẻ trên điện thoại ----
+   Dưới 640px, mỗi hàng của bảng (TableShell trong admin-ui.tsx) thành một thẻ dọc: tiêu đề lên đầu, các trường
+   dạng "nhãn: giá trị", hàng nút bấm rộng hết thẻ ở cuối. Vẫn là thẻ table/tr/td (vai trò ARIA được gán lại
+   trong TableShell nên trình đọc màn hình vẫn đọc là bảng). Nhãn lấy từ data-label (chép từ tiêu đề cột).
+   Chỉ áp cho màn hình, không đụng bản in. Từ 640px trở lên giữ nguyên bảng cuộn ngang. */
+@media screen and (max-width: 639.98px) {
+  .table-cards-shell {
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    max-height: none !important;
+  }
+  .table-cards-shell.table-cards-tinted {
+    padding: 0 0.75rem 0.75rem;
+  }
+  .table-cards-shell:focus-visible {
+    outline-offset: 4px;
+    border-radius: var(--radius-card);
+  }
+  .table-cards {
+    --tc-bg: #fff;
+    display: block;
+    min-width: 0 !important;
+    width: 100%;
+  }
+  .table-cards-tinted .table-cards {
+    --tc-bg: var(--color-paper);
+  }
+  .table-cards tbody {
+    display: block;
+  }
+
+  /* Hàng tiêu đề cột ẩn khỏi mắt nhưng vẫn có trong cây truy cập; riêng ô "chọn tất cả" hiện thành thanh trên đầu danh sách */
+  .table-cards thead,
+  .table-cards thead tr {
+    display: block;
+  }
+  .table-cards thead th {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    border: 0;
+    white-space: nowrap;
+  }
+  .table-cards thead th[data-card="select"] {
+    position: static;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: auto;
+    height: auto;
+    margin: 0 0 0.75rem;
+    padding: 0.5rem 1rem;
+    overflow: visible;
+    clip-path: none;
+    border: 1px solid var(--color-line);
+    border-radius: 1rem;
+    background: #fff;
+    color: var(--color-ink-soft);
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+  .table-cards thead th[data-card="select"]::after {
+    content: "Chọn tất cả trên trang";
+  }
+
+  .table-cards tbody tr {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    margin: 0 0 0.75rem;
+    padding: 0.25rem 1rem 0.5rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    background: var(--tc-bg);
+    box-shadow: 0 1px 2px rgb(21 26 51 / 0.04);
+  }
+  .table-cards tbody tr:last-child {
+    margin-bottom: 0;
+  }
+  .table-cards tbody tr:hover {
+    background: var(--tc-bg);
+  }
+
+  /* Trường thường: nhãn bên trái, giá trị bên phải */
+  .table-cards td {
+    display: grid;
+    grid-template-columns: 6.25rem minmax(0, 1fr);
+    align-items: baseline;
+    column-gap: 0.75rem;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    padding: 0.5rem 0;
+    white-space: normal;
+    text-align: left;
+    border-top: 1px solid color-mix(in srgb, var(--color-line) 70%, transparent);
+  }
+  .table-cards td::before {
+    content: attr(data-label);
+    color: var(--color-ink-faint);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .table-cards td[data-label=""]::before {
+    content: none;
+  }
+  .table-cards td[data-label=""] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .table-cards .td-body {
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .table-cards td[data-card="full"] {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 0.375rem;
+  }
+
+  /* Dòng chính: tên bạn đọc, tên sách... lên đầu thẻ, không nhãn */
+  .table-cards td[data-card="title"] {
+    order: -1;
+    display: block;
+    padding: 0.75rem 0 0.75rem;
+    border-top: 0;
+    font-size: 1rem;
+  }
+  .table-cards td[data-card="title"]::before {
+    content: none;
+  }
+  .table-cards tr:has(td[data-card="select"]) td[data-card="title"] {
+    padding-right: 3rem;
+  }
+
+  /* Ô chọn dòng ở góc trên bên phải */
+  .table-cards td[data-card="select"] {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.5rem;
+    z-index: 1;
+    display: block;
+    padding: 0.5rem;
+    border-top: 0;
+  }
+  .table-cards td[data-card="select"]::before {
+    content: none;
+  }
+
+  /* Hàng nút: rộng hết thẻ, mỗi nút cao tối thiểu 44px */
+  .table-cards td[data-card="actions"] {
+    order: 99;
+    display: block;
+    margin-top: 0.25rem;
+    padding: 0.75rem 0 0.25rem;
+  }
+  .table-cards td[data-card="actions"]::before {
+    content: none;
+  }
+  .table-cards td[data-card="actions"]:not(:has(button, a)) {
+    display: none;
+  }
+  .table-cards td[data-card="actions"] .td-body,
+  .table-cards td[data-card="actions"] .td-body > div {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: stretch;
+    gap: 0.5rem;
+    width: 100%;
+  }
+  .table-cards td[data-card="actions"] button,
+  .table-cards td[data-card="actions"] a {
+    flex: 1 1 7rem;
+    min-height: 2.75rem;
+  }
+}

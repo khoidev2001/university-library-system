@@ -202,7 +202,7 @@ export function BooksAdminView() {
             <caption className="sr-only">Danh sách đầu sách</caption>
             <thead>
               <tr>
-                <th scope="col" className="sticky top-0 w-12 border-b border-line bg-paper px-4 py-3">
+                <th scope="col" data-card="select" className="sticky top-0 w-12 border-b border-line bg-paper px-4 py-3">
                   <TapCheckbox
                     label="Chọn tất cả sách trên trang này"
                     checked={items.length > 0 && items.every((b) => picked.has(b.id))}
@@ -228,7 +228,7 @@ export function BooksAdminView() {
             <tbody>
               {items.map((book, index) => (
                 <Tr key={book.id} index={index}>
-                  <Td className="w-12">
+                  <Td card="select" className="w-12">
                     <TapCheckbox
                       label={`Chọn ${book.title} để in nhãn`}
                       checked={picked.has(book.id)}
@@ -240,7 +240,7 @@ export function BooksAdminView() {
                       }}
                     />
                   </Td>
-                  <Td>
+                  <Td card="title">
                     <div className="flex max-w-[24rem] items-center gap-3">
                       <BookThumb coverUrl={book.coverUrl} title={book.title} />
                       <div className="min-w-0">
@@ -259,7 +259,7 @@ export function BooksAdminView() {
                       {book.copiesAvailable}/{book.copiesTotal}
                     </StatusBadge>
                   </Td>
-                  <Td>
+                  <Td card="actions">
                     <div className="flex justify-end gap-1.5">
                       <RowButton aria-label={`Bản sao của ${book.title}`} onClick={() => setCopiesOf(book)}>
                         Bản sao
@@ -676,7 +676,7 @@ function CopyRow({
   const borrowed = copy.status === "BORROWED";
   return (
     <tr>
-      <Td className="whitespace-nowrap py-2.5 font-semibold tabular-nums">{copy.barcode}</Td>
+      <Td card="title" className="whitespace-nowrap py-2.5 font-semibold tabular-nums">{copy.barcode}</Td>
       <Td className="py-2.5">
         <input
           aria-label={`Vị trí kệ của ${copy.barcode}`}
@@ -707,7 +707,7 @@ function CopyRow({
           </select>
         )}
       </Td>
-      <Td align="right" className="py-2.5">
+      <Td card="actions" align="right" className="py-2.5">
         <Link
           href={`/librarian/labels?copyIds=${copy.id}`}
           target="_blank"
