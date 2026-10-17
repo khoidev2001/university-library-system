@@ -218,7 +218,7 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
             </h2>
             <dl className="mt-4 grid grid-cols-[repeat(auto-fit,minmax(11.5rem,1fr))] gap-3">
               <Fact icon={<Layers size={18} />} label="Thể loại">
-                <Link href={`/books?categoryId=${book.category.id}`} className="text-primary hover:underline">
+                <Link href={`/books?categoryId=${book.category.id}`} className="inline-flex min-h-10 items-center text-primary hover:underline">
                   {book.category.name}
                 </Link>
               </Fact>
