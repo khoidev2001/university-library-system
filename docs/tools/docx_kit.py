@@ -64,7 +64,7 @@ _CODE_AUTO = re.compile(
     |(?:\b(?:docs|backend|frontend)/[\w./\-]+)
     |(?:\b[\w\-]+\.(?:xlsx|docx|md|py|csv|sql|yml)\b)
     |(?:/health\b)
-    |(?:docker compose(?: up)?)""",
+    |(?:docker compose(?: up(?: --build)?)?)""",
     re.X,
 )
 
@@ -372,9 +372,9 @@ class Template:
     def table(self, header: list[str], rows: list[list[str]], widths_cm: list[float], *, style: str,
               font_pt: float = 11, header_fill: str | None = "E7E9F0", bold_first_col: bool = False,
               center_cols: set[int] | None = None, total_row: bool = False, keep_header: bool = True,
-              gap: bool = True, keep_last: bool = False):
+              gap: bool = True, keep_last: bool = False, code: bool = False):
         center_cols = center_cols or set()
-        if self.force_font_pt:
+        if self.force_font_pt and not code:
             font_pt = self.force_font_pt
         tbl = self.doc.add_table(rows=1 + len(rows), cols=len(header))
         tbl.style = self.doc.styles[style]
@@ -403,8 +403,8 @@ class Template:
         all_rows = [header] + rows
         for ri, (tr, values) in enumerate(zip(tbl.rows, all_rows)):
             trPr = tr._tr.get_or_add_trPr()
-            cant = OxmlElement("w:cantSplit")
-            trPr.append(cant)
+            if not code:  # khối mã dài phải được phép tách qua trang
+                trPr.append(OxmlElement("w:cantSplit"))
             if ri == 0 and keep_header:
                 th = OxmlElement("w:tblHeader")
                 trPr.append(th)
@@ -417,15 +417,17 @@ class Template:
                 for li, line in enumerate(lines):
                     para = cell.paragraphs[0] if li == 0 else cell.add_paragraph()
                     pf = para.paragraph_format
-                    pf.keep_with_next = (ri == 0) or (len(all_rows) <= 5 and ri < len(all_rows) - 1) or (keep_last and ri == len(all_rows) - 1)
+                    pf.keep_with_next = not code and ((ri == 0) or (len(all_rows) <= 5 and ri < len(all_rows) - 1) or (keep_last and ri == len(all_rows) - 1))
                     pf.space_before = Pt(2)
                     pf.space_after = Pt(2)
                     pf.line_spacing = 1.0
-                    if ri == 0 or ci in center_cols or self.center_all_cells:
+                    if code and ri > 0:
+                        para.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                    elif ri == 0 or ci in center_cols or self.center_all_cells:
                         para.alignment = WD_ALIGN_PARAGRAPH.CENTER
                     else:
                         para.alignment = WD_ALIGN_PARAGRAPH.LEFT
-                    for chunk, is_bold, is_code in _runs_with_bold(line):
+                    for chunk, is_bold, is_code in ([(line, False, True)] if (code and ri > 0) else _runs_with_bold(line)):
                         run = para.add_run(chunk)
                         run.font.name = CODE_FONT if is_code else FONT
                         run._r.get_or_add_rPr().rFonts.set(qn("w:eastAsia"), CODE_FONT if is_code else FONT)
