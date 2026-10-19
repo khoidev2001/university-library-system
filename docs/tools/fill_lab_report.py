@@ -96,6 +96,7 @@ SHOTS = [
     ("02-tra-cuu-sach.jpg", "Tra cứu sách với bộ lọc thể loại và tình trạng"),
     ("03-chi-tiet-sach.jpg", "Chi tiết sách kèm tình trạng bản sao và điểm đánh giá"),
     ("04-sach-cua-toi.jpg", "Bạn đọc xem sách đang mượn, hạn trả và lịch sử"),
+    ("12-thanh-toan-phat.jpg", "Trang tiền phạt và thanh toán trực tuyến qua VNPay (tổng nợ, các khoản phạt, nút thanh toán)"),
     ("05-goi-y.jpg", "Trang gợi ý sách cho bạn đọc"),
     ("06-quay-muon-tra.jpg", "Quầy mượn trả của thủ thư (quét mã vạch bản sao và mã bạn đọc)"),
     ("07-thong-ke.jpg", "Thống kê thư viện với biểu đồ lượt mượn và tồn kho"),
