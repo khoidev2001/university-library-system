@@ -39,6 +39,7 @@ def build(template: Path, output: Path, labels: dict[str, int] | None = None) ->
     tpl = Template(template)
     tpl.default_half_pt = 26   # mọi chữ cỡ 13
     tpl.force_font_pt = 13     # cả chữ trong bảng
+    tpl.center_all_cells = True
     dash_list = tpl.make_dash_list()
     doc = tpl.doc
     P = doc.paragraphs
@@ -62,7 +63,7 @@ def build(template: Path, output: Path, labels: dict[str, int] | None = None) ->
     # đề tài: dùng đoạn trống P13 ngay dưới tiêu đề báo cáo
     topic = P[13]
     rebuild_label_line(topic, "Đề tài:", "Phần mềm Quản lý Thư viện Trường Đại học (ULS)", tab_twips=1500, base_indent=700, size_half_pt=26)
-    P[21].runs[0].text = "Tháng 10-2026"
+    P[21].runs[0].text = "Tháng 10 năm 2026"
 
     # ------------------------------------------------------------------ chụp đoạn mẫu rồi xoá thân mẫu
     tpl.capture("h1", P[34])
