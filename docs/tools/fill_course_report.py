@@ -13,7 +13,12 @@ from pathlib import Path
 from docx.oxml.ns import qn
 from docx.text.paragraph import Paragraph
 
-from docx_kit import Template, rebuild_label_line
+import re
+
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.shared import Pt
+
+from docx_kit import Template, force_font, rebuild_label_line
 
 ROOT = Path(__file__).resolve().parents[2]
 FIG = ROOT / "docs" / "pm" / "figures"
@@ -30,6 +35,10 @@ def set_text(paragraph: Paragraph, text: str) -> None:
 
 def build(template: Path, output: Path) -> None:
     tpl = Template(template)
+    tpl.default_half_pt = 26   # mọi chữ cỡ 13
+    tpl.force_font_pt = 13     # cả chữ trong bảng
+    tpl.center_all_cells = True
+    dash_list = tpl.make_dash_list()
     doc = tpl.doc
     P = doc.paragraphs
     style_name = "Plain Table 1" if "Plain Table 1" in [s.name for s in doc.styles] else "Table Grid"
@@ -56,6 +65,9 @@ def build(template: Path, output: Path) -> None:
                 rebuild_label_line(para, "Lớp:", "D23CTC2 (Nhóm 3)", **cover)
             elif text.startswith("Giảng viên hướng dẫn"):
                 rebuild_label_line(para, "Giảng viên hướng dẫn:", "TS. Lê Tỷ Khánh", **cover)
+            elif "Tháng 10-2026" in text:
+                for run in para.runs:
+                    run.text = run.text.replace("Tháng 10-2026", "Tháng 10 năm 2026")
     sect_pr = P[25]._p.find(qn("w:pPr")).find(qn("w:sectPr"))
     P[0]._p.find(qn("w:pPr")).append(sect_pr)
     for idx in range(1, 26):
@@ -69,6 +81,10 @@ def build(template: Path, output: Path) -> None:
     tpl.capture("step", P[68], strip_bold=True)
     tpl.capture("plain", P[130])  # dòng tài liệu tham khảo: không ký hiệu đầu dòng
     toc_heading, preface_heading, abbrev_heading = P[26], P[28], P[30]
+    for heading in (toc_heading, preface_heading, abbrev_heading):
+        heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        for run in heading.runs:
+            run.font.size = Pt(14)
     tpl.clear_after(P[32])
 
     def insert_after(anchor, el):
@@ -89,67 +105,64 @@ def build(template: Path, output: Path) -> None:
         anchor = insert_after(anchor, tpl.make_para("body", text))
 
     # ------------------------------------------------------------------ tiện ích dựng thân bài
-    state = {"last": None, "num": None}
-
-    def mark(kind):
-        state["last"] = kind
-
     def h1(text, new_page=True):
-        mark("h1")
-        tpl.add("h1", text, outline=0, page_break_before=new_page)
+        tpl.add("h1", text, outline=0, page_break_before=new_page, size_half_pt=28, align="center")
 
     def h2(text):
-        mark("h2")
-        tpl.add("h2", text, outline=1)
+        # "1.1 Tên" thành "1.1. Tên", in đậm nghiêng
+        tpl.add("h2", re.sub(r"^(\d+\.\d+)\s", r"\1. ", text), outline=1, italic=True)
 
     def body(text, **kw):
-        mark("body")
         tpl.add("body", text, **kw)
 
     def bullet(text):
-        if state["last"] != "bullet":  # mỗi nhóm gạch đầu dòng đánh lại a), b), c)...
-            state["num"] = tpl.new_list_num(10)
-        mark("bullet")
-        tpl.add("bullet", text, num_id=state["num"])
+        tpl.add("bullet", text, list_num=dash_list, list_level=0)
 
     def step(text):
-        mark("step")
-        tpl.add("step", text)
+        tpl.add("step", text, list_num=dash_list, list_level=0)
 
-    def caption(text):
-        mark("caption")
-        tpl.add("body", text, italic=True, align="center", size_half_pt=24, keep_next=True)
+    pending: list[str] = []
 
-    def table(title, header, rows, widths, **kw):
-        n["t"] += 1
-        caption(f"Bảng {n['t']}. {title}")
-        tpl.table(header, rows, widths, style=style_name, header_fill=None, **kw)
-
-    def fig(path, title, w=TEXT_W, h=16.0):
-        mark("fig")
-        n["f"] += 1
-        tpl.picture(path, w, f"Hình {n['f']}. {title}", caption_kind="body", max_h_cm=h)
-        # đoạn chú thích hình dùng kiểu thân bài: chỉnh lại thành chữ nghiêng căn giữa
-        last = tpl.body.find("{http://schemas.openxmlformats.org/wordprocessingml/2006/main}sectPr").getprevious()
-        _style_caption(last)
-
-    def _style_caption(el):
+    def style_caption(el):
         from docx.oxml import OxmlElement
         from docx.oxml.ns import qn
         from docx_kit import _insert_ppr_child, _set_flag, _set_val
 
         ppr = el.find(qn("w:pPr"))
-        for old in ppr.findall(qn("w:ind")):
-            ppr.remove(old)
-        for old in ppr.findall(qn("w:jc")):
-            ppr.remove(old)
+        for tag in ("w:ind", "w:jc", "w:spacing"):
+            for old in ppr.findall(qn(tag)):
+                ppr.remove(old)
+        spacing = OxmlElement("w:spacing")
+        spacing.set(qn("w:before"), "60")
+        spacing.set(qn("w:after"), "200")
+        spacing.set(qn("w:line"), "240")
+        spacing.set(qn("w:lineRule"), "auto")
+        _insert_ppr_child(ppr, spacing)
         jc = OxmlElement("w:jc")
         jc.set(qn("w:val"), "center")
         _insert_ppr_child(ppr, jc)
         for r in el.findall(qn("w:r")):
             rpr = r.find(qn("w:rPr"))
-            _set_flag(rpr, "w:i", True)
+            _set_flag(rpr, "w:b", True)
+            _set_flag(rpr, "w:bCs", True)
+            _set_flag(rpr, "w:i", False)
+            _set_flag(rpr, "w:iCs", False)
             _set_val(rpr, "w:sz", 24)
+            _set_val(rpr, "w:szCs", 24)
+
+    def last_element():
+        return tpl.body.find(qn("w:sectPr")).getprevious()
+
+    def table(title, header, rows, widths, **kw):
+        n["t"] += 1
+        tpl.table(header, rows, widths, style=style_name, header_fill=None, gap=False, keep_last=True, **kw)
+        tpl.add("body", f"Bảng {n['t']}. {title}")
+        style_caption(last_element())
+
+    def fig(path, title, w=TEXT_W, h=16.0):
+        n["f"] += 1
+        tpl.picture(path, w, f"Hình {n['f']}. {title}", caption_kind="body", max_h_cm=h)
+        style_caption(last_element())
 
     # =================================================================== CHƯƠNG 1
     h1("CHƯƠNG 1: TỔNG QUAN QUẢN LÝ DỰ ÁN PHẦN MỀM VÀ BỐI CẢNH THƯ VIỆN TRƯỜNG ĐẠI HỌC", new_page=False)
@@ -183,7 +196,7 @@ def build(template: Path, output: Path) -> None:
         ["7", "Cổng thanh toán VNPay", "External Partner", "Nhận bạn đọc nộp phạt trực tuyến; gọi lại Backend bằng IPN và return URL kèm chữ ký HMAC-SHA512."],
         ["8", "Dịch vụ email Resend", "External Partner", "Nhận yêu cầu gửi email từ Backend: đặt lại mật khẩu, chào mừng, nhắc hạn."],
     ]
-    table("Các tác nhân của hệ thống ULS", ["STT", "Tác nhân (Actor)", "Phân loại", "Mô tả vai trò & Quyền hạn"], actors, [1.0, 3.5, 2.5, 9.0], font_pt=11, center_cols={0})
+    table("Các tác nhân của hệ thống ULS", ["STT", "Tác nhân (Actor)", "Phân loại", "Mô tả vai trò & Quyền hạn"], actors, [1.4, 3.4, 2.5, 8.7], font_pt=11, center_cols={0})
 
     h2("2.2 Phân tích các Use Case Trung tâm theo Phân hệ")
     body("Hệ thống có nhiều use case tương tác với nhau. Bảng dưới đây tổng hợp các use case trọng tâm, phân theo 6 phân hệ chức năng:")
@@ -206,11 +219,11 @@ def build(template: Path, output: Path) -> None:
         ["Báo cáo, AI", "UC-AI-01", "Gợi ý sách cá nhân hoá", "Bạn đọc, AI Service", "10 sách gợi ý theo lịch sử mượn và đánh giá; chưa có lịch sử thì gợi ý theo sách mượn nhiều."],
         ["Báo cáo, AI", "UC-ADM-01", "Cấu hình chính sách mượn", "Admin", "Đặt số cuốn, số ngày mượn, số lần gia hạn, mức phạt theo loại bạn đọc mà không cần sửa mã."],
     ]
-    table("Các use case trọng tâm theo phân hệ", ["Phân hệ", "Mã UC", "Tên Use Case", "Tác nhân chính", "Mô tả ngắn gọn"], ucs, [1.9, 2.1, 3.1, 2.6, 6.3], font_pt=10)
+    table("Các use case trọng tâm theo phân hệ", ["Phân hệ", "Mã UC", "Tên Use Case", "Tác nhân chính", "Mô tả ngắn gọn"], ucs, [1.8, 2.8, 3.0, 2.4, 6.0], font_pt=10)
 
     h2("2.3 Sơ đồ Use Case Tổng thể (Textual Representation of Use Case Diagram)")
     body("Cấu trúc biểu đồ use case tổng thể của ULS gồm biên giới hệ thống, các tác nhân và các quan hệ <<include>> (bắt buộc), <<extend>> (mở rộng):")
-    bullet("**Tác nhân bên ngoài:** Khách, Bạn đọc, Thủ thư, Admin ở phía người dùng (quyền lồng nhau Admin ⊃ Thủ thư ⊃ Bạn đọc); AI Service, Google Books, VNPay, Resend ở phía hệ thống ngoài.")
+    bullet("**Tác nhân bên ngoài:** Khách, Bạn đọc, Thủ thư, Admin ở phía người dùng (quyền lồng nhau: Admin gồm cả quyền Thủ thư, Thủ thư gồm cả quyền Bạn đọc); AI Service, Google Books, VNPay, Resend ở phía hệ thống ngoài.")
     bullet("**Biên giới hệ thống (System Boundary):** Hệ thống Quản lý Thư viện Trường Đại học ULS.")
     bullet("**Quan hệ <<include>>:** use case 'Cho mượn tại quầy' <<include>> 'Kiểm tra điều kiện mượn (BR-01 đến BR-05)' và <<include>> 'Dự báo nguy cơ trả trễ' (AI, hết thời hạn 2 giây thì bỏ qua). 'Nộp phạt trực tuyến' <<include>> 'Xác minh chữ ký HMAC-SHA512'. 'Nhập sách hàng loạt' <<include>> 'Tra cứu Google Books'.")
     bullet("**Quan hệ <<extend>>:** 'Nhận trả sách' được <<extend>> bởi 'Tạo khoản phạt' khi trả trễ và bởi 'Giữ bản sao cho người đặt trước' khi có hàng đợi. 'Đặt trước sách' được <<extend>> khi sách hết bản. 'Gia hạn' bị từ chối khi quá hạn hoặc còn nợ phạt.")
@@ -339,7 +352,7 @@ def build(template: Path, output: Path) -> None:
         ["R-SUP-01", "Lộ khoá hoặc gián đoạn dịch vụ bên thứ ba (Resend, VNPay, Google Books)", "2", "4", "Trung bình (8)", "Khoá chỉ nằm trong biến môi trường; thiếu khoá thì tính năng tắt chứ không lỗi; Idempotency-Key khi gọi Resend; endpoint nội bộ cần khoá X-Internal-Key."],
         ["R-DAT-01", "Tệp nhập, xuất độc hại", "3", "3", "Trung bình (9)", "Chống formula injection khi xuất CSV; nhận diện loại tệp bằng magic bytes, giới hạn kích thước và số dòng, từ chối macro và tệp nén bất thường."],
     ]
-    table("Ma trận rủi ro bảo mật và pháp lý của ULS", ["Mã", "Tên rủi ro", "P", "I", "Mức", "Biện pháp giảm thiểu và kiểm soát"], risks, [1.7, 3.5, 0.7, 0.7, 1.8, 7.6], font_pt=9.5, center_cols={2, 3})
+    table("Ma trận rủi ro bảo mật và pháp lý của ULS", ["Mã", "Tên rủi ro", "P", "I", "Mức", "Biện pháp giảm thiểu và kiểm soát"], risks, [2.6, 3.0, 0.8, 0.8, 2.0, 6.8], font_pt=9.5, center_cols={2, 3})
     h2("4.4 Chuyển hoá bảo mật và pháp lý vào cấu trúc WBS bổ sung (Security-Embedded WBS)")
     body("Bảo mật không phải việc 'làm sau' mà được đưa vào WBS ngay từ khâu thiết kế (Security by Design, Compliance by Design). Các hạng mục chuyên biệt về an toàn thông tin và tuân thủ thuộc khối 1.7.2 của WBS Chương 3, kèm hiện trạng thực hiện:")
     secwbs = [
@@ -433,10 +446,9 @@ def build(template: Path, output: Path) -> None:
         ["CSDL", "Cơ sở dữ liệu"],
     ]
     rows = [[str(i), a, b] for i, (a, b) in enumerate(abbr, start=1)]
-    from docx.shared import Pt  # noqa: F401  (giữ cho nhất quán import của kit)
 
     before = len(tpl.body)
-    tpl.table(["STT", "Từ viết tắt", "Ý nghĩa"], rows, [1.2, 2.8, 12.0], style=style_name, header_fill=None, font_pt=11, center_cols={0})
+    tpl.table(["STT", "Từ viết tắt", "Ý nghĩa"], rows, [1.5, 2.8, 11.7], style=style_name, header_fill=None, font_pt=11, center_cols={0})
     # chuyển bảng vừa dựng (và đoạn đệm sau nó) lên ngay sau tiêu đề mục viết tắt
     children = list(tpl.body)
     new_nodes = children[before - 1 : len(children) - 1]  # trừ sectPr cuối
@@ -446,6 +458,7 @@ def build(template: Path, output: Path) -> None:
         anchor.addnext(node)
         anchor = node
 
+    force_font(doc)  # toàn bộ chữ là Times New Roman, chữ mã giữ Consolas
     doc.core_properties.title = "Báo cáo quản lý dự án phần mềm: Hệ thống Quản lý Thư viện Trường Đại học (ULS)"
     doc.core_properties.author = "Trần Đình Khôi, Nguyễn Như Quỳnh"
     doc.save(output)

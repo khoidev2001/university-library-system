@@ -110,6 +110,7 @@ class Template:
         self.protos: dict[str, "copy.Any"] = {}
         self.default_half_pt: int | None = None  # cỡ chữ mặc định (nửa điểm) cho đoạn tạo mới
         self.force_font_pt: float | None = None  # ép cỡ chữ cho mọi ô bảng
+        self.center_all_cells = False  # căn giữa chữ trong mọi ô bảng
 
     # ---- đoạn mẫu
     def capture(self, name: str, paragraph: Paragraph, strip_bold: bool = False) -> None:
@@ -420,7 +421,7 @@ class Template:
                     pf.space_before = Pt(2)
                     pf.space_after = Pt(2)
                     pf.line_spacing = 1.0
-                    if ri == 0 or ci in center_cols:
+                    if ri == 0 or ci in center_cols or self.center_all_cells:
                         para.alignment = WD_ALIGN_PARAGRAPH.CENTER
                     else:
                         para.alignment = WD_ALIGN_PARAGRAPH.LEFT
