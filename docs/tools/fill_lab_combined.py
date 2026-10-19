@@ -8,7 +8,10 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from docx_kit import MdSource, Template, rebuild_label_line
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.shared import Pt
+
+from docx_kit import MdSource, Template, force_font, rebuild_label_line
 import qldapm_calc as calc
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -34,6 +37,9 @@ def build(template: Path, output: Path, labels: dict[str, int] | None = None) ->
         return f"Bảng {labels.get(key, '?')}"
 
     tpl = Template(template)
+    tpl.default_half_pt = 26   # mọi chữ cỡ 13
+    tpl.force_font_pt = 13     # cả chữ trong bảng
+    dash_list = tpl.make_dash_list()
     doc = tpl.doc
     P = doc.paragraphs
     n = Counter()
@@ -66,6 +72,9 @@ def build(template: Path, output: Path, labels: dict[str, int] | None = None) ->
     tpl.capture("bullet", P[37])
     tpl.capture("caption", P[51])
     toc_heading = P[25]
+    toc_heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    for run in toc_heading.runs:
+        run.font.size = Pt(14)
     for idx in range(26, 32):  # mục lục gõ tay của mẫu
         P[idx]._p.getparent().remove(P[idx]._p)
     toc_heading._p.addnext(tpl.toc_paragraph("1-2"))
@@ -74,7 +83,7 @@ def build(template: Path, output: Path, labels: dict[str, int] | None = None) ->
 
     # ------------------------------------------------------------------ tiện ích riêng của mẫu này
     def h1(text, new_page=False):
-        tpl.add("h1", text, outline=0, page_break_before=new_page)
+        tpl.add("h1", text, outline=0, page_break_before=new_page, size_half_pt=28, align="center")
 
     def h2(text):
         tpl.add("h2", text, outline=1)
@@ -86,20 +95,51 @@ def build(template: Path, output: Path, labels: dict[str, int] | None = None) ->
         tpl.add("body", text, **kw)
 
     def bullet(text):
-        tpl.add("bullet", text)
+        tpl.add("bullet", text, list_num=dash_list, list_level=0)
 
     def bullet_lvl(text, level):
-        tpl.add("bullet", text, left_twips=360 + 360 * level)
+        tpl.add("bullet", text, list_num=dash_list, list_level=level)
+
+    pending: list[str] = []
+    cap_kw = dict(bold=True, italic=False, size_half_pt=24, align="center")
 
     def table_caption(title, key=None):
         n.t += 1
         if key:
             registry[key] = n.t
-        tpl.add("caption", f"Bảng {n.t}. {title}", italic=True, align="center", size_half_pt=24, keep_next=True)
+        pending.append(f"Bảng {n.t}. {title}")
+
+    plain_table = tpl.table
+    land = {"on": False}
+    begin_land, end_land = tpl.begin_landscape, tpl.end_landscape
+
+    def begin_landscape():
+        land["on"] = True
+        begin_land()
+
+    def end_landscape():
+        land["on"] = False
+        end_land()
+
+    tpl.begin_landscape, tpl.end_landscape = begin_landscape, end_landscape
+
+    def table_then_caption(*args, **kw):
+        args = list(args)
+        if land["on"] and sum(args[2]) <= TEXT_W + 0.5:
+            factor = LAND_W / sum(args[2])
+            args[2] = [w * factor for w in args[2]]
+        kw.setdefault("gap", False)
+        kw.setdefault("keep_last", True)
+        result = plain_table(*args, **kw)
+        if pending:
+            tpl.add("caption", pending.pop(), **cap_kw)
+        return result
+
+    tpl.table = table_then_caption
 
     def fig(path, title, w=TEXT_W, h=16.0):
         n.f += 1
-        tpl.picture(path, w, f"Hình {n.f}. {title}", max_h_cm=h)
+        tpl.picture(path, w, f"Hình {n.f}. {title}", max_h_cm=h, caption_kw=cap_kw)
 
     def md_table(prefix, title, widths, key=None, **kw):
         header, rows = MD.table(prefix)
@@ -132,6 +172,7 @@ def build(template: Path, output: Path, labels: dict[str, int] | None = None) ->
     md_table("**Bảng 1.9.** So sánh", "So sánh các loại cấu trúc tổ chức dự án", [3.6, 4.2, 4.2, 4.0], key="orgcmp", font_pt=10, bold_first_col=True)
     fig(FIG / "org.png", "Sơ đồ tổ chức nhóm dự án theo góc nhìn cấu trúc", w=14.5, h=8.5)
 
+    tpl.begin_landscape()
     h3("2.2. Kế hoạch quản lý truyền thông & ma trận RACI")
     body("Nguyên tắc: thông tin đúng người, đúng lúc, đúng kênh; mọi quyết định quan trọng có hồ sơ lưu. Vấn đề không giải quyết được ở cấp thành viên chuyển lên quản lý dự án trong 1 ngày làm việc, vượt quyền quản lý dự án chuyển cho khách hàng hoặc giảng viên hướng dẫn trong 2 ngày.")
     md_table("**Bảng 1.7.**", "Kế hoạch quản lý truyền thông", [3.0, 2.4, 2.8, 2.2, 2.2, 3.4], key="comm", font_pt=9.5)
@@ -139,7 +180,6 @@ def build(template: Path, output: Path, labels: dict[str, int] | None = None) ->
     md_table("**Bảng 1.8.**", "Ma trận RACI (mỗi hạng mục có đúng một A)", [1.3, 3.9, 1.7, 1.9, 1.7, 1.7, 2.0, 1.8], key="raci", font_pt=9, center_cols={0, 2, 3, 4, 5, 6, 7})
     body("(Ghi chú: R = Responsible, A = Accountable, C = Consulted, I = Informed; A/R = vừa chịu trách nhiệm cuối vừa thực hiện)", italic=True)
 
-    tpl.begin_landscape()
     h2("3. Cấu trúc Phân rã Công việc (WBS) & Từ điển WBS")
     h3("3.1. Cấu trúc phân rã công việc (WBS)")
     body("WBS có 4 cấp: cấp 1 là pha vòng đời (7 pha), cấp 2 là nhóm công việc, cấp 3 là gói công việc (Work Package, 20 gói) và cấp 4 là công việc chi tiết (42 công việc, xem báo cáo QLDAPM đầy đủ). Gói công việc là đơn vị lập lịch, ước lượng chi phí và đo EVA. Tên gói được dùng nguyên văn ở sơ đồ mạng, Gantt và EVA.")
@@ -166,7 +206,8 @@ def build(template: Path, output: Path, labels: dict[str, int] | None = None) ->
         tpl.table(["Trường thông tin", "Nội dung chi tiết"], rows, [4.0, 12.0], style=GRID, font_pt=10, bold_first_col=True)
 
     # =================================================================== PHẦN II
-    h1("PHẦN II: LẬP LỊCH, TÀI CHÍNH VÀ TIẾN ĐỘ DỰ ÁN (LAB 2)", new_page=True)
+    tpl.begin_landscape()
+    h1("PHẦN II: LẬP LỊCH, TÀI CHÍNH VÀ TIẾN ĐỘ DỰ ÁN (LAB 2)")
     h2("1. Phân tích khả thi tài chính dự án")
     body("Các giả định tài chính (đều là giả định, thay được ở sheet GiaDinh của file Excel kèm theo) và lợi ích hằng năm khi áp dụng đầy đủ:")
     md_table("**Bảng 2.1.**", "Giả định tài chính", [5.8, 4.4, 5.8], key="assume", font_pt=10)
@@ -185,11 +226,9 @@ def build(template: Path, output: Path, labels: dict[str, int] | None = None) ->
     md_table("**Bảng 2.6.**", "Danh sách công việc, ước lượng thời gian, chi phí và phụ thuộc", [1.3, 1.0, 4.2, 1.5, 1.0, 2.2, 4.8], key="est", font_pt=9, center_cols={1, 3, 4})
     md_table("**Bảng 2.7.**", "Bốn loại quan hệ phụ thuộc và ví dụ trong dự án", [3.0, 5.4, 7.6], font_pt=10, bold_first_col=True)
 
-    tpl.begin_landscape()
     h2("3. Sơ đồ mạng, thuật toán Forward/Backward Pass & đường găng")
     h3("3.1. Sơ đồ mạng công việc (AON Diagram)")
     fig(FIG / "network.png", "Sơ đồ mạng AON với ES, EF, LS, LF, Slack (đỏ: đường găng)", w=LAND_W, h=14.5)
-    tpl.end_landscape()
     h3("3.2. Thuật toán truyền tiến / truyền lùi & bảng tham số")
     body("Truyền tiến: ES(việc sau) = max theo mọi tiền nhiệm của (FS: EF + lag; SS: ES + lag; FF: EF + lag - d; SF: ES + lag - d), EF = ES + d. Truyền lùi: LF(việc trước) = min theo mọi hậu nhiệm của (FS: LS - lag; SS: LS - lag + d; FF: LF - lag; SF: LF - lag + d), LS = LF - d, Slack = LS - ES. Việc cuối có LF bằng EF lớn nhất của dự án. Đơn vị: tuần, mốc đếm từ đầu tuần 1 (mốc 0). Bảng tính từng bước có thế số nằm ở mục 2.3.2 của báo cáo QLDAPM đầy đủ.")
     md_table("**Bảng 2.9.**", "Tổng hợp kết quả CPM (ES, EF, LS, LF, Slack)", [1.5, 5.9, 0.9, 1.0, 1.0, 1.1, 1.1, 1.3, 1.2], key="cpm", font_pt=9.5, center_cols={0, 2, 3, 4, 5, 6, 7, 8})
@@ -199,11 +238,9 @@ def build(template: Path, output: Path, labels: dict[str, int] | None = None) ->
     bullet("Đường 3: A → C → D → F → J → K → M → O → P → S.")
     body("Các gói có độ dự trữ: 1.1.2 Dựng môi trường (Slack 2), 3.1.3 Thiết kế mô hình AI (3), 5.1.1 Kiểm thử đơn vị, tích hợp (2), 6.1.1 Docker, CI/CD (4), 6.2.1 Tài liệu, đào tạo thủ thư (1). Vì mạng chặt (nhiều đường găng), mọi trễ trên gói găng đều đẩy ngày kết thúc, nên EVA phải theo dõi sát.")
 
-    tpl.begin_landscape()
     h2("4. Sơ đồ Gantt chart & kế hoạch nén tiến độ")
     fig(FIG / "gantt.png", "Biểu đồ Gantt của dự án (đỏ: găng; xanh: có dự trữ)", w=LAND_W, h=10.0)
     body("Nguồn hình: Gantt và sơ đồ mạng được vẽ bằng chương trình (Python, matplotlib) trực tiếp từ dữ liệu CPM để khớp tuyệt đối với bảng tính; cùng dữ liệu có ở sheet CPM và Gantt của file Excel kèm theo (docs/pm/ULS_PM_Plan.xlsx) và nhập được vào MS Project hoặc GanttProject.", italic=True)
-    tpl.end_landscape()
     body("**Phương án nén tiến độ (giảm 20%, từ 16 xuống không quá 12,8 tuần).** Hai kỹ thuật: Crashing (thêm nhân lực hoặc làm thêm giờ, tăng chi phí) và Fast-tracking (làm song song các việc tuần tự, tăng rủi ro làm lại). Vì có 3 đường găng song song, phải nén đồng thời trên mọi đường. Ba phương án được so sánh ở " + ref("compress") + ":")
     md_table("**Bảng 2.11.**", "So sánh ba phương án nén", [3.4, 2.3, 1.8, 3.3, 5.2], key="compress", font_pt=10, center_cols={1, 2})
     bullet("**Kỹ thuật Fast-tracking:** bốn thay đổi quan hệ phụ thuộc (FT1 đến FT4) đưa dự án từ 16 xuống 13 tuần với dự phòng làm lại 30 giờ (1.500.000 đồng), ví dụ bắt đầu tích hợp 1 tuần trước khi Frontend và AI xong hẳn (FS với lead 1 tuần).")
@@ -211,16 +248,13 @@ def build(template: Path, output: Path, labels: dict[str, int] | None = None) ->
     bullet("**Kỹ thuật Crashing:** thuật toán chọn mỗi lần tổ hợp hoạt động găng giảm được thời gian dự án với chi phí trên mỗi tuần thấp nhất; chỉ cần nén thêm 0,5 tuần ở 5.1.2 và 6.2.1 để xuống 12,5 tuần.")
     md_table("**Bảng 2.13.**", "Các bước crashing", [1.4, 5.8, 2.2, 3.0, 3.6], font_pt=10, center_cols={0, 2})
     body("Phương án khuyến nghị là **kết hợp (Fast-tracking rồi Crashing): 12,5 tuần (giảm 21,9%), chi phí tăng thêm 1.705.625 đồng** (6,0% BAC, 60% dự phòng quản lý).")
-    tpl.begin_landscape()
     fig(FIG / "compress_gantt.png", "Gantt trước nén (xám) và sau nén (đỏ, xanh)", w=LAND_W, h=13.5)
-    tpl.end_landscape()
     bullet("**Đánh giá rủi ro nén tiến độ:** nguy cơ quá tải nhân lực (tải đỉnh nhóm tăng lên 64,4 giờ mỗi tuần so với năng lực 64), phát sinh lỗi do chồng lấn, mất độ dự trữ và tăng chi phí (" + ref("crisk") + ").")
     md_table("**Bảng 2.15.**", "Rủi ro của phương án nén tiến độ", [3.2, 5.2, 1.6, 6.0], key="crisk", font_pt=9.5, center_cols={2})
     body("Chỉ nên nén khi khách hàng chấp nhận chi phí tăng thêm 1,71 triệu đồng và rủi ro làm lại; nếu không, giữ lịch 16 tuần. Nếu nén: đóng băng hợp đồng API từ tuần 3, dựng dịch vụ giả (mock) cho AI để tích hợp sớm, không nén kiểm thử và UAT, theo dõi EVA hằng tuần.")
 
     # =================================================================== PHẦN III
-    tpl.begin_landscape()
-    h1("PHẦN III: QUẢN LÝ RỦI RO, GIÁ TRỊ THU ĐƯỢC (EVA) VÀ QUẢN LÝ CHẤT LƯỢNG (LAB 3)")
+    h1("PHẦN III: QUẢN LÝ RỦI RO, GIÁ TRỊ THU ĐƯỢC (EVA) VÀ QUẢN LÝ CHẤT LƯỢNG (LAB 3)", new_page=True)
     h2("1. Quản lý rủi ro dự án (Risk Management)")
     body("Danh mục rủi ro gồm 11 rủi ro thuộc 4 nhóm Con người, Tiến trình, Sản phẩm, Công nghệ (đề yêu cầu từ 6 rủi ro). P là xác suất và I là mức ảnh hưởng, thang 1 đến 5; Score = P x I; mức Cao từ 15, Trung bình từ 8 đến 14, Thấp dưới 8. Tổng giá trị tiền kỳ vọng (EMV) của các rủi ro là 2.820.000 đồng, bằng đúng dự phòng quản lý.")
     reg_h, reg = MD.table("**Bảng 3.1.**")
@@ -234,7 +268,7 @@ def build(template: Path, output: Path, labels: dict[str, int] | None = None) ->
         rows.append([code, group, name, p, i, f"{score}\n({level})", mit, cont])
     table_caption("Danh mục quản lý rủi ro (Risk Register)")
     tpl.table(["Mã", "Nhóm", "Mô tả rủi ro", "P", "I", "Score", "Kế hoạch giảm thiểu (Mitigation)", "Kế hoạch dự phòng (Contingency)"],
-              rows, [1.0, 1.9, 3.9, 0.7, 0.7, 1.9, 7.3, 7.3], style=GRID, font_pt=8.5, center_cols={0, 3, 4, 5})
+              rows, [1.4, 2.0, 3.6, 0.8, 0.8, 1.9, 7.1, 7.1], style=GRID, font_pt=8.5, center_cols={0, 3, 4, 5})
     tpl.end_landscape()
     fig(FIG / "risk_matrix.png", "Ma trận rủi ro 5x5 (P theo trục dọc, I theo trục ngang)", w=11.5, h=9.5)
     body("Có 2 rủi ro mức Cao: R1 (điểm 15) và R5 (điểm 16). Ba rủi ro đã xảy ra trong dự án thật: R1 (dịch vụ trên Render ngủ, backend tự rơi về danh sách sách mượn nhiều nên người dùng không thấy lỗi), R2 (Google Books giới hạn tần suất nên dùng goodbooks-10k làm nguồn chính) và R10 (phát hiện phạt tính theo giờ khi chạy thật luồng trả sách, đã sửa).")
@@ -257,12 +291,12 @@ def build(template: Path, output: Path, labels: dict[str, int] | None = None) ->
 
     h2("3. Quản lý thay đổi & cấu hình (Change Management)")
     bullet("**Thiết lập đường cơ sở (Baseline):** phiên bản 1.0 chốt sau khi khách hàng duyệt SOW và lịch (mốc M1, tuần 2). **Baseline Scope** là WBS cấp 3 kèm từ điển WBS và tiêu chí chấp nhận (mục 3.1 và 3.2 Phần I); **Baseline Schedule** là lịch CPM ở " + ref("cpm") + " cùng 8 mốc ở " + ref("sched") + "; **Baseline Cost** là BAC theo pha ở " + ref("costph") + ".")
-    md_table("**Bảng 3.7.**", "Đường cơ sở lịch: các mốc quan trọng", [1.2, 1.3, 6.5, 7.0], key="sched", font_pt=10, center_cols={0, 1})
+    md_table("**Bảng 3.7.**", "Đường cơ sở lịch: các mốc quan trọng", [1.6, 1.6, 6.1, 6.7], key="sched", font_pt=10, center_cols={0, 1})
     md_table("**Bảng 3.8.**", "Đường cơ sở chi phí theo pha", [4.8, 2.4, 4.8, 4.0], key="costph", font_pt=10, center_cols={1, 3}, total_row=False)
     bullet("**Quy trình 5 bước kiểm soát yêu cầu thay đổi:** Tiếp nhận (Đề xuất) → Phân tích ảnh hưởng → Phê duyệt (dưới 8 giờ và không ảnh hưởng đường găng: Quản lý dự án; từ 8 giờ hoặc ảnh hưởng đường găng: khách hàng; vượt dự phòng: báo giảng viên) → Thực thi và cập nhật Baseline → Xác minh và truyền thông.")
     md_table("**Bảng 3.9.**", "Quy trình 5 bước kiểm soát thay đổi (Change Request Process)", [2.4, 5.6, 2.6, 2.0, 3.4], font_pt=9.5, bold_first_col=True)
     md_table("**Bảng 3.10.**", "Phiếu Change Request mẫu (CR-01)", [4.0, 12.0], font_pt=10, bold_first_col=True)
-    md_table("**Bảng 3.11.**", "Nhật ký thay đổi", [1.3, 5.4, 1.0, 3.3, 5.0], font_pt=9.5, center_cols={0, 2})
+    md_table("**Bảng 3.11.**", "Nhật ký thay đổi", [1.5, 5.0, 1.2, 3.3, 5.0], font_pt=9.5, center_cols={0, 2})
     body("Quản lý cấu hình: mã nguồn trên Git, nhánh main được bảo vệ; mỗi công việc làm trên nhánh riêng, gộp qua Pull Request có rà soát và CI xanh; cấu hình bí mật chỉ nằm trong biến môi trường; tài liệu thiết kế (ERD, đặc tả API) sinh từ mã nguồn để không lệch.")
 
     h2("4. Đảm bảo chất lượng & kết thúc dự án (QA/QC)")
@@ -344,6 +378,7 @@ def build(template: Path, output: Path, labels: dict[str, int] | None = None) ->
     doc = tpl.doc
     doc.core_properties.title = "Báo cáo thực hành tổng hợp Quản lý dự án phần mềm (LAB 1 - 2 - 3): ULS"
     doc.core_properties.author = "Trần Đình Khôi, Nguyễn Như Quỳnh"
+    force_font(doc)  # toàn bộ chữ là Times New Roman
     doc.save(output)
     return registry
 
