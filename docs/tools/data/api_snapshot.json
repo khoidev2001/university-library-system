@@ -1,0 +1,473 @@
+{
+ "source": "GET https://muce-library.vercel.app/api/docs-json, 21/10/2026",
+ "endpoints": [
+  {
+   "method": "GET",
+   "path": "/api/health",
+   "tag": "health",
+   "summary": "Trạng thái backend và kết nối cơ sở dữ liệu"
+  },
+  {
+   "method": "POST",
+   "path": "/api/auth/register",
+   "tag": "auth",
+   "summary": "Đăng ký tài khoản bạn đọc (role READER)"
+  },
+  {
+   "method": "POST",
+   "path": "/api/auth/login",
+   "tag": "auth",
+   "summary": "Đăng nhập, nhận JWT hạn 24h (tối đa 10 lần/phút)"
+  },
+  {
+   "method": "GET",
+   "path": "/api/auth/me",
+   "tag": "auth",
+   "summary": "Thông tin tài khoản hiện tại (kèm mustChangePassword, emailReminders, lần đăng nhập)"
+  },
+  {
+   "method": "PATCH",
+   "path": "/api/auth/me",
+   "tag": "auth",
+   "summary": "Tự sửa hồ sơ: chỉ fullName và emailReminders"
+  },
+  {
+   "method": "POST",
+   "path": "/api/auth/change-password",
+   "tag": "auth",
+   "summary": "Đổi mật khẩu (tối đa 5 lần/phút)"
+  },
+  {
+   "method": "POST",
+   "path": "/api/auth/forgot-password",
+   "tag": "auth",
+   "summary": "Quên mật khẩu: gửi liên kết đặt lại qua email (tối đa 5 lần/phút)"
+  },
+  {
+   "method": "POST",
+   "path": "/api/auth/reset-password",
+   "tag": "auth",
+   "summary": "Đặt lại mật khẩu bằng token trong email (tối đa 10 lần/phút)"
+  },
+  {
+   "method": "GET",
+   "path": "/api/users",
+   "tag": "users",
+   "summary": "Danh sách người dùng / bạn đọc (thủ thư)"
+  },
+  {
+   "method": "POST",
+   "path": "/api/users",
+   "tag": "users",
+   "summary": "Admin tạo tài khoản LIBRARIAN / ADMIN"
+  },
+  {
+   "method": "GET",
+   "path": "/api/users/{id}",
+   "tag": "users",
+   "summary": "Hồ sơ bạn đọc: sách đang mượn, quá hạn, phạt chưa trả"
+  },
+  {
+   "method": "PATCH",
+   "path": "/api/users/{id}",
+   "tag": "users",
+   "summary": "Khoá/mở thẻ, đổi loại bạn đọc, sửa tên"
+  },
+  {
+   "method": "POST",
+   "path": "/api/users/readers",
+   "tag": "users",
+   "summary": "Thủ thư tạo bạn đọc tại quầy, nhận mật khẩu tạm một lần"
+  },
+  {
+   "method": "POST",
+   "path": "/api/users/{id}/reset-password",
+   "tag": "users",
+   "summary": "Cấp lại mật khẩu tạm (thủ thư: bạn đọc; quản trị viên: mọi tài khoản)"
+  },
+  {
+   "method": "GET",
+   "path": "/api/policies",
+   "tag": "policies",
+   "summary": "Chính sách mượn theo loại bạn đọc"
+  },
+  {
+   "method": "PATCH",
+   "path": "/api/policies/{memberType}",
+   "tag": "policies",
+   "summary": "Admin sửa chính sách mượn (áp dụng cho phiếu tạo sau)"
+  },
+  {
+   "method": "GET",
+   "path": "/api/books",
+   "tag": "books",
+   "summary": "Tìm kiếm sách theo tiêu đề / tác giả / ISBN, lọc thể loại, tác giả, còn sách"
+  },
+  {
+   "method": "POST",
+   "path": "/api/books",
+   "tag": "books",
+   "summary": "Thêm đầu sách"
+  },
+  {
+   "method": "GET",
+   "path": "/api/books/import-template",
+   "tag": "books",
+   "summary": "Tải file mẫu nhập sách (CSV UTF-8 có BOM hoặc xlsx) kèm dòng ví dụ"
+  },
+  {
+   "method": "POST",
+   "path": "/api/books/import-file",
+   "tag": "books",
+   "summary": "Nhập sách hàng loạt từ file CSV / xlsx (tối đa 5 MB, 5000 dòng). dryRun=true chỉ xem trước, không ghi"
+  },
+  {
+   "method": "POST",
+   "path": "/api/books/import",
+   "tag": "books",
+   "summary": "Nhập sách hàng loạt theo ISBN qua Google Books (FR-BOOK-05)"
+  },
+  {
+   "method": "GET",
+   "path": "/api/books/{id}",
+   "tag": "books",
+   "summary": "Chi tiết sách: tác giả, thể loại, số bản còn, điểm đánh giá"
+  },
+  {
+   "method": "PATCH",
+   "path": "/api/books/{id}",
+   "tag": "books",
+   "summary": "Sửa đầu sách"
+  },
+  {
+   "method": "DELETE",
+   "path": "/api/books/{id}",
+   "tag": "books",
+   "summary": "Xoá đầu sách (không còn bản đang mượn)"
+  },
+  {
+   "method": "GET",
+   "path": "/api/books/{id}/copies",
+   "tag": "books",
+   "summary": "Danh sách bản sao của đầu sách"
+  },
+  {
+   "method": "POST",
+   "path": "/api/books/{id}/copies",
+   "tag": "books",
+   "summary": "Thêm bản sao (barcode duy nhất, trạng thái AVAILABLE)"
+  },
+  {
+   "method": "GET",
+   "path": "/api/authors",
+   "tag": "authors",
+   "summary": "Danh sách tác giả (tìm theo tên, phân trang)"
+  },
+  {
+   "method": "POST",
+   "path": "/api/authors",
+   "tag": "authors",
+   "summary": ""
+  },
+  {
+   "method": "PATCH",
+   "path": "/api/authors/{id}",
+   "tag": "authors",
+   "summary": ""
+  },
+  {
+   "method": "DELETE",
+   "path": "/api/authors/{id}",
+   "tag": "authors",
+   "summary": ""
+  },
+  {
+   "method": "GET",
+   "path": "/api/categories",
+   "tag": "categories",
+   "summary": "Danh sách thể loại kèm số sách"
+  },
+  {
+   "method": "POST",
+   "path": "/api/categories",
+   "tag": "categories",
+   "summary": ""
+  },
+  {
+   "method": "PATCH",
+   "path": "/api/categories/{id}",
+   "tag": "categories",
+   "summary": ""
+  },
+  {
+   "method": "DELETE",
+   "path": "/api/categories/{id}",
+   "tag": "categories",
+   "summary": ""
+  },
+  {
+   "method": "GET",
+   "path": "/api/copies/labels",
+   "tag": "copies",
+   "summary": "Bản sao kèm tiêu đề sách để in nhãn mã vạch (lọc theo bookIds và / hoặc copyIds, tối đa 2000 bản)"
+  },
+  {
+   "method": "PATCH",
+   "path": "/api/copies/{id}",
+   "tag": "copies",
+   "summary": "Cập nhật trạng thái / vị trí kệ bản sao"
+  },
+  {
+   "method": "POST",
+   "path": "/api/loans",
+   "tag": "loans",
+   "summary": "Cho mượn tại quầy bằng mã vạch + mã bạn đọc; kèm dự báo nguy cơ trả trễ"
+  },
+  {
+   "method": "GET",
+   "path": "/api/loans",
+   "tag": "loans",
+   "summary": "Tra cứu phiếu mượn; lọc theo trạng thái, quá hạn, bạn đọc"
+  },
+  {
+   "method": "GET",
+   "path": "/api/loans/me",
+   "tag": "loans",
+   "summary": "Sách tôi đang mượn và lịch sử"
+  },
+  {
+   "method": "GET",
+   "path": "/api/loans/{id}",
+   "tag": "loans",
+   "summary": "Chi tiết phiếu mượn"
+  },
+  {
+   "method": "POST",
+   "path": "/api/loans/{id}/return",
+   "tag": "loans",
+   "summary": "Nhận trả sách; tự tạo phiếu phạt nếu trả trễ"
+  },
+  {
+   "method": "POST",
+   "path": "/api/loans/{id}/report-lost",
+   "tag": "loans",
+   "summary": "Ghi nhận mất sách; phạt = giá bìa + phạt trễ"
+  },
+  {
+   "method": "POST",
+   "path": "/api/loans/{id}/renew",
+   "tag": "loans",
+   "summary": "Bạn đọc tự gia hạn phiếu của mình"
+  },
+  {
+   "method": "GET",
+   "path": "/api/fines/me",
+   "tag": "fines",
+   "summary": "Các khoản phạt của tôi và tổng chưa thanh toán"
+  },
+  {
+   "method": "GET",
+   "path": "/api/fines",
+   "tag": "fines",
+   "summary": "Danh sách khoản phạt; mặc định xem cả đã và chưa thu"
+  },
+  {
+   "method": "POST",
+   "path": "/api/fines/{id}/pay",
+   "tag": "fines",
+   "summary": "Ghi nhận bạn đọc đã nộp tiền phạt"
+  },
+  {
+   "method": "POST",
+   "path": "/api/books/{id}/ratings",
+   "tag": "ratings",
+   "summary": "Chấm 1–5 sao cho sách đã mượn và trả (chấm lại sẽ ghi đè)"
+  },
+  {
+   "method": "GET",
+   "path": "/api/books/{id}/ratings/summary",
+   "tag": "ratings",
+   "summary": "Điểm trung bình và số lượt đánh giá"
+  },
+  {
+   "method": "GET",
+   "path": "/api/reports/top-books",
+   "tag": "reports",
+   "summary": "Sách được mượn nhiều nhất trong khoảng thời gian"
+  },
+  {
+   "method": "GET",
+   "path": "/api/reports/overdue",
+   "tag": "reports",
+   "summary": "Bạn đọc đang quá hạn kèm số ngày trễ và phạt ước tính"
+  },
+  {
+   "method": "GET",
+   "path": "/api/reports/loans-by-month",
+   "tag": "reports",
+   "summary": "Số lượt mượn theo tháng"
+  },
+  {
+   "method": "GET",
+   "path": "/api/reports/inventory",
+   "tag": "reports",
+   "summary": "Tồn kho theo thể loại"
+  },
+  {
+   "method": "POST",
+   "path": "/api/reservations",
+   "tag": "reservations",
+   "summary": "Đặt trước sách đang hết bản trên kệ"
+  },
+  {
+   "method": "GET",
+   "path": "/api/reservations",
+   "tag": "reservations",
+   "summary": "Hàng đợi đặt trước (thủ thư)"
+  },
+  {
+   "method": "GET",
+   "path": "/api/reservations/me",
+   "tag": "reservations",
+   "summary": "Đặt trước của tôi, kèm vị trí hàng đợi"
+  },
+  {
+   "method": "DELETE",
+   "path": "/api/reservations/{id}",
+   "tag": "reservations",
+   "summary": "Huỷ đặt trước (bạn đọc: của mình; thủ thư: bất kỳ)"
+  },
+  {
+   "method": "GET",
+   "path": "/api/notifications/me",
+   "tag": "notifications",
+   "summary": "Thông báo của tôi kèm số chưa đọc"
+  },
+  {
+   "method": "POST",
+   "path": "/api/notifications/read-all",
+   "tag": "notifications",
+   "summary": "Đánh dấu đã đọc tất cả"
+  },
+  {
+   "method": "POST",
+   "path": "/api/notifications/{id}/read",
+   "tag": "notifications",
+   "summary": "Đánh dấu đã đọc một thông báo"
+  },
+  {
+   "method": "POST",
+   "path": "/api/payments",
+   "tag": "payments",
+   "summary": "Tạo giao dịch thanh toán phạt qua VNPay; trả paymentUrl để chuyển hướng trình duyệt"
+  },
+  {
+   "method": "GET",
+   "path": "/api/payments/config",
+   "tag": "payments",
+   "summary": "Thanh toán trực tuyến có đang bật không (đủ cấu hình VNPay), cùng hạn mức một giao dịch"
+  },
+  {
+   "method": "GET",
+   "path": "/api/payments/me",
+   "tag": "payments",
+   "summary": "Lịch sử thanh toán của tôi (mới nhất trước)"
+  },
+  {
+   "method": "GET",
+   "path": "/api/payments/vnpay/ipn",
+   "tag": "payments",
+   "summary": "IPN của VNPay (máy chủ gọi máy chủ): xác nhận kết quả thanh toán"
+  },
+  {
+   "method": "GET",
+   "path": "/api/payments/vnpay/return",
+   "tag": "payments",
+   "summary": "Trình duyệt quay về từ VNPay; xác minh chữ ký rồi chuyển hướng tới trang kết quả của web"
+  },
+  {
+   "method": "GET",
+   "path": "/api/payments/{id}",
+   "tag": "payments",
+   "summary": "Chi tiết giao dịch (chủ giao dịch hoặc thủ thư)"
+  },
+  {
+   "method": "POST",
+   "path": "/api/payments/{id}/cancel",
+   "tag": "payments",
+   "summary": "Huỷ giao dịch đang chờ để chọn lại khoản phạt hoặc nộp tiền mặt (chủ giao dịch hoặc thủ thư)"
+  },
+  {
+   "method": "GET",
+   "path": "/api/recommendations/me",
+   "tag": "recommendations",
+   "summary": "Sách gợi ý cho tôi; AI lỗi thì trả sách mượn nhiều (source = POPULAR)"
+  },
+  {
+   "method": "POST",
+   "path": "/api/recommendations/train",
+   "tag": "recommendations",
+   "summary": "Yêu cầu AI Service huấn luyện lại mô hình"
+  },
+  {
+   "method": "GET",
+   "path": "/api/recommendations/metrics",
+   "tag": "recommendations",
+   "summary": "Số đo mô hình (Precision@5, ROC-AUC…) để đưa vào báo cáo"
+  },
+  {
+   "method": "GET",
+   "path": "/api/recommendations/overdue-accuracy",
+   "tag": "recommendations",
+   "summary": "Đối chiếu dự báo trả trễ đã lưu với kết quả thực tế"
+  },
+  {
+   "method": "GET",
+   "path": "/api/internal/training-data",
+   "tag": "internal",
+   "summary": "Dữ liệu huấn luyện cho AI Service (sách, bạn đọc, lượt mượn, đánh giá)"
+  },
+  {
+   "method": "GET",
+   "path": "/api/exports/overdue-loans",
+   "tag": "exports",
+   "summary": "Xuất phiếu mượn đang quá hạn (kèm phạt ước tính)"
+  },
+  {
+   "method": "GET",
+   "path": "/api/exports/loans",
+   "tag": "exports",
+   "summary": "Xuất phiếu mượn theo khoảng ngày mượn / trạng thái / quá hạn"
+  },
+  {
+   "method": "GET",
+   "path": "/api/exports/top-books",
+   "tag": "exports",
+   "summary": "Xuất sách được mượn nhiều nhất trong khoảng ngày"
+  },
+  {
+   "method": "GET",
+   "path": "/api/exports/inventory",
+   "tag": "exports",
+   "summary": "Xuất tồn kho theo thể loại"
+  },
+  {
+   "method": "GET",
+   "path": "/api/exports/fines",
+   "tag": "exports",
+   "summary": "Xuất khoản phạt theo trạng thái thu / khoảng ngày phát sinh"
+  },
+  {
+   "method": "GET",
+   "path": "/api/exports/readers",
+   "tag": "exports",
+   "summary": "Xuất danh sách bạn đọc (kèm số sách đang mượn)"
+  },
+  {
+   "method": "GET",
+   "path": "/api/exports/books",
+   "tag": "exports",
+   "summary": "Xuất danh mục sách kèm số bản sao"
+  }
+ ]
+}
