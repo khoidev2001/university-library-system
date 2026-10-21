@@ -372,7 +372,7 @@ class Template:
     def table(self, header: list[str], rows: list[list[str]], widths_cm: list[float], *, style: str,
               font_pt: float = 11, header_fill: str | None = "E7E9F0", bold_first_col: bool = False,
               center_cols: set[int] | None = None, total_row: bool = False, keep_header: bool = True,
-              gap: bool = True, keep_last: bool = False, code: bool = False):
+              gap: bool = True, keep_last: bool = False, code: bool = False, caption: str | None = None):
         center_cols = center_cols or set()
         if self.force_font_pt and not code:
             font_pt = self.force_font_pt
@@ -417,7 +417,7 @@ class Template:
                 for li, line in enumerate(lines):
                     para = cell.paragraphs[0] if li == 0 else cell.add_paragraph()
                     pf = para.paragraph_format
-                    pf.keep_with_next = not code and ((ri == 0) or (len(all_rows) <= 5 and ri < len(all_rows) - 1) or (keep_last and ri == len(all_rows) - 1))
+                    pf.keep_with_next = not code and ((ri == 0) or (len(all_rows) <= 5 and ri < len(all_rows) - 1) or (keep_last and ri >= len(all_rows) - 3)) or bool(caption and ri >= len(all_rows) - 3)
                     pf.space_before = Pt(2)
                     pf.space_after = Pt(2)
                     pf.line_spacing = 1.0
@@ -434,6 +434,29 @@ class Template:
                         run._r.get_or_add_rPr().rFonts.set(qn("w:cs"), CODE_FONT if is_code else FONT)
                         run.font.size = Pt(font_pt)
                         run.font.bold = True if (ri == 0 or is_bold or last or (bold_first_col and ci == 0)) else False
+        if caption:  # tên bảng là dòng cuối của chính bảng (gộp ô, không viền) để không bao giờ rơi lẻ sang trang sau
+            tr = tbl.add_row()
+            trPr = tr._tr.get_or_add_trPr()
+            trPr.append(OxmlElement("w:cantSplit"))
+            merged = tr.cells[0].merge(tr.cells[-1])
+            tcPr = merged._tc.get_or_add_tcPr()
+            borders = OxmlElement("w:tcBorders")
+            for side in ("top", "left", "bottom", "right"):
+                b = OxmlElement(f"w:{side}")
+                b.set(qn("w:val"), "nil")
+                borders.append(b)
+            tcPr.append(borders)
+            for extra in merged.paragraphs[1:]:
+                extra._p.getparent().remove(extra._p)
+            para = merged.paragraphs[0]
+            para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            para.paragraph_format.space_before = Pt(6)
+            para.paragraph_format.space_after = Pt(10)
+            run = para.add_run(caption)
+            run.font.name = FONT
+            run._r.get_or_add_rPr().rFonts.set(qn("w:eastAsia"), FONT)
+            run.font.size = Pt(12)
+            run.font.bold = True
         if gap:  # đoạn trống nhỏ sau bảng để các khối không dính nhau
             spacer = self.doc.add_paragraph()
             spacer.paragraph_format.space_after = Pt(0)
